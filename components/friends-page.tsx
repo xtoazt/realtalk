@@ -1,0 +1,333 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { UserPlus, Check, X, Search, MessageCircle, RefreshCw } from "lucide-react"
+
+interface User {
+  id: string
+  username: string
+  name_color?: string
+  has_gold_animation?: boolean
+}
+
+interface Friendship {
+  id: string
+  requester_id: string
+  addressee_id: string
+  status: string
+  requester_username: string
+  addressee_username: string
+  requester_name_color?: string
+  addressee_name_color?: string
+  requester_has_gold?: boolean
+  addressee_has_gold?: boolean
+}
+
+interface FriendsPageProps {
+  currentUserId: string
+  onStartDM: (friendId: string, friendUsername: string) => void
+}
+
+export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<User[]>([])
+  const [friendships, setFriendships] = useState<Friendship[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [sendRequestError, setSendRequestError] = useState<string | null>(null)
+  const [lastUpdate, setLastUpdate] = useState(Date.now())
+
+  const fetchFriendships = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/friends")
+      if (response.ok) {
+        const data = await response.json()
+        setFriendships(data.friendships)
+        setLastUpdate(Date.now())
+      }
+    } catch (error) {
+      console.error("Failed to fetch friendships:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchFriendships()
+    // More frequent polling for real-time updates
+    const interval = setInterval(fetchFriendships, 3000)
+    return () => clearInterval(interval)
+  }, [fetchFriendships])
+
+  const searchUsers = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    setSearchLoading(true)
+    try {
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`)
+      if (response.ok) {
+        const data = await response.json()
+        setSearchResults(data.users)
+      }
+    } catch (error) {
+      console.error("Failed to search users:", error)
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  const sendFriendRequest = async (userId: string) => {
+    setSendRequestError(null)
+    try {
+      const response = await fetch("/api/friends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addresseeId: userId }),
+      })
+
+      if (response.ok) {
+        fetchFriendships()
+        setSearchResults([])
+        setSearchQuery("")
+      } else {
+        const data = await response.json()
+        setSendRequestError(data.error || "Failed to send friend request.")
+      }
+    } catch (error: any) {
+      console.error("Failed to send friend request:", error)
+      setSendRequestError(error.message || "Something went wrong.")
+    }
+  }
+
+  const respondToFriendRequest = async (friendshipId: string, status: string) => {
+    try {
+      const response = await fetch(`/api/friends/${friendshipId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+
+      if (response.ok) {
+        // Immediate update for better UX
+        fetchFriendships()
+      }
+    } catch (error) {
+      console.error("Failed to respond to friend request:", error)
+    }
+  }
+
+  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+    if (hasGold) {
+      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+    }
+    return nameColor ? { color: nameColor } : {}
+  }
+
+  const pendingRequests = friendships.filter((f) => f.status === "pending" && f.addressee_id === currentUserId)
+  const sentRequests = friendships.filter((f) => f.status === "pending" && f.requester_id === currentUserId)
+  const acceptedFriends = friendships.filter((f) => f.status === "accepted")
+
+  return (
+    <div className="space-y-6">
+      {/* Real-time status indicator */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Friends</h2>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span>Last updated: {new Date(lastUpdate).toLocaleTimeString()}</span>
+        </div>
+      </div>
+
+      {/* Search Users */}
+      <Card className="animate-fadeIn">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Find Friends
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by username..."
+              onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+              className="transition-all duration-200 focus:scale-102"
+            />
+            <Button
+              onClick={searchUsers}
+              disabled={searchLoading}
+              className="transition-all duration-200 hover:scale-105"
+            >
+              {searchLoading ? "Searching..." : "Search"}
+            </Button>
+          </div>
+
+          {sendRequestError && (
+            <div className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md animate-fadeIn">
+              {sendRequestError}
+            </div>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="space-y-2 animate-fadeIn">
+              {searchResults.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200"
+                >
+                  <span
+                    className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
+                    style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
+                  >
+                    @{user.username}
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() => sendFriendRequest(user.id)}
+                    className="transition-all duration-200 hover:scale-105"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Add Friend
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pending Requests */}
+      {pendingRequests.length > 0 && (
+        <Card className="animate-fadeIn border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-primary">Friend Requests ({pendingRequests.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingRequests.map((friendship) => (
+                <div
+                  key={friendship.id}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 animate-slideIn"
+                >
+                  <span
+                    className={friendship.requester_has_gold ? getUsernameStyle(undefined, true) : ""}
+                    style={!friendship.requester_has_gold ? getUsernameStyle(friendship.requester_name_color) : {}}
+                  >
+                    @{friendship.requester_username}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => respondToFriendRequest(friendship.id, "accepted")}
+                      className="bg-green-600 hover:bg-green-700 transition-all duration-200 hover:scale-105"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => respondToFriendRequest(friendship.id, "blocked")}
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sent Requests */}
+      {sentRequests.length > 0 && (
+        <Card className="animate-fadeIn">
+          <CardHeader>
+            <CardTitle>Sent Requests ({sentRequests.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {sentRequests.map((friendship) => (
+                <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <span
+                    className={friendship.addressee_has_gold ? getUsernameStyle(undefined, true) : ""}
+                    style={!friendship.addressee_has_gold ? getUsernameStyle(friendship.addressee_name_color) : {}}
+                  >
+                    @{friendship.addressee_username}
+                  </span>
+                  <span className="text-sm text-muted-foreground animate-pulse">Pending</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Friends List */}
+      <Card className="animate-fadeIn">
+        <CardHeader>
+          <CardTitle>Friends ({acceptedFriends.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center text-muted-foreground py-4 animate-pulse">Loading friends...</div>
+          ) : acceptedFriends.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">
+              No friends yet. Start by searching for users above!
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {acceptedFriends.map((friendship) => {
+                const friend =
+                  friendship.requester_id === currentUserId
+                    ? {
+                        id: friendship.addressee_id,
+                        username: friendship.addressee_username,
+                        name_color: friendship.addressee_name_color,
+                        has_gold: friendship.addressee_has_gold,
+                      }
+                    : {
+                        id: friendship.requester_id,
+                        username: friendship.requester_username,
+                        name_color: friendship.requester_name_color,
+                        has_gold: friendship.requester_has_gold,
+                      }
+
+                return (
+                  <div
+                    key={friendship.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200 animate-slideIn"
+                  >
+                    <span
+                      className={friend.has_gold ? getUsernameStyle(undefined, true) : ""}
+                      style={!friend.has_gold ? getUsernameStyle(friend.name_color) : {}}
+                    >
+                      @{friend.username}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => onStartDM(friend.id, friend.username)}
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" />
+                      Message
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

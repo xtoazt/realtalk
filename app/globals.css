@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+/* Theme variations - Applied to html element */
+html[data-theme="sunset"] {
+  --background: 33 100% 96%;
+  --foreground: 20 14.3% 4.1%;
+  --card: 33 100% 98%;
+  --card-foreground: 20 14.3% 4.1%;
+  --primary: 24.6 95% 53.1%;
+  --primary-foreground: 60 9.1% 97.8%;
+  --secondary: 27.9 96% 89%;
+  --secondary-foreground: 20 14.3% 4.1%;
+  --accent: 27.9 96% 61%;
+  --accent-foreground: 60 9.1% 97.8%;
+  --border: 27.9 96% 85%;
+  --input: 27.9 96% 85%;
+}
+
+html[data-theme="sunrise"] {
+  --background: 60 9.1% 97.8%;
+  --foreground: 20 14.3% 4.1%;
+  --card: 60 9.1% 99%;
+  --card-foreground: 20 14.3% 4.1%;
+  --primary: 47.9 95.8% 53.1%;
+  --primary-foreground: 26 83.3% 14.1%;
+  --secondary: 48 96% 89%;
+  --secondary-foreground: 26 83.3% 14.1%;
+  --accent: 48 96% 75%;
+  --accent-foreground: 26 83.3% 14.1%;
+  --border: 48 96% 80%;
+  --input: 48 96% 80%;
+}
+
+html[data-theme="forest"] {
+  --background: 138 62% 96%;
+  --foreground: 20 14.3% 4.1%;
+  --card: 138 62% 98%;
+  --card-foreground: 20 14.3% 4.1%;
+  --primary: 142.1 76.2% 36.3%;
+  --primary-foreground: 355.7 100% 97.3%;
+  --secondary: 138 76% 85%;
+  --secondary-foreground: 20 14.3% 4.1%;
+  --accent: 138 76% 32%;
+  --accent-foreground: 355.7 100% 97.3%;
+  --border: 138 76% 80%;
+  --input: 138 76% 80%;
+}
+
+html[data-theme="ocean"] {
+  --background: 199 89% 96%;
+  --foreground: 20 14.3% 4.1%;
+  --card: 199 89% 98%;
+  --card-foreground: 20 14.3% 4.1%;
+  --primary: 198.6 88.7% 48.4%;
+  --primary-foreground: 355.7 100% 97.3%;
+  --secondary: 199 89% 85%;
+  --secondary-foreground: 20 14.3% 4.1%;
+  --accent: 199 89% 48%;
+  --accent-foreground: 355.7 100% 97.3%;
+  --border: 199 89% 80%;
+  --input: 199 89% 80%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Hover scale utilities */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
