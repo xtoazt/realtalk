@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { useUser } from "@/hooks/use-user"
@@ -16,6 +16,10 @@ interface Message {
   is_ai_response?: boolean
   created_at: string
   mentions?: string[]
+  parent_message_id?: string // Added for replies
+  parent_message_content?: string // Added for replies
+  parent_message_username?: string // Added for replies
+  reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
 }
 
 interface ChatWindowProps {
@@ -29,6 +33,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null) // State for replying
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = useUser()
 
@@ -36,17 +41,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  useEffect(() => {
-    fetchMessages()
-    const interval = setInterval(fetchMessages, 2000)
-    return () => clearInterval(interval)
-  }, [chatType, chatId])
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       const params = new URLSearchParams({ chatType })
       if (chatId) params.append("chatId", chatId)
@@ -104,31 +99,87 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
             }
           })
         }
+      } else {
+        console.error("Failed to fetch messages:", response.status, await response.text())
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [chatType, chatId, messages, user, currentUserId, chatName]) // Added dependencies
 
-  const handleSendMessage = async (content: string) => {
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  useEffect(() => {
+    fetchMessages()
+    const interval = setInterval(fetchMessages, 2000)
+    return () => clearInterval(interval)
+  }, [chatType, chatId, fetchMessages]) // Added fetchMessages to dependencies
+
+  const handleSendMessage = async (content: string, parentMessageId?: string) => {
     setSending(true)
     try {
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, chatType, chatId }),
+        body: JSON.stringify({ content, chatType, chatId, parentMessageId }),
       })
 
       if (response.ok) {
-        setTimeout(fetchMessages, 500)
+        setTimeout(fetchMessages, 500) // Fetch messages after a short delay to ensure DB update
+      } else {
+        console.error("Failed to send message:", response.status, await response.text())
       }
     } catch (error) {
       console.error("Failed to send message:", error)
     } finally {
       setSending(false)
     }
+  }
+
+  const handleAddReaction = async (messageId: string, emoji: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      })
+      if (response.ok) {
+        fetchMessages() // Refresh messages to show new reaction
+      } else {
+        console.error("Failed to add reaction:", response.status, await response.text())
+      }
+    } catch (error) {
+      console.error("Failed to add reaction:", error)
+    }
+  }
+
+  const handleRemoveReaction = async (messageId: string, emoji: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/reactions`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }), // Send emoji to identify which reaction to remove
+      })
+      if (response.ok) {
+        fetchMessages() // Refresh messages to show updated reactions
+      } else {
+        console.error("Failed to remove reaction:", response.status, await response.text())
+      }
+    } catch (error) {
+      console.error("Failed to remove reaction:", error)
+    }
+  }
+
+  const handleReply = (messageToReply: Message) => {
+    setReplyToMessage(messageToReply)
+  }
+
+  const handleClearReply = () => {
+    setReplyToMessage(null)
   }
 
   if (loading) {
@@ -161,13 +212,32 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
             </div>
           </div>
         ) : (
-          messages.map((message) => <ChatMessage key={message.id} message={message} currentUserId={currentUserId} />)
+          messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              currentUserId={currentUserId}
+              onAddReaction={handleAddReaction}
+              onRemoveReaction={handleRemoveReaction}
+              onReply={handleReply}
+            />
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>
 
       <div className="bg-card border-t">
-        <ChatInput onSendMessage={handleSendMessage} placeholder={`Message ${chatName}...`} disabled={sending} />
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          placeholder={`Message ${chatName}...`}
+          disabled={sending}
+          replyToMessage={
+            replyToMessage
+              ? { id: replyToMessage.id, content: replyToMessage.content, username: replyToMessage.username }
+              : undefined
+          }
+          onClearReply={handleClearReply}
+        />
       </div>
     </div>
   )

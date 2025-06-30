@@ -15,14 +15,18 @@ interface Message {
   is_ai_response?: boolean
   created_at: string
   mentions?: string[]
+  reactions?: { emoji: string; count: number; reacted_by_me: boolean }[] // Added reactions
 }
 
 interface ChatMessageProps {
   message: Message
   currentUserId: string
+  onAddReaction?: (messageId: string, emoji: string) => void // New prop for adding reactions
+  onRemoveReaction?: (messageId: string, emoji: string) => void // New prop for removing reactions
+  onReply?: (message: Message) => void // New prop for replying
 }
 
-export function ChatMessage({ message, currentUserId }: ChatMessageProps) {
+export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveReaction, onReply }: ChatMessageProps) {
   const [showReactions, setShowReactions] = useState(false)
   const isOwnMessage = message.sender_id === currentUserId
   const isAI = message.is_ai_response
@@ -41,6 +45,18 @@ export function ChatMessage({ message, currentUserId }: ChatMessageProps) {
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   }
+
+  const handleReactionClick = (emoji: string) => {
+    const existingReaction = message.reactions?.find((r) => r.emoji === emoji && r.reacted_by_me)
+    if (existingReaction) {
+      onRemoveReaction?.(message.id, emoji)
+    } else {
+      onAddReaction?.(message.id, emoji)
+    }
+    setShowReactions(false) // Close reaction picker after selection
+  }
+
+  const availableEmojis = ["👍", "❤️", "😂", "😮", "😢", "😡"]
 
   return (
     <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-4 group`}>
@@ -64,16 +80,52 @@ export function ChatMessage({ message, currentUserId }: ChatMessageProps) {
           <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
         </div>
 
-        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {message.reactions && message.reactions.length > 0 && (
+          <div className="flex gap-1 mt-1">
+            {message.reactions.map((reaction) => (
+              <Button
+                key={reaction.emoji}
+                variant="outline"
+                size="sm"
+                className={`h-6 px-2 rounded-full text-xs ${
+                  reaction.reacted_by_me ? "bg-blue-100 border-blue-400" : "bg-gray-50"
+                }`}
+                onClick={() => handleReactionClick(reaction.emoji)}
+              >
+                {reaction.emoji} {reaction.count}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity relative">
           <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setShowReactions(!showReactions)}>
             <Heart className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2">
-            <MessageCircle className="h-3 w-3" />
-          </Button>
+          {onReply && (
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => onReply(message)}>
+              <MessageCircle className="h-3 w-3" />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="h-6 px-2">
             <MoreHorizontal className="h-3 w-3" />
           </Button>
+
+          {showReactions && (
+            <div className="absolute bottom-full left-0 mb-2 flex gap-1 p-2 bg-white border rounded-lg shadow-lg z-10">
+              {availableEmojis.map((emoji) => (
+                <Button
+                  key={emoji}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-lg"
+                  onClick={() => handleReactionClick(emoji)}
+                >
+                  {emoji}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

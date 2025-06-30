@@ -48,6 +48,8 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
         const data = await response.json()
         setFriendships(data.friendships)
         setLastUpdate(Date.now())
+      } else {
+        console.error("Failed to fetch friendships:", response.status, await response.text())
       }
     } catch (error) {
       console.error("Failed to fetch friendships:", error)
@@ -66,18 +68,25 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
   const searchUsers = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([])
+      setSendRequestError(null) // Clear error when search query is empty
       return
     }
 
     setSearchLoading(true)
+    setSendRequestError(null) // Clear previous errors
     try {
       const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`)
       if (response.ok) {
         const data = await response.json()
         setSearchResults(data.users)
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to search users:", errorData.error || response.statusText)
+        setSendRequestError(errorData.error || "Failed to search users.")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to search users:", error)
+      setSendRequestError(error.message || "An unexpected error occurred during search.")
     } finally {
       setSearchLoading(false)
     }
@@ -117,9 +126,14 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
       if (response.ok) {
         // Immediate update for better UX
         fetchFriendships()
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to respond to friend request:", errorData.error || response.statusText)
+        alert(`Failed to respond: ${errorData.error || response.statusText}`)
       }
     } catch (error) {
       console.error("Failed to respond to friend request:", error)
+      alert("An unexpected error occurred while responding to request.")
     }
   }
 
@@ -194,13 +208,28 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
                     size="sm"
                     onClick={() => sendFriendRequest(user.id)}
                     className="transition-all duration-200 hover:scale-105"
+                    disabled={
+                      // Disable if already a friend, pending request from them, or pending request to them
+                      acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id) ||
+                      pendingRequests.some((f) => f.requester_id === user.id) ||
+                      sentRequests.some((f) => f.addressee_id === user.id)
+                    }
                   >
                     <UserPlus className="h-4 w-4 mr-1" />
-                    Add Friend
+                    {acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id)
+                      ? "Friends"
+                      : pendingRequests.some((f) => f.requester_id === user.id)
+                        ? "Accept?"
+                        : sentRequests.some((f) => f.addressee_id === user.id)
+                          ? "Pending"
+                          : "Add Friend"}
                   </Button>
                 </div>
               ))}
             </div>
+          )}
+          {searchQuery.trim() && searchResults.length === 0 && !searchLoading && !sendRequestError && (
+            <div className="text-center py-4 text-gray-500">No users found for "{searchQuery}"</div>
           )}
         </CardContent>
       </Card>

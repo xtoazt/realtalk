@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createMessage, getMessages, getUserById, createNotification, getUserByUsername } from "@/lib/db"
 import { generateAIResponse } from "@/lib/groq"
-import { AI_USER_ID, AI_USERNAME } from "@/lib/constants" // Import AI constants
+import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const chatType = searchParams.get("chatType") || "global"
     const chatId = searchParams.get("chatId")
 
-    const messages = await getMessages(chatType, chatId)
+    const messages = await getMessages(chatType, chatId, user.id) // Pass userId to get user-specific reaction status
     return NextResponse.json({ messages })
   } catch (error: any) {
     console.error("GET messages API error:", error.message)
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, chatType, chatId } = await request.json()
+    const { content, chatType, chatId, parentMessageId } = await request.json() // Added parentMessageId
 
     if (!content || !chatType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Handle dedicated AI chat
     if (chatType === "dm" && chatId === AI_USER_ID) {
       // Create user's message to AI
-      await createMessage(user.id, content, chatType, chatId, [], false)
+      await createMessage(user.id, content, chatType, chatId, [], false, parentMessageId)
 
       // Generate and send AI response
       const aiResponseContent = await generateAIResponse(content, `User ${user.username} is chatting with you.`)
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const hasAIMention = mentions.includes("ai") || mentions.includes(AI_USERNAME.toLowerCase()) // Check for "real.ai" mention
 
     // Create user message
-    const message = await createMessage(user.id, content, chatType, chatId, mentions)
+    const message = await createMessage(user.id, content, chatType, chatId, mentions, false, parentMessageId)
 
     // Handle DM notification for the recipient (if not AI chat)
     if (chatType === "dm" && chatId && chatId !== user.id && chatId !== AI_USER_ID) {

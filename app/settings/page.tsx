@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [customTitle, setCustomTitle] = useState("")
   const [nameColor, setNameColor] = useState("#6366f1")
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
+  const [error, setError] = useState<string | null>(null) // State for displaying errors
   const router = useRouter()
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function SettingsPage() {
         await updateSettings({ notifications_enabled: true })
       } else {
         // If permission denied after request, update UI even if user tried to enable
+        // This ensures the switch reflects the actual permission state
         if (user?.notifications_enabled) {
           await updateSettings({ notifications_enabled: false })
         }
@@ -83,6 +85,7 @@ export default function SettingsPage() {
 
   const updateSettings = async (updates: Partial<User>) => {
     setSaving(true)
+    setError(null) // Clear previous errors
     try {
       const response = await fetch("/api/user/settings", {
         method: "PATCH",
@@ -93,19 +96,14 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
         updateLocalUser(data.user) // Update user context
-
-        // Apply theme immediately by updating document element (redundant with useUser, but ensures quick update)
-        if (updates.theme) {
-          document.documentElement.setAttribute("data-theme", updates.theme)
-        }
       } else {
         const errorData = await response.json()
         console.error("Failed to update settings:", errorData.error || response.statusText)
-        alert(`Failed to update settings: ${errorData.error || response.statusText}`)
+        setError(`Failed to update settings: ${errorData.error || response.statusText}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update settings:", error)
-      alert("An unexpected error occurred while saving settings.")
+      setError(`An unexpected error occurred while saving settings: ${error.message}`)
     } finally {
       setSaving(false)
     }
@@ -164,6 +162,12 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold">Settings</h1>
         </div>
 
+        {error && (
+          <div className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md mb-4 animate-fadeIn">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-6">
           {/* Profile Settings */}
           <Card>
@@ -199,7 +203,7 @@ export default function SettingsPage() {
                     onClick={() => updateSettings({ custom_title: customTitle })}
                     disabled={saving}
                   >
-                    Save Title
+                    {saving ? "Saving..." : "Save Title"}
                   </Button>
                 </div>
 
@@ -214,7 +218,7 @@ export default function SettingsPage() {
                         className="w-10 h-10 rounded border"
                       />
                       <Button size="sm" onClick={() => updateSettings({ name_color: nameColor })} disabled={saving}>
-                        Save Color
+                        {saving ? "Saving..." : "Save Color"}
                       </Button>
                     </div>
                   </div>
@@ -285,13 +289,14 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={user.notifications_enabled}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={async (checked) => {
                     if (checked && notificationPermission !== "granted") {
-                      requestNotificationPermission()
+                      await requestNotificationPermission()
                     } else {
-                      updateSettings({ notifications_enabled: checked })
+                      await updateSettings({ notifications_enabled: checked })
                     }
                   }}
+                  disabled={saving}
                 />
               </div>
 

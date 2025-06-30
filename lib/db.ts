@@ -1,5 +1,5 @@
 /** ----------------------------------------------------------------
- * lib/db.ts  –  fault-tolerant Neon initialiser + fast-fail URL check
+ * lib/db.ts  –  robust Neon initialiser with SSL & WebSocket fallbacks
  * ----------------------------------------------------------------*/
 import "server-only"
 import { neon, neonConfig, type NeonQueryFunction } from "@neondatabase/serverless"
@@ -8,18 +8,13 @@ import { AI_USER_ID } from "@/lib/constants" // Import AI_USER_ID
 /*------------------------------------------------------------------
  * 0 • Pretty log helpers
  * ----------------------------------------------------------------*/
-const cyan = (x: string) => `\x1b[36m${x}\x1b[0m`
-const yellow = (x: string) => `\x1b[33m${x}\x1b[0m`
-const red = (x: string) => `\x1b[31m${x}\x1b[0m`
-const log = (...msg: any[]) => console.log(cyan("[db]"), ...msg)
-const warn = (...msg: any[]) => console.warn(yellow("[db]"), ...msg)
-const err = (...msg: any[]) => console.error(red("[db]"), ...msg)
-
-// ---- 0·1  Disable the global fetch connection cache  -----------------
-neonConfig.fetchConnectionCache = false // ← critical: prevents stale sockets
+const c = (clr: string) => (txt: string) => `\x1b[${clr}m${txt}\x1b[0m`
+const info = (...m: any[]) => console.log(c("36")("[db]"), ...m)
+const warn = (...m: any[]) => console.warn(c("33")("[db]"), ...m)
+const err = (...m: any[]) => console.error(c("31")("[db]"), ...m)
 
 /*------------------------------------------------------------------
- * 1 • Pick the first Postgres URL we can find
+ * 1 • Pick & normalise a Postgres URL
  * ----------------------------------------------------------------*/
 function pickUrl(): string {
   const candidates = [
@@ -30,83 +25,98 @@ function pickUrl(): string {
     process.env.POSTGRES_PRISMA_URL,
   ].filter(Boolean) as string[]
 
-  if (candidates.length === 0) {
+  if (candidates.length === 0)
     throw new Error(
-      "No Postgres connection string found. \n" +
-        "Add DATABASE_URL (or POSTGRES_URL…) in Vercel → Settings → Environment Variables.",
+      "No Postgres connection string found.\n" +
+        "Add DATABASE_URL in Vercel → Project → Settings → Environment Variables.",
     )
-  }
 
-  // use the shortest – avoids accidentally choosing prisma-style pooling URLs first
-  const picked = candidates.sort((a, b) => a.length - b.length)[0]!.trim()
+  let url = candidates.sort((a, b) => a.length - b.length)[0]!.trim()
 
-  if (!picked.startsWith("postgres://")) {
+  if (!url.startsWith("postgres://"))
     throw new Error(
-      `Postgres URL looks wrong: “${picked.slice(0, 40)}…”.\n` + "Neon HTTP URLs must start with postgres://",
+      `Postgres URL looks wrong: “${url.slice(0, 40)}…”.\n` + "Neon HTTP URLs must start with postgres://",
     )
-  }
 
-  return picked
+  /* Ensure ssl + connection_limit params (Neon’s HTTP driver needs them) */
+  const u = new URL(url)
+  u.searchParams.set("sslmode", "require")
+  if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1")
+  url = u.toString()
+
+  info("Using database host:", c("35")(u.host))
+  return url
 }
 
 /*------------------------------------------------------------------
- * 2 • Bootstrap Neon client with fetch-cache
+ * 2 • Web-Socket fallback (for local/preview envs w/o HTTPS egress)
  * ----------------------------------------------------------------*/
-let sqlClient: NeonQueryFunction<any[]>
-
-function init() {
-  log("Initialising Neon client …")
-  sqlClient = neon(pickUrl())
-  log("Neon client ready.")
+if (process.env.NEON_WS_PROXY) {
+  neonConfig.wsProxy = (host) => `${process.env.NEON_WS_PROXY.replace(/\/$/g, "")}/v1/${host}`
+  info("WS proxy enabled →", process.env.NEON_WS_PROXY)
 }
-init()
+
+/* Disable stale socket cache – gives us fresh HTTPS each retry */
+neonConfig.fetchConnectionCache = false
 
 /*------------------------------------------------------------------
- * 3 • Run a 1-row “SELECT 1;” the very first time we import this file
- *    so we explode early if the URL / network is broken.
+ * 3 • Initialise client (lives in a global to survive Next.js HMR)
  * ----------------------------------------------------------------*/
-;(async () => {
-  try {
-    await sqlClient`SELECT 1`
-    log("Startup check ✅  database reachable.")
-  } catch (e: any) {
-    err("Startup check ❌  could not reach database →", e.message)
-    throw new Error("Neon connection failed on cold-start. \n" + "Check DATABASE_URL and your network egress.")
-  }
-})()
+const g = globalThis as unknown as { __sql?: NeonQueryFunction<any[]> }
+if (!g.__sql) {
+  info("Initialising Neon client …")
+  g.__sql = neon(pickUrl())
+}
+export const sql = g.__sql!
 
 /*------------------------------------------------------------------
- * 4 • Query wrapper with one reconnect-retry on fetch errors
+ * 4 • Resilient query() helper
  * ----------------------------------------------------------------*/
 export async function query<T = any>(strings: TemplateStringsArray | string, ...params: any[]): Promise<T[]> {
-  const MAX = 1
-  for (let i = 0; i <= MAX; i++) {
+  const MAX_RETRIES = 5
+  let delay = 250 /* ms */
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // @ts-ignore – same signature as the tagged template
-      return await (sqlClient as any)(strings, ...params)
+      // @ts-ignore – same tagged-template signature
+      return await (sql as any)(strings, ...params)
     } catch (e: any) {
       const fetchFail = e instanceof TypeError && /fetch/i.test(e.message || "")
-
-      if (fetchFail && i < MAX) {
-        warn("Stale HTTP socket – creating a NEW Neon client and retrying…")
-        init() // ← creates a brand-new client each time
+      if (fetchFail && attempt < MAX_RETRIES) {
+        warn(`Fetch failed (attempt ${attempt + 1}/${MAX_RETRIES}) – retrying in ${delay} ms …`)
+        await new Promise((r) => setTimeout(r, delay))
+        delay *= 2
+        /* fresh client each time (sidesteps stale DNS / keep-alive sockets) */
+        g.__sql = neon(pickUrl())
         continue
       }
-
       err("Query failed →", e)
       throw new Error("Error connecting to database: " + e.message)
     }
   }
-  throw new Error("Unreachable")
+  throw new Error("Database unreachable after multiple retries.")
 }
+/*------------------------------------------------------------------
+ * 5 • Cold-start health check (fail fast during build / first request)
+ * ----------------------------------------------------------------*/
+;(async () => {
+  try {
+    await sql`SELECT 1`
+    info("Startup check ✅  database reachable.")
+  } catch (e: any) {
+    err("Startup check ❌  could not reach database →", e.message)
+    throw e
+  }
+})()
 
-// Re-export sqlClient for direct access to methods like .unsafe
-export const sql = sqlClient
-
-/* ---------- Existing helper functions ----------
-   Everything below is unchanged *except* that they
-   now call the new `query` wrapper instead of the raw one.
------------------------------------------------ */
+/*───────────────────────────────────────────────────────────────────────────┐
+│ 6.  Your existing helpers (unchanged) – IMPORT THEM here by reference.    │
+└───────────────────────────────────────────────────────────────────────────*/
+// ⚠️  NOTHING below needs to change. All your existing functions (createUser,
+//     getUserByUsername, etc.) should continue to import { query } from here.
+//
+//     If you moved them into separate files, just leave them be – they’ll now
+//     enjoy the stronger `query()` automatically.
 
 export async function createUser(username: string, passwordHash: string, signupCode?: string) {
   try {
@@ -281,7 +291,7 @@ export async function createFriendship(requesterId: string, addresseeId: string)
       SELECT * FROM friendships
       WHERE (requester_id = ${requesterId} AND addressee_id = ${addresseeId})
          OR (requester_id = ${addresseeId} AND addressee_id = ${requesterId})
-      LIMIT 1
+     LIMIT 1
     `
     if (existing.length > 0) {
       if (existing[0].status === "pending") {
@@ -455,6 +465,39 @@ export async function markNotificationAsRead(notificationId: string, userId: str
     return result[0]
   } catch (err) {
     console.error("[db] markNotificationAsRead error:", err)
+    throw new Error("Error connecting to database: " + (err as Error).message)
+  }
+}
+
+/*───────────────────────────────────────────────────────────────┐
+│  Reactions helpers                                            │
+└───────────────────────────────────────────────────────────────*/
+export async function addMessageReaction(messageId: string, userId: string, emoji: string) {
+  try {
+    const result = await query`
+      INSERT INTO message_reactions (message_id, user_id, emoji)
+      VALUES (${messageId}, ${userId}, ${emoji})
+      ON CONFLICT (message_id, user_id, emoji) DO NOTHING
+      RETURNING *
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] addMessageReaction error:", err)
+    throw new Error("Error connecting to database: " + (err as Error).message)
+  }
+}
+
+export async function removeMessageReaction(messageId: string, userId: string, emoji: string) {
+  try {
+    await query`
+      DELETE FROM message_reactions
+      WHERE message_id = ${messageId}
+        AND user_id   = ${userId}
+        AND emoji     = ${emoji}
+    `
+    return true
+  } catch (err) {
+    console.error("[db] removeMessageReaction error:", err)
     throw new Error("Error connecting to database: " + (err as Error).message)
   }
 }
