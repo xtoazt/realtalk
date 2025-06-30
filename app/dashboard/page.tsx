@@ -157,7 +157,10 @@ export default function DashboardPage() {
   }
 
   const handleThemeCycle = async () => {
-    if (!user) return
+    if (!user) {
+      console.warn("[dashboard] handleThemeCycle called but user is null.")
+      return
+    }
     const currentIndex = themes.findIndex((t) => t.id === user.theme)
     const nextIndex = (currentIndex + 1) % themes.length
     const nextThemeId = themes[nextIndex].id

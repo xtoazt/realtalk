@@ -179,15 +179,22 @@ export async function updateUserActivity(userId: string) {
   }
 }
 
-export async function getOnlineUsers() {
+export async function getOnlineUsers(currentUserId: string) {
   try {
     // Consider users online if they were active in the last 5 minutes
+    // Filter to only include accepted friends of the current user
     const result = await query`
-      SELECT id, username, name_color, has_gold_animation, last_active
-      FROM users 
-      WHERE last_active > NOW() - INTERVAL '5 minutes'
-      AND id != ${AI_USER_ID}
-      ORDER BY username
+      SELECT DISTINCT u.id, u.username, u.name_color, u.has_gold_animation, u.last_active
+      FROM users u
+      JOIN friendships f ON (
+        (f.requester_id = ${currentUserId} AND f.addressee_id = u.id) OR
+        (f.addressee_id = ${currentUserId} AND f.requester_id = u.id)
+      )
+      WHERE u.last_active > NOW() - INTERVAL '5 minutes'
+      AND f.status = 'accepted'
+      AND u.id != ${currentUserId} -- Exclude self
+      AND u.id != ${AI_USER_ID} -- Exclude AI
+      ORDER BY u.username
     `
     return result
   } catch (err) {
@@ -358,10 +365,10 @@ export async function createGroupChat(name: string, creatorId: string, memberIds
     for (const memberId of memberIds) {
       if (memberId !== creatorId) {
         await query`
-         INSERT INTO group_chat_members (group_chat_id, user_id)
-         VALUES (${result[0].id}, ${memberId})
-         ON CONFLICT (group_chat_id, user_id) DO NOTHING
-       `
+        INSERT INTO group_chat_members (group_chat_id, user_id)
+        VALUES (${result[0].id}, ${memberId})
+        ON CONFLICT (group_chat_id, user_id) DO NOTHING
+      `
       }
     }
 
@@ -687,6 +694,11 @@ export async function updateUserSettings(userId: string, updates: any) {
 
     // Execute the query using sql.unsafe directly
     const result = await sql.unsafe(queryString, params)
+
+    if (result.length === 0) {
+      console.error("[db] updateUserSettings: No user found or updated for ID:", userId)
+      throw new Error("User not found or no settings updated.")
+    }
 
     console.log("[db] Update result:", result[0])
     return result[0]

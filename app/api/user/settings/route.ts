@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest) {
     console.log("[settings-api] Updated user:", updatedUser?.username)
 
     return NextResponse.json({ user: updatedUser })
-  } catch (error) {
+  } catch (error: any) {
     console.error("[settings-api] Error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

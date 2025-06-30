@@ -55,7 +55,12 @@ export function useUser() {
     fetchUserData()
   }, [router])
 
-  const updateUser = (updatedUser: User) => {
+  const updateUser = (updatedUser: User | null) => {
+    if (!updatedUser) {
+      console.warn("[useUser] updateUser called with null user, not updating theme.")
+      setUser(null)
+      return
+    }
     setUser(updatedUser)
     if (updatedUser.theme) {
       console.log("[useUser] Updating theme to:", updatedUser.theme)

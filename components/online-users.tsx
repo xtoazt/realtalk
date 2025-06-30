@@ -22,17 +22,18 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
 
   const fetchOnlineUsers = useCallback(async () => {
     try {
+      // The API route now handles filtering by friends based on currentUserId
       const response = await fetch("/api/users/online")
       if (response.ok) {
         const data = await response.json()
-        setOnlineUsers(data.onlineUsers.filter((user: OnlineUser) => user.id !== currentUserId))
+        setOnlineUsers(data.onlineUsers) // Data already filtered by friends on server
       }
     } catch (error) {
       console.error("Failed to fetch online users:", error)
     } finally {
       setLoading(false)
     }
-  }, [currentUserId])
+  }, [])
 
   const updateActivity = useCallback(async () => {
     try {
@@ -71,7 +72,7 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Online Users
+            Online Friends
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -86,14 +87,15 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wifi className="h-5 w-5 text-green-500" />
-          Online Users ({onlineUsers.length})
+          Online Friends ({onlineUsers.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
         {onlineUsers.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No other users online</p>
+            <p>No online friends</p>
+            <p className="text-sm mt-1">Add some friends to see them here!</p>
           </div>
         ) : (
           <div className="space-y-2 max-h-48 overflow-y-auto">

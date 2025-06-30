@@ -9,7 +9,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const onlineUsers = await getOnlineUsers()
+    // Pass the current user's ID to filter for online friends
+    const onlineUsers = await getOnlineUsers(user.id)
     return NextResponse.json({ onlineUsers })
   } catch (error: any) {
     console.error("Get online users API error:", error.message)
