@@ -167,12 +167,16 @@ export async function getUserById(id: string) {
 
 export async function searchUsers(searchQuery: string, currentUserId: string) {
   try {
+    console.log("[db] Searching users with query:", searchQuery, "excluding:", currentUserId)
     const result = await query`
       SELECT id, username, name_color, custom_title, has_gold_animation
       FROM users 
-      WHERE username ILIKE ${`%${searchQuery}%`} AND id != ${currentUserId}
+      WHERE username ILIKE ${`%${searchQuery}%`} 
+      AND id != ${currentUserId}
+      AND id != ${AI_USER_ID}
       LIMIT 10
     `
+    console.log("[db] Search results:", result.length, "users found")
     return result
   } catch (err) {
     console.error("[db] searchUsers error:", err)
@@ -545,6 +549,8 @@ export async function removeMessageReaction(messageId: string, userId: string, e
 
 export async function updateUserSettings(userId: string, updates: any) {
   try {
+    console.log("[db] updateUserSettings called with:", { userId, updates })
+
     const allowedFields = ["custom_title", "name_color", "notifications_enabled", "theme"]
     const validUpdates: any = {}
 
@@ -553,6 +559,8 @@ export async function updateUserSettings(userId: string, updates: any) {
         validUpdates[key] = value
       }
     }
+
+    console.log("[db] Valid updates:", validUpdates)
 
     if (Object.keys(validUpdates).length === 0) {
       throw new Error("No valid fields to update")
@@ -576,9 +584,12 @@ export async function updateUserSettings(userId: string, updates: any) {
       RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
     `
 
+    console.log("[db] Executing query:", queryString, "with params:", params)
+
     // Execute the query using sql.unsafe directly
     const result = await sql.unsafe(queryString, params)
 
+    console.log("[db] Update result:", result[0])
     return result[0]
   } catch (err) {
     console.error("[db] updateUserSettings error:", err)

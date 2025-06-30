@@ -60,7 +60,6 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
 
   useEffect(() => {
     fetchFriendships()
-    // More frequent polling for real-time updates
     const interval = setInterval(fetchFriendships, 3000)
     return () => clearInterval(interval)
   }, [fetchFriendships])
@@ -68,33 +67,53 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
   const searchUsers = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([])
-      setSendRequestError(null) // Clear error when search query is empty
+      setSendRequestError(null)
       return
     }
 
     setSearchLoading(true)
-    setSendRequestError(null) // Clear previous errors
+    setSendRequestError(null)
     try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`)
+      console.log("[friends-page] Searching for:", searchQuery)
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery.trim())}`)
+
       if (response.ok) {
         const data = await response.json()
-        setSearchResults(data.users)
+        console.log("[friends-page] Search results:", data.users)
+        setSearchResults(data.users || [])
       } else {
         const errorData = await response.json()
         console.error("Failed to search users:", errorData.error || response.statusText)
         setSendRequestError(errorData.error || "Failed to search users.")
+        setSearchResults([])
       }
     } catch (error: any) {
       console.error("Failed to search users:", error)
       setSendRequestError(error.message || "An unexpected error occurred during search.")
+      setSearchResults([])
     } finally {
       setSearchLoading(false)
     }
   }
 
+  // Auto-search as user types (with debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchUsers()
+      } else {
+        setSearchResults([])
+        setSendRequestError(null)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
   const sendFriendRequest = async (userId: string) => {
     setSendRequestError(null)
     try {
+      console.log("[friends-page] Sending friend request to:", userId)
       const response = await fetch("/api/friends", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,11 +121,12 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
       })
 
       if (response.ok) {
+        console.log("[friends-page] Friend request sent successfully")
         fetchFriendships()
-        setSearchResults([])
-        setSearchQuery("")
+        // Don't clear search results immediately, let user see the state change
       } else {
         const data = await response.json()
+        console.error("Failed to send friend request:", data.error)
         setSendRequestError(data.error || "Failed to send friend request.")
       }
     } catch (error: any) {
@@ -124,7 +144,6 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
       })
 
       if (response.ok) {
-        // Immediate update for better UX
         fetchFriendships()
       } else {
         const errorData = await response.json()
@@ -144,13 +163,23 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
     return nameColor ? { color: nameColor } : {}
   }
 
+  const getButtonState = (user: User) => {
+    const isAlreadyFriend = acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id)
+    const hasPendingFromThem = pendingRequests.some((f) => f.requester_id === user.id)
+    const hasPendingToThem = sentRequests.some((f) => f.addressee_id === user.id)
+
+    if (isAlreadyFriend) return { text: "Friends", disabled: true, variant: "secondary" as const }
+    if (hasPendingFromThem) return { text: "Accept?", disabled: false, variant: "default" as const }
+    if (hasPendingToThem) return { text: "Pending", disabled: true, variant: "outline" as const }
+    return { text: "Add Friend", disabled: false, variant: "default" as const }
+  }
+
   const pendingRequests = friendships.filter((f) => f.status === "pending" && f.addressee_id === currentUserId)
   const sentRequests = friendships.filter((f) => f.status === "pending" && f.requester_id === currentUserId)
   const acceptedFriends = friendships.filter((f) => f.status === "accepted")
 
   return (
     <div className="space-y-6">
-      {/* Real-time status indicator */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Friends</h2>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -173,16 +202,13 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by username..."
-              onKeyDown={(e) => e.key === "Enter" && searchUsers()}
               className="transition-all duration-200 focus:scale-102"
             />
-            <Button
-              onClick={searchUsers}
-              disabled={searchLoading}
-              className="transition-all duration-200 hover:scale-105"
-            >
-              {searchLoading ? "Searching..." : "Search"}
-            </Button>
+            {searchLoading && (
+              <div className="flex items-center px-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              </div>
+            )}
           </div>
 
           {sendRequestError && (
@@ -193,41 +219,36 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
 
           {searchResults.length > 0 && (
             <div className="space-y-2 animate-fadeIn">
-              {searchResults.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200"
-                >
-                  <span
-                    className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
-                    style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
+              <p className="text-sm text-muted-foreground">Found {searchResults.length} user(s)</p>
+              {searchResults.map((user) => {
+                const buttonState = getButtonState(user)
+                return (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200"
                   >
-                    @{user.username}
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={() => sendFriendRequest(user.id)}
-                    className="transition-all duration-200 hover:scale-105"
-                    disabled={
-                      // Disable if already a friend, pending request from them, or pending request to them
-                      acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id) ||
-                      pendingRequests.some((f) => f.requester_id === user.id) ||
-                      sentRequests.some((f) => f.addressee_id === user.id)
-                    }
-                  >
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    {acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id)
-                      ? "Friends"
-                      : pendingRequests.some((f) => f.requester_id === user.id)
-                        ? "Accept?"
-                        : sentRequests.some((f) => f.addressee_id === user.id)
-                          ? "Pending"
-                          : "Add Friend"}
-                  </Button>
-                </div>
-              ))}
+                    <span
+                      className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
+                      style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
+                    >
+                      @{user.username}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant={buttonState.variant}
+                      onClick={() => sendFriendRequest(user.id)}
+                      className="transition-all duration-200 hover:scale-105"
+                      disabled={buttonState.disabled}
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      {buttonState.text}
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
           )}
+
           {searchQuery.trim() && searchResults.length === 0 && !searchLoading && !sendRequestError && (
             <div className="text-center py-4 text-gray-500">No users found for "{searchQuery}"</div>
           )}
