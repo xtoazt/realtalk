@@ -18,6 +18,9 @@ interface Message {
   mentions?: string[]
   message_type?: string // Added message_type
   reactions?: { emoji: string; count: number; reacted_by_me: boolean }[] // Added reactions
+  parent_message_id?: string // Added for replies
+  parent_message_content?: string // Added for replies
+  parent_message_username?: string // Added for replies
 }
 
 interface ChatMessageProps {
@@ -58,7 +61,24 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
     setShowReactions(false) // Close reaction picker after selection
   }
 
-  const availableEmojis = ["👍", "❤️", "😂", "😮", "😢", "😡"]
+  const availableEmojis = [
+    "😀",
+    "😂",
+    "😊",
+    "😍",
+    "🤩",
+    "🥳",
+    "👍",
+    "👎",
+    "❤️",
+    "💔",
+    "🔥",
+    "💯",
+    "🤔",
+    "🤯",
+    "😢",
+    "😡",
+  ]
 
   return (
     <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-4 group`}>
@@ -73,6 +93,12 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
           {message.custom_title && <span className="text-xs italic text-gray-500">{message.custom_title}</span>}
           <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
         </div>
+
+        {message.parent_message_id && message.parent_message_content && message.parent_message_username && (
+          <div className="mb-1 p-2 bg-gray-100 border-l-4 border-blue-400 rounded-r-md text-xs text-gray-600 italic">
+            Replying to @{message.parent_message_username}: "{message.parent_message_content}"
+          </div>
+        )}
 
         <div
           className={`px-4 py-2 rounded-2xl ${

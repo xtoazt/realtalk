@@ -189,7 +189,9 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
       </div>
 
       {/* Search Users */}
-      <Card className="animate-fadeIn">
+      <Card>
+        {" "}
+        {/* Removed animate-fadeIn */}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
@@ -218,7 +220,9 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
           )}
 
           {searchResults.length > 0 && (
-            <div className="space-y-2 animate-fadeIn">
+            <div className="space-y-2">
+              {" "}
+              {/* Removed animate-fadeIn */}
               <p className="text-sm text-muted-foreground">Found {searchResults.length} user(s)</p>
               {searchResults.map((user) => {
                 const buttonState = getButtonState(user)
@@ -257,7 +261,9 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
 
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
-        <Card className="animate-fadeIn border-primary/20">
+        <Card className="border-primary/20">
+          {" "}
+          {/* Removed animate-fadeIn */}
           <CardHeader>
             <CardTitle className="text-primary">Friend Requests ({pendingRequests.length})</CardTitle>
           </CardHeader>
@@ -300,7 +306,9 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
 
       {/* Sent Requests */}
       {sentRequests.length > 0 && (
-        <Card className="animate-fadeIn">
+        <Card>
+          {" "}
+          {/* Removed animate-fadeIn */}
           <CardHeader>
             <CardTitle>Sent Requests ({sentRequests.length})</CardTitle>
           </CardHeader>

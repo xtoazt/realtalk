@@ -163,11 +163,23 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       })
 
       if (response.ok) {
-        // Auto-scroll to bottom when user sends a message
-        setTimeout(() => {
-          scrollToBottom()
-          fetchMessages()
-        }, 500)
+        // Check if user was near bottom before sending message
+        const wasNearBottom = messagesContainerRef.current
+          ? messagesContainerRef.current.scrollHeight -
+              messagesContainerRef.current.scrollTop -
+              messagesContainerRef.current.clientHeight <
+            100
+          : true // Default to true if ref not available
+
+        // Fetch messages first to get the new message
+        await fetchMessages() // Await this to ensure messages state is updated
+
+        // Only scroll to bottom if user was already near the bottom
+        if (wasNearBottom) {
+          setTimeout(() => {
+            scrollToBottom()
+          }, 100) // Small delay to allow DOM to update
+        }
       } else {
         console.error("Failed to send message:", response.status, await response.text())
       }

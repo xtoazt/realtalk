@@ -30,14 +30,12 @@ export function useUser() {
         if (response.ok) {
           const data = await response.json()
           console.log("[useUser] User data received:", data.user?.username)
-          setUser(data.user)
+          setUser(data.user) // This calls updateUser
 
-          // Apply theme to document element - FIXED
-          if (data.user?.theme) {
-            console.log("[useUser] Applying theme:", data.user.theme)
-            // Force theme application
+          // Apply theme to document element directly on initial load if user data is valid
+          if (data.user && typeof data.user.theme === "string") {
+            console.log("[useUser] Applying theme from initial fetch:", data.user.theme)
             document.documentElement.setAttribute("data-theme", data.user.theme)
-            // Also set class for backup
             document.documentElement.className = `theme-${data.user.theme}`
           }
         } else {
@@ -56,21 +54,20 @@ export function useUser() {
   }, [router])
 
   const updateUser = (updatedUser: User | null) => {
-    if (!updatedUser) {
-      console.warn("[useUser] updateUser called with null user, not updating theme.")
-      setUser(null)
-      return
-    }
-    setUser(updatedUser)
-    if (updatedUser.theme) {
-      console.log("[useUser] Updating theme to:", updatedUser.theme)
-      // Force theme application
+    console.log("[useUser] updateUser called with:", updatedUser)
+    setUser(updatedUser) // Always update the state first
+
+    if (updatedUser && typeof updatedUser.theme === "string") {
+      // More robust check for theme
+      console.log("[useUser] Applying theme from updatedUser:", updatedUser.theme)
       document.documentElement.setAttribute("data-theme", updatedUser.theme)
       document.documentElement.className = `theme-${updatedUser.theme}`
       // Force a repaint
       document.body.style.display = "none"
       document.body.offsetHeight // Trigger reflow
       document.body.style.display = ""
+    } else {
+      console.warn("[useUser] updatedUser is null/undefined or updatedUser.theme is not a string, cannot apply theme.")
     }
   }
 

@@ -181,7 +181,7 @@ export async function updateUserActivity(userId: string) {
 
 export async function getOnlineUsers(currentUserId: string) {
   try {
-    // Consider users online if they were active in the last 5 minutes
+    // Consider users online if they were active in the last 10 minutes
     // Filter to only include accepted friends of the current user
     const result = await query`
       SELECT DISTINCT u.id, u.username, u.name_color, u.has_gold_animation, u.last_active
@@ -190,7 +190,7 @@ export async function getOnlineUsers(currentUserId: string) {
         (f.requester_id = ${currentUserId} AND f.addressee_id = u.id) OR
         (f.addressee_id = ${currentUserId} AND f.requester_id = u.id)
       )
-      WHERE u.last_active > NOW() - INTERVAL '5 minutes'
+      WHERE u.last_active > NOW() - INTERVAL '10 minutes' -- Increased interval for "online" status
       AND f.status = 'accepted'
       AND u.id != ${currentUserId} -- Exclude self
       AND u.id != ${AI_USER_ID} -- Exclude AI
@@ -225,96 +225,58 @@ export async function searchUsers(searchQuery: string, currentUserId: string) {
 export async function getMessages(chatType: string, chatId?: string, userId?: string, limit = 50) {
   try {
     let result
+    const baseSelect = `
+      SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'emoji', mr.emoji,
+                   'count', mr.reaction_count,
+                   'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                 )
+               ) FILTER (WHERE mr.emoji IS NOT NULL), 
+               '[]'::json
+             ) as reactions,
+             pm.content AS parent_message_content, -- Parent message content
+             pu.username AS parent_message_username -- Parent message sender username
+    `
+    const baseJoin = `
+      FROM messages m
+      JOIN users u ON m.sender_id = u.id
+      LEFT JOIN (
+        SELECT 
+          message_id,
+          emoji,
+          COUNT(*) as reaction_count,
+          BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
+        FROM message_reactions
+        GROUP BY message_id, emoji
+      ) mr ON m.id = mr.message_id
+      LEFT JOIN messages pm ON m.parent_message_id = pm.id -- Join for parent message
+      LEFT JOIN users pu ON pm.sender_id = pu.id -- Join for parent message sender username
+    `
+    const baseGroupBy = `
+      GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation, pm.content, pu.username
+      ORDER BY m.created_at DESC
+      LIMIT ${limit}
+    `
+
     if (chatType === "global") {
-      result = await query`
-        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
-               COALESCE(
-                 json_agg(
-                   json_build_object(
-                     'emoji', mr.emoji,
-                     'count', mr.reaction_count,
-                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
-                   )
-                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
-                 '[]'::json
-               ) as reactions
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        LEFT JOIN (
-          SELECT 
-            message_id,
-            emoji,
-            COUNT(*) as reaction_count,
-            BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
-          FROM message_reactions
-          GROUP BY message_id, emoji
-        ) mr ON m.id = mr.message_id
-        WHERE m.chat_type = 'global'
-        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation
-        ORDER BY m.created_at DESC
-        LIMIT ${limit}
-      `
+      result = await query`${baseSelect} ${baseJoin} WHERE m.chat_type = 'global' ${baseGroupBy}`
     } else if (chatType === "dm") {
-      // Corrected query for DMs to fetch messages from both sides
       result = await query`
-        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
-               COALESCE(
-                 json_agg(
-                   json_build_object(
-                     'emoji', mr.emoji,
-                     'count', mr.reaction_count,
-                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
-                   )
-                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
-                 '[]'::json
-               ) as reactions
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        LEFT JOIN (
-          SELECT 
-            message_id,
-            emoji,
-            COUNT(*) as reaction_count,
-            BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
-          FROM message_reactions
-          GROUP BY message_id, emoji
-        ) mr ON m.id = mr.message_id
+        ${baseSelect} ${baseJoin}
         WHERE m.chat_type = 'dm' 
           AND ( (m.sender_id = ${userId} AND m.chat_id = ${chatId}) 
                 OR (m.sender_id = ${chatId} AND m.chat_id = ${userId}) )
-        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation
-        ORDER BY m.created_at DESC
-        LIMIT ${limit}
+        ${baseGroupBy}
       `
     } else {
       // group chat
       result = await query`
-        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
-               COALESCE(
-                 json_agg(
-                   json_build_object(
-                     'emoji', mr.emoji,
-                     'count', mr.reaction_count,
-                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
-                   )
-                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
-                 '[]'::json
-               ) as reactions
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        LEFT JOIN (
-          SELECT 
-            message_id,
-            emoji,
-            COUNT(*) as reaction_count,
-            BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
-          FROM message_reactions
-          GROUP BY message_id, emoji
-        ) mr ON m.id = mr.message_id
+        ${baseSelect} ${baseJoin}
         WHERE m.chat_type = ${chatType} AND m.chat_id = ${chatId}
-        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation
-        ORDER BY m.created_at DESC
-        LIMIT ${limit}
+        ${baseGroupBy}
       `
     }
     return result.reverse() // Return in chronological order
