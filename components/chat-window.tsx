@@ -47,9 +47,15 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       if (chatId) params.append("chatId", chatId)
 
       const response = await fetch(`/api/messages?${params}`)
+
+      if (!response.ok) {
+        console.error("Failed to fetch messages:", response.status, await response.text())
+        return
+      }
+
       const data = await response.json()
 
-      if (response.ok) {
+      if (data.messages) {
         const newMessages = data.messages.filter(
           (newMessage: Message) => !messages.some((existingMessage) => existingMessage.id === newMessage.id),
         )
@@ -99,15 +105,13 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
             }
           })
         }
-      } else {
-        console.error("Failed to fetch messages:", response.status, await response.text())
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error)
     } finally {
       setLoading(false)
     }
-  }, [chatType, chatId, messages, user, currentUserId, chatName]) // Added dependencies
+  }, [chatType, chatId, user, currentUserId, chatName]) // Removed messages from dependencies to prevent infinite loop
 
   useEffect(() => {
     scrollToBottom()
@@ -117,7 +121,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     fetchMessages()
     const interval = setInterval(fetchMessages, 2000)
     return () => clearInterval(interval)
-  }, [chatType, chatId, fetchMessages]) // Added fetchMessages to dependencies
+  }, [chatType, chatId]) // Removed fetchMessages from dependencies to prevent infinite loop
 
   const handleSendMessage = async (content: string, parentMessageId?: string) => {
     setSending(true)

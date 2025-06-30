@@ -35,10 +35,10 @@ function pickUrl(): string {
 
   if (!url.startsWith("postgres://"))
     throw new Error(
-      `Postgres URL looks wrong: “${url.slice(0, 40)}…”.\n` + "Neon HTTP URLs must start with postgres://",
+      `Postgres URL looks wrong: "${url.slice(0, 40)}…".\n` + "Neon HTTP URLs must start with postgres://",
     )
 
-  /* Ensure ssl + connection_limit params (Neon’s HTTP driver needs them) */
+  /* Ensure ssl + connection_limit params (Neon's HTTP driver needs them) */
   const u = new URL(url)
   u.searchParams.set("sslmode", "require")
   if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1")
@@ -78,7 +78,7 @@ export async function query<T = any>(strings: TemplateStringsArray | string, ...
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // @ts-ignore – same tagged-template signature
+      // @ts-ignore – same tagged-template signature
       return await (sql as any)(strings, ...params)
     } catch (e: any) {
       const fetchFail = e instanceof TypeError && /fetch/i.test(e.message || "")
@@ -110,13 +110,8 @@ export async function query<T = any>(strings: TemplateStringsArray | string, ...
 })()
 
 /*───────────────────────────────────────────────────────────────────────────┐
-│ 6.  Your existing helpers (unchanged) – IMPORT THEM here by reference.    │
+│ 6.  Database helper functions                                             │
 └───────────────────────────────────────────────────────────────────────────*/
-// ⚠️  NOTHING below needs to change. All your existing functions (createUser,
-//     getUserByUsername, etc.) should continue to import { query } from here.
-//
-//     If you moved them into separate files, just leave them be – they’ll now
-//     enjoy the stronger `query()` automatically.
 
 export async function createUser(username: string, passwordHash: string, signupCode?: string) {
   try {
@@ -143,13 +138,18 @@ export async function createUser(username: string, passwordHash: string, signupC
 }
 
 export async function getUserByUsername(username: string) {
-  const rows = await query`
-    SELECT *
-    FROM users
-    WHERE username = ${username}
-    LIMIT 1
-  `
-  return rows[0]
+  try {
+    const rows = await query`
+      SELECT *
+      FROM users
+      WHERE username = ${username}
+      LIMIT 1
+    `
+    return rows[0]
+  } catch (err) {
+    console.error("[db] getUserByUsername error:", err)
+    throw new Error("Error connecting to database: " + (err as Error).message)
+  }
 }
 
 export async function getUserById(id: string) {
@@ -165,12 +165,12 @@ export async function getUserById(id: string) {
   }
 }
 
-export async function searchUsers(query: string, currentUserId: string) {
+export async function searchUsers(searchQuery: string, currentUserId: string) {
   try {
     const result = await query`
       SELECT id, username, name_color, custom_title, has_gold_animation
       FROM users 
-      WHERE username ILIKE ${`%${query}%`} AND id != ${currentUserId}
+      WHERE username ILIKE ${`%${searchQuery}%`} AND id != ${currentUserId}
       LIMIT 10
     `
     return result
@@ -180,24 +180,64 @@ export async function searchUsers(query: string, currentUserId: string) {
   }
 }
 
-export async function getMessages(chatType: string, chatId?: string, limit = 50) {
+export async function getMessages(chatType: string, chatId?: string, userId?: string, limit = 50) {
   try {
     let result
     if (chatType === "global") {
       result = await query`
-        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions
         FROM messages m
         JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
         WHERE m.chat_type = 'global'
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation
         ORDER BY m.created_at DESC
         LIMIT ${limit}
       `
     } else {
       result = await query`
-        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions
         FROM messages m
         JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
         WHERE m.chat_type = ${chatType} AND m.chat_id = ${chatId}
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation
         ORDER BY m.created_at DESC
         LIMIT ${limit}
       `
@@ -216,11 +256,12 @@ export async function createMessage(
   chatId?: string,
   mentions: string[] = [],
   isAiResponse = false,
+  parentMessageId?: string,
 ) {
   try {
     const result = await query`
-      INSERT INTO messages (sender_id, content, chat_type, chat_id, mentions, is_ai_response)
-      VALUES (${senderId}, ${content}, ${chatType}, ${chatId}, ${mentions}, ${isAiResponse})
+      INSERT INTO messages (sender_id, content, chat_type, chat_id, mentions, is_ai_response, parent_message_id)
+      VALUES (${senderId}, ${content}, ${chatType}, ${chatId}, ${mentions}, ${isAiResponse}, ${parentMessageId})
       RETURNING *
     `
     return result[0]

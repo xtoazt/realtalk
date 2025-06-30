@@ -84,6 +84,8 @@ export default function SettingsPage() {
   }
 
   const updateSettings = async (updates: Partial<User>) => {
+    if (!user) return
+
     setSaving(true)
     setError(null) // Clear previous errors
     try {
@@ -147,7 +149,13 @@ export default function SettingsPage() {
     )
   }
 
-  if (!user) return null
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">User not found</div>
+      </div>
+    )
+  }
 
   const canCustomize = user.signup_code === "asdf" || user.signup_code === "qwer"
 
