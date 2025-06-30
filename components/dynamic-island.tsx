@@ -1,10 +1,8 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, UserPlus, Settings, LogOut, Home, Globe, Info, Bot, GripHorizontal } from "lucide-react"
+import { MessageSquare, UserPlus, Settings, LogOut, Home, Globe, Info, Bot, Palette } from "lucide-react" // Import Palette
 
 interface DynamicIslandProps {
   currentPage: string
@@ -13,6 +11,7 @@ interface DynamicIslandProps {
   onGlobalChatClick: () => void
   onAIChatClick: () => void
   username: string
+  onThemeCycle: () => void // New prop for theme cycling
 }
 
 export function DynamicIsland({
@@ -22,14 +21,11 @@ export function DynamicIsland({
   onGlobalChatClick,
   onAIChatClick,
   username,
+  onThemeCycle, // Destructure new prop
 }: DynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isCustomizing, setIsCustomizing] = useState(false)
-  const islandRef = useRef<HTMLDivElement>(null)
+  // Removed isDragging, dragStart, position, isCustomizing states
 
   const pages = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -40,7 +36,7 @@ export function DynamicIsland({
   ]
 
   const handleExpansion = (expanded: boolean) => {
-    if (isAnimating || isDragging) return
+    if (isAnimating) return // Prevent re-triggering animation
     setIsAnimating(true)
     setIsExpanded(expanded)
     setTimeout(() => setIsAnimating(false), 300)
@@ -56,98 +52,21 @@ export function DynamicIsland({
     }
   }
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!isCustomizing) return
-    setIsDragging(true)
-    setDragStart({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    })
-  }
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !isCustomizing) return
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
-      }
-    }
-  }, [isDragging])
-
-  // Toggle customization mode with long press
-  useEffect(() => {
-    let longPressTimer: NodeJS.Timeout
-
-    const handleTouchStart = () => {
-      longPressTimer = setTimeout(() => {
-        setIsCustomizing(!isCustomizing)
-      }, 800)
-    }
-
-    const handleTouchEnd = () => {
-      clearTimeout(longPressTimer)
-    }
-
-    const element = islandRef.current
-    if (element) {
-      element.addEventListener("touchstart", handleTouchStart)
-      element.addEventListener("touchend", handleTouchEnd)
-      element.addEventListener("mousedown", (e) => {
-        if (e.button === 0) {
-          // Left click
-          longPressTimer = setTimeout(() => {
-            setIsCustomizing(!isCustomizing)
-          }, 800)
-        }
-      })
-      element.addEventListener("mouseup", () => {
-        clearTimeout(longPressTimer)
-      })
-
-      return () => {
-        element.removeEventListener("touchstart", handleTouchStart)
-        element.removeEventListener("touchend", handleTouchEnd)
-        clearTimeout(longPressTimer)
-      }
-    }
-  }, [isCustomizing])
+  // Removed all dragging and customization useEffects and handlers
 
   return (
     <div
-      ref={islandRef}
-      className={`fixed z-50 transition-all duration-300 ${
-        isCustomizing ? "ring-2 ring-blue-400 ring-opacity-50" : ""
-      }`}
-      style={{
-        top: `${16 + position.y}px`,
-        left: `calc(50% + ${position.x}px)`,
-        transform: "translateX(-50%)",
-        cursor: isCustomizing ? (isDragging ? "grabbing" : "grab") : "default",
-      }}
-      onMouseDown={handleMouseDown}
+      className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`} // Fixed position
+      // Removed onMouseDown
     >
       <div
         className={`bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-full transition-all duration-300 ease-out backdrop-blur-md border border-gray-700 ${
           isExpanded
             ? "px-6 py-3 min-w-[500px] shadow-2xl scale-105"
             : "px-8 py-4 w-fit shadow-xl hover:shadow-2xl hover:scale-102"
-        } ${isCustomizing ? "animate-pulse" : ""}`}
-        onMouseEnter={() => !isCustomizing && handleExpansion(true)}
-        onMouseLeave={() => !isCustomizing && handleExpansion(false)}
+        }`}
+        onMouseEnter={() => handleExpansion(true)} // No longer checking isCustomizing
+        onMouseLeave={() => handleExpansion(false)} // No longer checking isCustomizing
         style={{
           background: isExpanded
             ? "linear-gradient(135deg, rgba(17,24,39,0.95) 0%, rgba(0,0,0,0.98) 50%, rgba(17,24,39,0.95) 100%)"
@@ -157,11 +76,7 @@ export function DynamicIsland({
             : "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)",
         }}
       >
-        {isCustomizing && (
-          <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full p-1">
-            <GripHorizontal className="h-3 w-3" />
-          </div>
-        )}
+        {/* Removed customization indicator */}
 
         {!isExpanded ? (
           <div className="flex items-center gap-4 transition-all duration-200">
@@ -222,6 +137,17 @@ export function DynamicIsland({
 
             <div className="w-px h-6 bg-gray-600 mx-2" />
 
+            {/* Theme Cycle Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onThemeCycle}
+              className="h-9 px-4 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
+              title="Cycle Theme"
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+
             {/* Sign Out */}
             <Button
               variant="ghost"
@@ -235,11 +161,7 @@ export function DynamicIsland({
         )}
       </div>
 
-      {isCustomizing && (
-        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-3 py-1 rounded-full">
-          Drag to move • Long press to exit
-        </div>
-      )}
+      {/* Removed customization tooltip */}
     </div>
   )
 }

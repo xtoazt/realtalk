@@ -54,6 +54,7 @@ export default function SettingsPage() {
   const router = useRouter()
 
   useEffect(() => {
+    console.log("[SettingsPage] User data changed:", user)
     if (!userLoading && user) {
       setCustomTitle(user.custom_title || "")
       setNameColor(user.name_color || "#6366f1")
@@ -84,10 +85,15 @@ export default function SettingsPage() {
   }
 
   const updateSettings = async (updates: Partial<User>) => {
-    if (!user) return
+    if (!user) {
+      console.warn("[SettingsPage] Attempted to update settings but user is null.")
+      setError("User data not available. Please try again.")
+      return
+    }
 
     setSaving(true)
     setError(null) // Clear previous errors
+    console.log("[SettingsPage] Sending update:", updates)
     try {
       const response = await fetch("/api/user/settings", {
         method: "PATCH",
@@ -97,14 +103,15 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json()
+        console.log("[SettingsPage] Update successful, received:", data.user)
         updateLocalUser(data.user) // Update user context
       } else {
         const errorData = await response.json()
-        console.error("Failed to update settings:", errorData.error || response.statusText)
+        console.error("[SettingsPage] Failed to update settings:", errorData.error || response.statusText)
         setError(`Failed to update settings: ${errorData.error || response.statusText}`)
       }
     } catch (error: any) {
-      console.error("Failed to update settings:", error)
+      console.error("[SettingsPage] Failed to update settings (network/unexpected error):", error)
       setError(`An unexpected error occurred while saving settings: ${error.message}`)
     } finally {
       setSaving(false)
@@ -149,10 +156,13 @@ export default function SettingsPage() {
     )
   }
 
+  // If user is null after loading, it means they are not authenticated or an error occurred.
+  // The useUser hook already redirects to /auth in such cases, so this return might be redundant
+  // but serves as a fallback to prevent rendering with null user.
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">User not found</div>
+        <div className="text-gray-500">User data not available. Redirecting...</div>
       </div>
     )
   }

@@ -10,7 +10,7 @@ import { CreateGroupChat } from "@/components/create-group-chat"
 import { TimeDateDisplay } from "@/components/time-date-display"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe, Trash2 } from "lucide-react" // Import Trash2 for delete icon
+import { Plus, Users, Globe, Trash2 } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
@@ -18,11 +18,19 @@ interface GroupChat {
   id: string
   name: string
   creator_username: string
-  creator_id: string // Added creator_id to check authorization for deletion
+  creator_id: string
 }
 
+const themes = [
+  { id: "monochrome", name: "Monochrome" },
+  { id: "sunset", name: "Sunset" },
+  { id: "sunrise", name: "Sunrise" },
+  { id: "forest", name: "Forest" },
+  { id: "ocean", name: "Ocean" },
+]
+
 export default function DashboardPage() {
-  const { user, loading: userLoading } = useUser()
+  const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [activeChat, setActiveChat] = useState<{
@@ -147,6 +155,33 @@ export default function DashboardPage() {
     setCurrentPage("dashboard")
   }
 
+  const handleThemeCycle = async () => {
+    if (!user) return
+    const currentIndex = themes.findIndex((t) => t.id === user.theme)
+    const nextIndex = (currentIndex + 1) % themes.length
+    const nextThemeId = themes[nextIndex].id
+
+    try {
+      const response = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: nextThemeId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        updateLocalUser(data.user) // Update user context, which will apply the theme
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to update theme:", errorData.error || response.statusText)
+        alert(`Failed to change theme: ${errorData.error || response.statusText}`)
+      }
+    } catch (error) {
+      console.error("Failed to update theme:", error)
+      alert("An unexpected error occurred while changing theme.")
+    }
+  }
+
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -156,7 +191,7 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    return null // Redirect handled by middleware or useUser hook
+    return null
   }
 
   return (
@@ -168,6 +203,7 @@ export default function DashboardPage() {
         onGlobalChatClick={handleGlobalChatClick}
         onAIChatClick={handleAIChatClick}
         username={user.username}
+        onThemeCycle={handleThemeCycle} // Pass the new handler
       />
 
       <div className="pt-20 px-4 pb-4">
@@ -199,7 +235,7 @@ export default function DashboardPage() {
                             <Users className="h-4 w-4 mr-2 shrink-0" />
                             <span className="truncate">{gc.name}</span>
                           </Button>
-                          {user.id === gc.creator_id && ( // Only show delete if current user is creator
+                          {user.id === gc.creator_id && (
                             <Button
                               variant="ghost"
                               size="sm"
