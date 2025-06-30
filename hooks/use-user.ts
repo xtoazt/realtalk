@@ -32,10 +32,13 @@ export function useUser() {
           console.log("[useUser] User data received:", data.user?.username)
           setUser(data.user)
 
-          // Apply theme to document element
+          // Apply theme to document element - FIXED
           if (data.user?.theme) {
             console.log("[useUser] Applying theme:", data.user.theme)
+            // Force theme application
             document.documentElement.setAttribute("data-theme", data.user.theme)
+            // Also set class for backup
+            document.documentElement.className = `theme-${data.user.theme}`
           }
         } else {
           console.log("[useUser] Auth failed, redirecting to /auth")
@@ -55,7 +58,14 @@ export function useUser() {
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser)
     if (updatedUser.theme) {
+      console.log("[useUser] Updating theme to:", updatedUser.theme)
+      // Force theme application
       document.documentElement.setAttribute("data-theme", updatedUser.theme)
+      document.documentElement.className = `theme-${updatedUser.theme}`
+      // Force a repaint
+      document.body.style.display = "none"
+      document.body.offsetHeight // Trigger reflow
+      document.body.style.display = ""
     }
   }
 

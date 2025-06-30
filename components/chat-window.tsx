@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { useUser } from "@/hooks/use-user"
+import { Button } from "@/components/ui/button"
+import { ChevronDown } from "lucide-react"
 
 interface Message {
   id: string
@@ -19,7 +21,7 @@ interface Message {
   parent_message_id?: string
   parent_message_content?: string
   parent_message_username?: string
-  message_type?: string // Added message_type
+  message_type?: string
   reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
 }
 
@@ -35,11 +37,28 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null)
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const [hasNewMessages, setHasNewMessages] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const { user } = useUser()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    setShowScrollButton(false)
+    setHasNewMessages(false)
+  }
+
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+
+    setShowScrollButton(!isNearBottom)
+    if (isNearBottom) {
+      setHasNewMessages(false)
+    }
   }
 
   const fetchMessages = useCallback(async () => {
@@ -57,12 +76,19 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       const data = await response.json()
 
       if (data.messages) {
+        const previousMessageCount = messages.length
         const newMessages = data.messages.filter(
           (newMessage: Message) => !messages.some((existingMessage) => existingMessage.id === newMessage.id),
         )
 
         setMessages(data.messages)
 
+        // Show new message indicator if user is scrolled up
+        if (newMessages.length > 0 && previousMessageCount > 0 && showScrollButton) {
+          setHasNewMessages(true)
+        }
+
+        // Enhanced notification support
         if (user && user.notifications_enabled && newMessages.length > 0) {
           newMessages.forEach((newMessage: Message) => {
             if (newMessage.sender_id !== currentUserId) {
@@ -77,9 +103,11 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
                 try {
                   const notification = new Notification(notificationTitle, {
                     body:
-                      newMessage.content.length > 100
-                        ? newMessage.content.substring(0, 100) + "..."
-                        : newMessage.content,
+                      newMessage.message_type === "image"
+                        ? "📷 Sent an image"
+                        : newMessage.content.length > 100
+                          ? newMessage.content.substring(0, 100) + "..."
+                          : newMessage.content,
                     icon: "/favicon.ico",
                     tag: `${newMessage.chat_type}-${newMessage.chat_id || "global"}`,
                     badge: "/favicon.ico",
@@ -108,17 +136,22 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     } finally {
       setLoading(false)
     }
-  }, [chatType, chatId, user, currentUserId, chatName, messages]) // Added messages to dependencies for proper new message detection
+  }, [chatType, chatId, user, currentUserId, chatName, messages.length, showScrollButton])
 
+  // Initial scroll to bottom only on first load
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    if (!loading && messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
+    }
+  }, [loading])
 
   useEffect(() => {
     fetchMessages()
     const interval = setInterval(fetchMessages, 2000)
     return () => clearInterval(interval)
-  }, [chatType, chatId, fetchMessages]) // Added fetchMessages to dependencies
+  }, [chatType, chatId])
 
   const handleSendMessage = async (content: string, parentMessageId?: string, messageType = "text") => {
     setSending(true)
@@ -126,11 +159,15 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, chatType, chatId, parentMessageId, messageType }), // Pass messageType
+        body: JSON.stringify({ content, chatType, chatId, parentMessageId, messageType }),
       })
 
       if (response.ok) {
-        setTimeout(fetchMessages, 500)
+        // Auto-scroll to bottom when user sends a message
+        setTimeout(() => {
+          scrollToBottom()
+          fetchMessages()
+        }, 500)
       } else {
         console.error("Failed to send message:", response.status, await response.text())
       }
@@ -192,7 +229,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-card rounded-lg shadow-md overflow-hidden border">
+    <div className="flex-1 flex flex-col h-full bg-card rounded-lg shadow-md overflow-hidden border relative">
       <div className="border-b p-4 bg-card">
         <h2 className="font-medium text-card-foreground">{chatName}</h2>
         <p className="text-sm text-muted-foreground">
@@ -204,7 +241,11 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-background">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-1 bg-background"
+        onScroll={handleScroll}
+      >
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-muted-foreground">
@@ -226,6 +267,24 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div className="absolute bottom-20 right-4 z-10">
+          <Button
+            onClick={scrollToBottom}
+            className={`rounded-full w-12 h-12 shadow-lg transition-all duration-200 hover:scale-110 ${
+              hasNewMessages ? "bg-blue-500 hover:bg-blue-600 animate-pulse" : "bg-gray-600 hover:bg-gray-700"
+            }`}
+            size="sm"
+          >
+            <ChevronDown className="h-5 w-5" />
+            {hasNewMessages && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+            )}
+          </Button>
+        </div>
+      )}
 
       <div className="bg-card border-t">
         <ChatInput

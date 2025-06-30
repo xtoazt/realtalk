@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { ArrowLeft, Trash2, Bell, BellOff } from "lucide-react"
-import { useUser } from "@/hooks/use-user" // Use the centralized user hook
+import { useUser } from "@/hooks/use-user"
 
 interface User {
   id: string
@@ -45,12 +45,12 @@ const themes = [
 ]
 
 export default function SettingsPage() {
-  const { user, loading: userLoading, setUser: updateLocalUser } = useUser() // Get user and loading state
+  const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
   const [saving, setSaving] = useState(false)
   const [customTitle, setCustomTitle] = useState("")
   const [nameColor, setNameColor] = useState("#6366f1")
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
-  const [error, setError] = useState<string | null>(null) // State for displaying errors
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -75,8 +75,6 @@ export default function SettingsPage() {
       if (permission === "granted") {
         await updateSettings({ notifications_enabled: true })
       } else {
-        // If permission denied after request, update UI even if user tried to enable
-        // This ensures the switch reflects the actual permission state
         if (user?.notifications_enabled) {
           await updateSettings({ notifications_enabled: false })
         }
@@ -92,7 +90,7 @@ export default function SettingsPage() {
     }
 
     setSaving(true)
-    setError(null) // Clear previous errors
+    setError(null)
     console.log("[SettingsPage] Sending update:", updates)
     try {
       const response = await fetch("/api/user/settings", {
@@ -104,7 +102,7 @@ export default function SettingsPage() {
       if (response.ok) {
         const data = await response.json()
         console.log("[SettingsPage] Update successful, received:", data.user)
-        updateLocalUser(data.user) // Update user context
+        updateLocalUser(data.user)
       } else {
         const errorData = await response.json()
         console.error("[SettingsPage] Failed to update settings:", errorData.error || response.statusText)
@@ -142,8 +140,9 @@ export default function SettingsPage() {
   const testNotification = () => {
     if (notificationPermission === "granted") {
       new Notification("real. Test", {
-        body: "Notifications are working!",
+        body: "Notifications are working! 🎉",
         icon: "/favicon.ico",
+        badge: "/favicon.ico",
       })
     }
   }
@@ -156,9 +155,6 @@ export default function SettingsPage() {
     )
   }
 
-  // If user is null after loading, it means they are not authenticated or an error occurred.
-  // The useUser hook already redirects to /auth in such cases, so this return might be redundant
-  // but serves as a fallback to prevent rendering with null user.
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -170,7 +166,7 @@ export default function SettingsPage() {
   const canCustomize = user.signup_code === "asdf" || user.signup_code === "qwer"
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background p-4 transition-colors duration-300">
       <div className="max-w-2xl mx-auto pt-20">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" onClick={() => router.push("/dashboard")}>
@@ -205,7 +201,7 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Customization</CardTitle>
-                <p className="text-sm text-gray-600">Special features unlocked with your signup code</p>
+                <p className="text-sm text-muted-foreground">Special features unlocked with your signup code</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -256,21 +252,24 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Theme</CardTitle>
+              <p className="text-sm text-muted-foreground">Current theme: {user.theme}</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-3">
                 {themes.map((theme) => (
                   <div
                     key={theme.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      user.theme === theme.id ? "border-black bg-gray-50" : "border-gray-200 hover:border-gray-300"
+                    className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:scale-102 ${
+                      user.theme === theme.id
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/50"
                     }`}
                     onClick={() => updateSettings({ theme: theme.id })}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <p className="font-medium">{theme.name}</p>
-                        <p className="text-sm text-gray-600">{theme.description}</p>
+                        <p className="text-sm text-muted-foreground">{theme.description}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex gap-1">
@@ -282,7 +281,7 @@ export default function SettingsPage() {
                             />
                           ))}
                         </div>
-                        {user.theme === theme.id && <div className="w-2 h-2 bg-black rounded-full ml-2" />}
+                        {user.theme === theme.id && <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />}
                       </div>
                     </div>
                   </div>
@@ -303,7 +302,8 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">System Notifications</p>
-                  <p className="text-sm text-gray-600">Receive notifications for new messages</p>
+                  <p className="text-sm text-muted-foreground">Receive notifications for new messages</p>
+                  <p className="text-xs text-muted-foreground mt-1">Permission: {notificationPermission}</p>
                 </div>
                 <Switch
                   checked={user.notifications_enabled}
@@ -319,9 +319,9 @@ export default function SettingsPage() {
               </div>
 
               {notificationPermission === "denied" && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">
-                    Notifications are blocked. Please enable them in your browser settings.
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-sm text-destructive">
+                    Notifications are blocked. Please enable them in your browser settings and refresh the page.
                   </p>
                 </div>
               )}
@@ -335,16 +335,16 @@ export default function SettingsPage() {
           </Card>
 
           {/* Danger Zone */}
-          <Card className="border-red-200">
+          <Card className="border-destructive/20">
             <CardHeader>
-              <CardTitle className="text-red-600">Danger Zone</CardTitle>
+              <CardTitle className="text-destructive">Danger Zone</CardTitle>
             </CardHeader>
             <CardContent>
               <Button variant="destructive" onClick={handleDeleteAccount} className="w-full">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Account
               </Button>
-              <p className="text-xs text-gray-500 mt-2 text-center">This action cannot be undone</p>
+              <p className="text-xs text-muted-foreground mt-2 text-center">This action cannot be undone</p>
             </CardContent>
           </Card>
         </div>
