@@ -7,17 +7,18 @@ import { ChatWindow } from "@/components/chat-window"
 import { FriendsPage } from "@/components/friends-page"
 import { DMsPage } from "@/components/dms-page"
 import { CreateGroupChat } from "@/components/create-group-chat"
-import { TimeDateDisplay } from "@/components/time-date-display" // New import
+import { TimeDateDisplay } from "@/components/time-date-display"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe } from "lucide-react"
+import { Plus, Users, Globe, Trash2 } from "lucide-react" // Import Trash2 for delete icon
 import { useUser } from "@/hooks/use-user"
-import { AI_USER_ID, AI_USERNAME } from "@/lib/constants" // Import AI constants
+import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
 interface GroupChat {
   id: string
   name: string
   creator_username: string
+  creator_id: string // Added creator_id to check authorization for deletion
 }
 
 export default function DashboardPage() {
@@ -39,6 +40,8 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         setGroupChats(data.groupChats)
+      } else {
+        console.error("Failed to fetch group chats:", response.status, await response.text())
       }
     } catch (error) {
       console.error("Failed to fetch group chats:", error)
@@ -69,9 +72,37 @@ export default function DashboardPage() {
           name: data.groupChat.name,
         })
         setCurrentPage("dashboard")
+      } else {
+        console.error("Failed to create group chat:", response.status, await response.text())
       }
     } catch (error) {
       console.error("Failed to create group chat:", error)
+    }
+  }
+
+  const handleDeleteGroupChat = async (groupId: string) => {
+    if (!user) return
+    if (confirm("Are you sure you want to delete this group chat? This action cannot be undone.")) {
+      try {
+        const response = await fetch(`/api/group-chats/${groupId}`, {
+          method: "DELETE",
+        })
+
+        if (response.ok) {
+          console.log(`Group chat ${groupId} deleted successfully.`)
+          fetchGroupChats() // Refresh the list
+          if (activeChat.type === "group" && activeChat.id === groupId) {
+            setActiveChat({ type: null, name: "" }) // Clear active chat if deleted
+          }
+        } else {
+          const errorData = await response.json()
+          console.error("Failed to delete group chat:", errorData.error || response.statusText)
+          alert(`Failed to delete group chat: ${errorData.error || response.statusText}`)
+        }
+      } catch (error) {
+        console.error("Failed to delete group chat:", error)
+        alert("An unexpected error occurred while deleting the group chat.")
+      }
     }
   }
 
@@ -97,10 +128,9 @@ export default function DashboardPage() {
     if (page === "settings") {
       router.push("/settings")
     } else if (page === "about") {
-      router.push("/about") // Navigate to About page
+      router.push("/about")
     } else {
       setCurrentPage(page)
-      // Clear active chat when switching pages
       if (page !== "dashboard") {
         setActiveChat({ type: null, name: "" })
       }
@@ -126,7 +156,7 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    return null
+    return null // Redirect handled by middleware or useUser hook
   }
 
   return (
@@ -136,14 +166,14 @@ export default function DashboardPage() {
         onPageChange={handlePageChange}
         onSignOut={handleSignOut}
         onGlobalChatClick={handleGlobalChatClick}
-        onAIChatClick={handleAIChatClick} // Pass new handler
+        onAIChatClick={handleAIChatClick}
         username={user.username}
       />
 
       <div className="pt-20 px-4 pb-4">
         {currentPage === "dashboard" && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
-            {/* Sidebar for chat types - Only show group chats and DMs, NOT global */}
+            {/* Sidebar for chat types */}
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">
               <Card className="animate-fadeIn">
                 <CardHeader>
@@ -160,15 +190,27 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-1">
                       {groupChats.map((gc) => (
-                        <Button
-                          key={gc.id}
-                          variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
-                          className="w-full justify-start text-left transition-all duration-200 hover:scale-102"
-                          onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
-                        >
-                          <Users className="h-4 w-4 mr-2 shrink-0" />
-                          <span className="truncate">{gc.name}</span>
-                        </Button>
+                        <div key={gc.id} className="flex items-center justify-between">
+                          <Button
+                            variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
+                            className="flex-1 justify-start text-left transition-all duration-200 hover:scale-102"
+                            onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
+                          >
+                            <Users className="h-4 w-4 mr-2 shrink-0" />
+                            <span className="truncate">{gc.name}</span>
+                          </Button>
+                          {user.id === gc.creator_id && ( // Only show delete if current user is creator
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteGroupChat(gc.id)}
+                              className="ml-2 text-red-500 hover:bg-red-500/10"
+                              title="Delete Group Chat"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
@@ -193,7 +235,7 @@ export default function DashboardPage() {
                     <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
                     <h3 className="text-xl font-semibold text-foreground">Welcome to real.</h3>
                     <p className="text-muted-foreground mt-2 mb-4">
-                      Click on "Global" or "real.AI" in the dynamic island above to start chatting,
+                      Click on "Global" or "AI Chat" in the dynamic island above to start chatting,
                       <br />
                       or select a group chat from the sidebar.
                     </p>
@@ -202,7 +244,7 @@ export default function DashboardPage() {
                       <span>Ready to connect</span>
                     </div>
                     <div className="mt-6">
-                      <TimeDateDisplay /> {/* Time and Date display */}
+                      <TimeDateDisplay />
                     </div>
                   </CardContent>
                 </Card>

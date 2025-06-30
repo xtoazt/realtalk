@@ -216,7 +216,40 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
         ORDER BY m.created_at DESC
         LIMIT ${limit}
       `
+    } else if (chatType === "dm") {
+      // Corrected query for DMs to fetch messages from both sides
+      result = await query`
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
+        WHERE m.chat_type = 'dm' 
+          AND ( (m.sender_id = ${userId} AND m.chat_id = ${chatId}) 
+                OR (m.sender_id = ${chatId} AND m.chat_id = ${userId}) )
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation
+        ORDER BY m.created_at DESC
+        LIMIT ${limit}
+      `
     } else {
+      // group chat
       result = await query`
         SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
                COALESCE(
@@ -321,6 +354,40 @@ export async function getUserGroupChats(userId: string) {
   } catch (err) {
     console.error("[db] getUserGroupChats error:", err)
     throw new Error("Error connecting to database: " + (err as Error).message)
+  }
+}
+
+export async function deleteGroupChat(groupId: string, creatorId: string) {
+  try {
+    console.log(`[db] Attempting to delete group chat ${groupId} by creator ${creatorId}`)
+    // Verify creator
+    const chat = await query`SELECT creator_id FROM group_chats WHERE id = ${groupId}`
+    if (!chat[0] || chat[0].creator_id !== creatorId) {
+      throw new Error("Unauthorized to delete this group chat.")
+    }
+
+    // Start transaction
+    await query`BEGIN`
+
+    // Delete messages in the group chat
+    await query`DELETE FROM messages WHERE chat_type = 'group' AND chat_id = ${groupId}`
+    console.log(`[db] Deleted messages for group chat ${groupId}`)
+
+    // Delete members of the group chat
+    await query`DELETE FROM group_chat_members WHERE group_chat_id = ${groupId}`
+    console.log(`[db] Deleted members for group chat ${groupId}`)
+
+    // Delete the group chat itself
+    await query`DELETE FROM group_chats WHERE id = ${groupId}`
+    console.log(`[db] Deleted group chat ${groupId}`)
+
+    await query`COMMIT`
+    console.log(`[db] Group chat ${groupId} deleted successfully.`)
+    return true
+  } catch (err) {
+    await query`ROLLBACK`
+    console.error("[db] deleteGroupChat error:", err)
+    throw new Error("Error deleting group chat: " + (err as Error).message)
   }
 }
 

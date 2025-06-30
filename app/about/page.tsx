@@ -21,13 +21,7 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-lg font-semibold text-foreground">Created by Rohan</p>
-            <p className="text-muted-foreground">
-              This is a real-time chat application built with Next.js, designed to connect users through global, group,
-              and direct messages.
-            </p>
-            <p className="text-muted-foreground">
-              It features dynamic themes, a responsive interface, and integration with a real-time AI assistant.
-            </p>
+            <p className="text-muted-foreground">idk why I made this just so I could talk ig</p>
           </CardContent>
         </Card>
       </div>
