@@ -266,7 +266,7 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
               {pendingRequests.map((friendship) => (
                 <div
                   key={friendship.id}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 animate-slideIn"
+                  className="flex items-center justify-between p-3 border rounded-lg bg-primary/5"
                 >
                   <span
                     className={friendship.requester_has_gold ? getUsernameStyle(undefined, true) : ""}
@@ -322,8 +322,8 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
         </Card>
       )}
 
-      {/* Friends List */}
-      <Card className="animate-fadeIn">
+      {/* Friends List - REMOVED ANIMATION TO PREVENT CONSTANT TRANSITIONS */}
+      <Card>
         <CardHeader>
           <CardTitle>Friends ({acceptedFriends.length})</CardTitle>
         </CardHeader>
@@ -355,7 +355,7 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
                 return (
                   <div
                     key={friendship.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200 animate-slideIn"
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors duration-200"
                   >
                     <span
                       className={friend.has_gold ? getUsernameStyle(undefined, true) : ""}

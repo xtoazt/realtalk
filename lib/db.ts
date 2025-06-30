@@ -126,8 +126,8 @@ export async function createUser(username: string, passwordHash: string, signupC
     }
 
     const result = await query`
-      INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email)
-      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL)
+      INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active)
+      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW())
       RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
     `
     return result[0]
@@ -161,6 +161,37 @@ export async function getUserById(id: string) {
     return result[0]
   } catch (err) {
     console.error("[db] getUserById error:", err)
+    throw new Error("Error connecting to database: " + (err as Error).message)
+  }
+}
+
+export async function updateUserActivity(userId: string) {
+  try {
+    await query`
+      UPDATE users 
+      SET last_active = NOW()
+      WHERE id = ${userId}
+    `
+    return true
+  } catch (err) {
+    console.error("[db] updateUserActivity error:", err)
+    throw new Error("Error connecting to database: " + (err as Error).message)
+  }
+}
+
+export async function getOnlineUsers() {
+  try {
+    // Consider users online if they were active in the last 5 minutes
+    const result = await query`
+      SELECT id, username, name_color, has_gold_animation, last_active
+      FROM users 
+      WHERE last_active > NOW() - INTERVAL '5 minutes'
+      AND id != ${AI_USER_ID}
+      ORDER BY username
+    `
+    return result
+  } catch (err) {
+    console.error("[db] getOnlineUsers error:", err)
     throw new Error("Error connecting to database: " + (err as Error).message)
   }
 }
@@ -661,6 +692,6 @@ export async function updateUserSettings(userId: string, updates: any) {
     return result[0]
   } catch (err) {
     console.error("[db] updateUserSettings error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Error updating user settings: " + (err as Error).message)
   }
 }

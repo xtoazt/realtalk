@@ -7,6 +7,7 @@ import { ChatWindow } from "@/components/chat-window"
 import { FriendsPage } from "@/components/friends-page"
 import { DMsPage } from "@/components/dms-page"
 import { CreateGroupChat } from "@/components/create-group-chat"
+import { OnlineUsers } from "@/components/online-users"
 import { TimeDateDisplay } from "@/components/time-date-display"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -161,6 +162,8 @@ export default function DashboardPage() {
     const nextIndex = (currentIndex + 1) % themes.length
     const nextThemeId = themes[nextIndex].id
 
+    console.log("[dashboard] Cycling theme from", user.theme, "to", nextThemeId)
+
     try {
       const response = await fetch("/api/user/settings", {
         method: "PATCH",
@@ -170,15 +173,16 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const data = await response.json()
+        console.log("[dashboard] Theme update successful:", data.user.theme)
         updateLocalUser(data.user) // Update user context, which will apply the theme
       } else {
         const errorData = await response.json()
-        console.error("Failed to update theme:", errorData.error || response.statusText)
+        console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
         alert(`Failed to change theme: ${errorData.error || response.statusText}`)
       }
-    } catch (error) {
-      console.error("Failed to update theme:", error)
-      alert("An unexpected error occurred while changing theme.")
+    } catch (error: any) {
+      console.error("[dashboard] Failed to update theme:", error)
+      alert(`An unexpected error occurred while changing theme: ${error.message}`)
     }
   }
 
@@ -203,7 +207,7 @@ export default function DashboardPage() {
         onGlobalChatClick={handleGlobalChatClick}
         onAIChatClick={handleAIChatClick}
         username={user.username}
-        onThemeCycle={handleThemeCycle} // Pass the new handler
+        onThemeCycle={handleThemeCycle}
       />
 
       <div className="pt-20 px-4 pb-4">
@@ -252,6 +256,9 @@ export default function DashboardPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Online Users Component */}
+              <OnlineUsers currentUserId={user.id} />
             </div>
 
             {/* Main Chat Area */}
