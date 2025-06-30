@@ -263,25 +263,24 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
     `
 
     if (chatType === "global") {
-      console.log("[db/getMessages] Executing global chat query.")
-      result = await query`${baseSelect} ${baseJoin} WHERE m.chat_type = 'global' ${baseGroupBy}`
+      const globalQuery = `${baseSelect} ${baseJoin} WHERE m.chat_type = 'global' ${baseGroupBy}`
+      console.log("[db/getMessages] Global query:", globalQuery)
+      result = await query`${globalQuery}`
     } else if (chatType === "dm") {
-      console.log(`[db/getMessages] Executing DM query for userId: ${userId}, chatId: ${chatId}.`)
-      result = await query`
-        ${baseSelect} ${baseJoin}
+      const dmQuery = `${baseSelect} ${baseJoin}
         WHERE m.chat_type = 'dm' 
-          AND ( (m.sender_id = ${userId} AND m.chat_id = ${chatId}) 
-                OR (m.sender_id = ${chatId} AND m.chat_id = ${userId}) )
-        ${baseGroupBy}
-      `
+          AND ( (m.sender_id = $1 AND m.chat_id = $2) 
+                OR (m.sender_id = $2 AND m.chat_id = $1) )
+        ${baseGroupBy.replace("$1", "$3").replace("$2", "$4")}` // Adjust parameter placeholders for unsafe
+      console.log("[db/getMessages] DM query:", dmQuery, "Params:", [userId, chatId])
+      result = await sql.unsafe(dmQuery, [userId, chatId, userId, chatId]) // Use sql.unsafe for dynamic query string
     } else {
       // group chat
-      console.log(`[db/getMessages] Executing group chat query for chatType: ${chatType}, chatId: ${chatId}.`)
-      result = await query`
-        ${baseSelect} ${baseJoin}
-        WHERE m.chat_type = ${chatType} AND m.chat_id = ${chatId}
-        ${baseGroupBy}
-      `
+      const groupQuery = `${baseSelect} ${baseJoin}
+        WHERE m.chat_type = $1 AND m.chat_id = $2
+        ${baseGroupBy.replace("$1", "$3").replace("$2", "$4")}` // Adjust parameter placeholders for unsafe
+      console.log("[db/getMessages] Group query:", groupQuery, "Params:", [chatType, chatId])
+      result = await sql.unsafe(groupQuery, [chatType, chatId, chatType, chatId]) // Use sql.unsafe for dynamic query string
     }
     console.log(`[db/getMessages] Query returned ${result.length} rows.`)
     return result.reverse() // Return in chronological order

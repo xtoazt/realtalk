@@ -80,6 +80,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       }
 
       const data = await response.json()
+      console.log("[ChatWindow] Received messages data:", data.messages)
 
       if (data.messages) {
         // Determine new messages for notification purposes using messagesRef
@@ -89,6 +90,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
         )
 
         setMessages(data.messages) // Update the main messages state
+        console.log("[ChatWindow] Messages state updated. Current messages count:", data.messages.length)
 
         // Show new message indicator if user is scrolled up
         if (newMessagesForNotification.length > 0 && showScrollButton) {
