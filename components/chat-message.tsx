@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Heart, MessageCircle, MoreHorizontal } from "lucide-react"
+import Image from "next/image" // Import Image component
 
 interface Message {
   id: string
@@ -15,6 +16,7 @@ interface Message {
   is_ai_response?: boolean
   created_at: string
   mentions?: string[]
+  message_type?: string // Added message_type
   reactions?: { emoji: string; count: number; reacted_by_me: boolean }[] // Added reactions
 }
 
@@ -77,7 +79,19 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
             isOwnMessage ? "bg-black text-white" : isAI ? "bg-blue-50 border border-blue-200" : "bg-gray-100"
           }`}
         >
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          {message.message_type === "image" ? (
+            <div className="relative w-48 h-48 sm:w-64 sm:h-64 overflow-hidden rounded-lg">
+              <Image
+                src={message.content || "/placeholder.svg"}
+                alt="Shared image"
+                layout="fill"
+                objectFit="cover"
+                className="rounded-lg"
+              />
+            </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          )}
         </div>
 
         {message.reactions && message.reactions.length > 0 && (

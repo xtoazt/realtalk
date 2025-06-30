@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { content, chatType, chatId, parentMessageId } = await request.json()
+    const { content, chatType, chatId, parentMessageId, messageType = "text" } = await request.json() // Added messageType
 
     if (!content || !chatType) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       console.log("[messages-api] AI chat detected, creating user message and AI response")
 
       // Create user's message to AI
-      await createMessage(user.id, content, chatType, chatId, [], false, parentMessageId)
+      await createMessage(user.id, content, chatType, chatId, [], false, parentMessageId, messageType) // Pass messageType
 
       // Generate and send AI response with better context
       const aiContext = `You are real.AI, the helpful AI assistant for the real. chat app. 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       or assist with using the real. app features.`
 
       const aiResponseContent = await generateAIResponse(content, aiContext)
-      await createMessage(AI_USER_ID, aiResponseContent, chatType, user.id, [], true)
+      await createMessage(AI_USER_ID, aiResponseContent, chatType, user.id, [], true, undefined, "text") // AI responses are always text
 
       return NextResponse.json({ success: true })
     }
@@ -60,7 +60,16 @@ export async function POST(request: NextRequest) {
     const hasAIMention = mentions.includes("ai") || mentions.includes("real.ai") || mentions.includes("realai")
 
     // Create user message
-    const message = await createMessage(user.id, content, chatType, chatId, mentions, false, parentMessageId)
+    const message = await createMessage(
+      user.id,
+      content,
+      chatType,
+      chatId,
+      mentions,
+      false,
+      parentMessageId,
+      messageType,
+    ) // Pass messageType
 
     // Handle DM notification for the recipient (if not AI chat)
     if (chatType === "dm" && chatId && chatId !== user.id && chatId !== AI_USER_ID) {
@@ -69,7 +78,7 @@ export async function POST(request: NextRequest) {
         await createNotification(
           recipientUser.id,
           `New DM from @${user.username}`,
-          content,
+          messageType === "image" ? "Sent an image" : content, // Notification content for image
           chatType,
           chatId,
           user.username,
@@ -86,7 +95,7 @@ export async function POST(request: NextRequest) {
           await createNotification(
             mentionedUser.id,
             `You were mentioned by @${user.username}`,
-            content,
+            messageType === "image" ? "Sent an image" : content, // Notification content for image
             chatType,
             chatId,
             user.username,
@@ -104,7 +113,7 @@ export async function POST(request: NextRequest) {
       Keep responses appropriate for public chat.`
 
       const aiResponseContent = await generateAIResponse(content, aiContext)
-      await createMessage(AI_USER_ID, aiResponseContent, chatType, chatId, [], true)
+      await createMessage(AI_USER_ID, aiResponseContent, chatType, chatId, [], true, undefined, "text") // AI responses are always text
     }
 
     return NextResponse.json({ message })

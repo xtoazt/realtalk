@@ -16,9 +16,10 @@ interface Message {
   is_ai_response?: boolean
   created_at: string
   mentions?: string[]
-  parent_message_id?: string // Added for replies
-  parent_message_content?: string // Added for replies
-  parent_message_username?: string // Added for replies
+  parent_message_id?: string
+  parent_message_content?: string
+  parent_message_username?: string
+  message_type?: string // Added message_type
   reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
 }
 
@@ -33,7 +34,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null) // State for replying
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = useUser()
 
@@ -62,7 +63,6 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
 
         setMessages(data.messages)
 
-        // Enhanced notification support for ChromeOS and other platforms
         if (user && user.notifications_enabled && newMessages.length > 0) {
           newMessages.forEach((newMessage: Message) => {
             if (newMessage.sender_id !== currentUserId) {
@@ -73,7 +73,6 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
                     ? `New message in ${chatName}`
                     : `New global message from ${newMessage.username}`
 
-              // Check if notifications are supported and permission is granted
               if ("Notification" in window && Notification.permission === "granted") {
                 try {
                   const notification = new Notification(notificationTitle, {
@@ -83,17 +82,15 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
                         : newMessage.content,
                     icon: "/favicon.ico",
                     tag: `${newMessage.chat_type}-${newMessage.chat_id || "global"}`,
-                    badge: "/favicon.ico", // For ChromeOS
-                    requireInteraction: false, // Don't require user interaction to dismiss
-                    silent: false, // Allow sound
+                    badge: "/favicon.ico",
+                    requireInteraction: false,
+                    silent: false,
                   })
 
-                  // Auto-close notification after 5 seconds
                   setTimeout(() => {
                     notification.close()
                   }, 5000)
 
-                  // Handle notification click
                   notification.onclick = () => {
                     window.focus()
                     notification.close()
@@ -111,7 +108,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     } finally {
       setLoading(false)
     }
-  }, [chatType, chatId, user, currentUserId, chatName]) // Removed messages from dependencies to prevent infinite loop
+  }, [chatType, chatId, user, currentUserId, chatName, messages]) // Added messages to dependencies for proper new message detection
 
   useEffect(() => {
     scrollToBottom()
@@ -121,19 +118,19 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     fetchMessages()
     const interval = setInterval(fetchMessages, 2000)
     return () => clearInterval(interval)
-  }, [chatType, chatId]) // Removed fetchMessages from dependencies to prevent infinite loop
+  }, [chatType, chatId, fetchMessages]) // Added fetchMessages to dependencies
 
-  const handleSendMessage = async (content: string, parentMessageId?: string) => {
+  const handleSendMessage = async (content: string, parentMessageId?: string, messageType = "text") => {
     setSending(true)
     try {
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, chatType, chatId, parentMessageId }),
+        body: JSON.stringify({ content, chatType, chatId, parentMessageId, messageType }), // Pass messageType
       })
 
       if (response.ok) {
-        setTimeout(fetchMessages, 500) // Fetch messages after a short delay to ensure DB update
+        setTimeout(fetchMessages, 500)
       } else {
         console.error("Failed to send message:", response.status, await response.text())
       }
@@ -152,7 +149,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
         body: JSON.stringify({ emoji }),
       })
       if (response.ok) {
-        fetchMessages() // Refresh messages to show new reaction
+        fetchMessages()
       } else {
         console.error("Failed to add reaction:", response.status, await response.text())
       }
@@ -166,10 +163,10 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       const response = await fetch(`/api/messages/${messageId}/reactions`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emoji }), // Send emoji to identify which reaction to remove
+        body: JSON.stringify({ emoji }),
       })
       if (response.ok) {
-        fetchMessages() // Refresh messages to show updated reactions
+        fetchMessages()
       } else {
         console.error("Failed to remove reaction:", response.status, await response.text())
       }

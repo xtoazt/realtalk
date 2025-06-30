@@ -294,11 +294,12 @@ export async function createMessage(
   mentions: string[] = [],
   isAiResponse = false,
   parentMessageId?: string,
+  messageType = "text", // Added messageType
 ) {
   try {
     const result = await query`
-      INSERT INTO messages (sender_id, content, chat_type, chat_id, mentions, is_ai_response, parent_message_id)
-      VALUES (${senderId}, ${content}, ${chatType}, ${chatId}, ${mentions}, ${isAiResponse}, ${parentMessageId})
+      INSERT INTO messages (sender_id, content, chat_type, chat_id, mentions, is_ai_response, parent_message_id, message_type)
+      VALUES (${senderId}, ${content}, ${chatType}, ${chatId}, ${mentions}, ${isAiResponse}, ${parentMessageId}, ${messageType})
       RETURNING *
     `
     return result[0]
@@ -326,10 +327,10 @@ export async function createGroupChat(name: string, creatorId: string, memberIds
     for (const memberId of memberIds) {
       if (memberId !== creatorId) {
         await query`
-          INSERT INTO group_chat_members (group_chat_id, user_id)
-          VALUES (${result[0].id}, ${memberId})
-          ON CONFLICT (group_chat_id, user_id) DO NOTHING
-        `
+         INSERT INTO group_chat_members (group_chat_id, user_id)
+         VALUES (${result[0].id}, ${memberId})
+         ON CONFLICT (group_chat_id, user_id) DO NOTHING
+       `
       }
     }
 
