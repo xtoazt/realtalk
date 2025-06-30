@@ -41,7 +41,13 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
   const [hasNewMessages, setHasNewMessages] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<Message[]>([]) // To hold the latest messages for comparison
   const { user } = useUser()
+
+  // Keep messagesRef updated with the latest messages state
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -76,21 +82,22 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       const data = await response.json()
 
       if (data.messages) {
-        const previousMessageCount = messages.length
-        const newMessages = data.messages.filter(
-          (newMessage: Message) => !messages.some((existingMessage) => existingMessage.id === newMessage.id),
+        // Determine new messages for notification purposes using messagesRef
+        const currentMessageIds = new Set(messagesRef.current.map((m) => m.id))
+        const newMessagesForNotification = data.messages.filter(
+          (newMessage: Message) => !currentMessageIds.has(newMessage.id),
         )
 
-        setMessages(data.messages)
+        setMessages(data.messages) // Update the main messages state
 
         // Show new message indicator if user is scrolled up
-        if (newMessages.length > 0 && previousMessageCount > 0 && showScrollButton) {
+        if (newMessagesForNotification.length > 0 && showScrollButton) {
           setHasNewMessages(true)
         }
 
         // Enhanced notification support
-        if (user && user.notifications_enabled && newMessages.length > 0) {
-          newMessages.forEach((newMessage: Message) => {
+        if (user && user.notifications_enabled && newMessagesForNotification.length > 0) {
+          newMessagesForNotification.forEach((newMessage: Message) => {
             if (newMessage.sender_id !== currentUserId) {
               const notificationTitle =
                 newMessage.chat_type === "dm"
@@ -136,7 +143,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     } finally {
       setLoading(false)
     }
-  }, [chatType, chatId, user, currentUserId, chatName, messages.length, showScrollButton])
+  }, [chatType, chatId, user, currentUserId, chatName, showScrollButton]) // Removed 'messages' from dependencies
 
   // Initial scroll to bottom only on first load
   useEffect(() => {
@@ -151,7 +158,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     fetchMessages()
     const interval = setInterval(fetchMessages, 2000)
     return () => clearInterval(interval)
-  }, [chatType, chatId])
+  }, [chatType, chatId, fetchMessages]) // Added fetchMessages to dependency array
 
   const handleSendMessage = async (content: string, parentMessageId?: string, messageType = "text") => {
     setSending(true)

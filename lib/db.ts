@@ -327,10 +327,10 @@ export async function createGroupChat(name: string, creatorId: string, memberIds
     for (const memberId of memberIds) {
       if (memberId !== creatorId) {
         await query`
-        INSERT INTO group_chat_members (group_chat_id, user_id)
-        VALUES (${result[0].id}, ${memberId})
-        ON CONFLICT (group_chat_id, user_id) DO NOTHING
-      `
+       INSERT INTO group_chat_members (group_chat_id, user_id)
+       VALUES (${result[0].id}, ${memberId})
+       ON CONFLICT (group_chat_id, user_id) DO NOTHING
+     `
       }
     }
 
@@ -401,11 +401,11 @@ export async function createFriendship(requesterId: string, addresseeId: string)
 
     // Check for existing pending/accepted request in either direction
     const existing = await query`
-      SELECT * FROM friendships
-      WHERE (requester_id = ${requesterId} AND addressee_id = ${addresseeId})
-         OR (requester_id = ${addresseeId} AND addressee_id = ${requesterId})
-     LIMIT 1
-    `
+     SELECT * FROM friendships
+     WHERE (requester_id = ${requesterId} AND addressee_id = ${addresseeId})
+        OR (requester_id = ${addresseeId} AND addressee_id = ${requesterId})
+    LIMIT 1
+   `
     if (existing.length > 0) {
       if (existing[0].status === "pending") {
         throw new Error("Friend request already pending.")
@@ -417,10 +417,10 @@ export async function createFriendship(requesterId: string, addresseeId: string)
     }
 
     const result = await query`
-      INSERT INTO friendships (requester_id, addressee_id, status)
-      VALUES (${requesterId}, ${addresseeId}, 'pending')
-      RETURNING *
-    `
+     INSERT INTO friendships (requester_id, addressee_id, status)
+     VALUES (${requesterId}, ${addresseeId}, 'pending')
+     RETURNING *
+   `
     return result[0]
   } catch (err) {
     console.error("[db] createFriendship error:", err)
@@ -431,11 +431,11 @@ export async function createFriendship(requesterId: string, addresseeId: string)
 export async function updateFriendshipStatus(friendshipId: string, status: string) {
   try {
     const result = await query`
-      UPDATE friendships 
-      SET status = ${status}, updated_at = NOW()
-      WHERE id = ${friendshipId}
-      RETURNING *
-    `
+     UPDATE friendships 
+     SET status = ${status}, updated_at = NOW()
+     WHERE id = ${friendshipId}
+     RETURNING *
+   `
     return result[0]
   } catch (err) {
     console.error("[db] updateFriendshipStatus error:", err)
@@ -446,19 +446,19 @@ export async function updateFriendshipStatus(friendshipId: string, status: strin
 export async function getFriendships(userId: string) {
   try {
     const result = await query`
-      SELECT f.*, 
-             u1.username as requester_username,
-             u2.username as addressee_username,
-             u1.name_color as requester_name_color,
-             u2.name_color as addressee_name_color,
-             u1.has_gold_animation as requester_has_gold,
-             u2.has_gold_animation as addressee_has_gold
-      FROM friendships f
-      JOIN users u1 ON f.requester_id = u1.id
-      JOIN users u2 ON f.addressee_id = u2.id
-      WHERE (f.requester_id = ${userId} OR f.addressee_id = ${userId})
-      ORDER BY f.created_at DESC
-    `
+     SELECT f.*, 
+            u1.username as requester_username,
+            u2.username as addressee_username,
+            u1.name_color as requester_name_color,
+            u2.name_color as addressee_name_color,
+            u1.has_gold_animation as requester_has_gold,
+            u2.has_gold_animation as addressee_has_gold
+     FROM friendships f
+     JOIN users u1 ON f.requester_id = u1.id
+     JOIN users u2 ON f.addressee_id = u2.id
+     WHERE (f.requester_id = ${userId} OR f.addressee_id = ${userId})
+     ORDER BY f.created_at DESC
+   `
     return result
   } catch (err) {
     console.error("[db] getFriendships error:", err)
@@ -469,30 +469,30 @@ export async function getFriendships(userId: string) {
 export async function getAcceptedFriends(userId: string) {
   try {
     const result = await query`
-      SELECT DISTINCT
-        CASE 
-          WHEN f.requester_id = ${userId} THEN u2.id
-          ELSE u1.id
-        END as friend_id,
-        CASE 
-          WHEN f.requester_id = ${userId} THEN u2.username
-          ELSE u1.username
-        END as friend_username,
-        CASE 
-          WHEN f.requester_id = ${userId} THEN u2.name_color
-          ELSE u1.name_color
-        END as friend_name_color,
-        CASE 
-          WHEN f.requester_id = ${userId} THEN u2.has_gold_animation
-          ELSE u1.has_gold_animation
-        END as friend_has_gold
-      FROM friendships f
-      JOIN users u1 ON f.requester_id = u1.id
-      JOIN users u2 ON f.addressee_id = u2.id
-      WHERE (f.requester_id = ${userId} OR f.addressee_id = ${userId})
-      AND f.status = 'accepted'
-      ORDER BY friend_username
-    `
+     SELECT DISTINCT
+       CASE 
+         WHEN f.requester_id = ${userId} THEN u2.id
+         ELSE u1.id
+       END as friend_id,
+       CASE 
+         WHEN f.requester_id = ${userId} THEN u2.username
+         ELSE u1.username
+       END as friend_username,
+       CASE 
+         WHEN f.requester_id = ${userId} THEN u2.name_color
+         ELSE u1.name_color
+       END as friend_name_color,
+       CASE 
+         WHEN f.requester_id = ${userId} THEN u2.has_gold_animation
+         ELSE u1.has_gold_animation
+       END as friend_has_gold
+     FROM friendships f
+     JOIN users u1 ON f.requester_id = u1.id
+     JOIN users u2 ON f.addressee_id = u2.id
+     WHERE (f.requester_id = ${userId} OR f.addressee_id = ${userId})
+     AND f.status = 'accepted'
+     ORDER BY friend_username
+   `
     return result
   } catch (err) {
     console.error("[db] getAcceptedFriends error:", err)
@@ -503,28 +503,28 @@ export async function getAcceptedFriends(userId: string) {
 export async function getUserDMs(userId: string) {
   try {
     const result = await query`
-      SELECT DISTINCT
-        CASE
-          WHEN m.sender_id = ${userId} THEN m.chat_id
-          ELSE m.sender_id
-        END as friend_id,
-        u.username as friend_username,
-        u.name_color as friend_name_color,
-        u.has_gold_animation as friend_has_gold,
-        MAX(m.created_at) as last_message_at
-      FROM messages m
-      JOIN users u ON 
-        CASE
-          WHEN m.sender_id = ${userId} THEN m.chat_id
-          ELSE m.sender_id
-        END = u.id
-      WHERE m.chat_type = 'dm' 
-      AND (m.sender_id = ${userId} OR m.chat_id = ${userId})
-      AND u.id != ${userId} -- Exclude self in DMs list
-      AND u.id != ${AI_USER_ID} -- Exclude AI from DMs list
-      GROUP BY friend_id, u.username, u.name_color, u.has_gold_animation
-      ORDER BY last_message_at DESC
-    `
+     SELECT DISTINCT
+       CASE
+         WHEN m.sender_id = ${userId} THEN m.chat_id
+         ELSE m.sender_id
+       END as friend_id,
+       u.username as friend_username,
+       u.name_color as friend_name_color,
+       u.has_gold_animation as friend_has_gold,
+       MAX(m.created_at) as last_message_at
+     FROM messages m
+     JOIN users u ON 
+       CASE
+         WHEN m.sender_id = ${userId} THEN m.chat_id
+         ELSE m.sender_id
+       END = u.id
+     WHERE m.chat_type = 'dm' 
+     AND (m.sender_id = ${userId} OR m.chat_id = ${userId})
+     AND u.id != ${userId} -- Exclude self in DMs list
+     AND u.id != ${AI_USER_ID} -- Exclude AI from DMs list
+     GROUP BY friend_id, u.username, u.name_color, u.has_gold_animation
+     ORDER BY last_message_at DESC
+   `
     return result
   } catch (err) {
     console.error("[db] getUserDMs error:", err)
@@ -542,10 +542,10 @@ export async function createNotification(
 ) {
   try {
     const result = await query`
-      INSERT INTO notifications (user_id, title, message, chat_type, chat_id, sender_username)
-      VALUES (${userId}, ${title}, ${message}, ${chatType}, ${chatId}, ${senderUsername})
-      RETURNING *
-    `
+     INSERT INTO notifications (user_id, title, message, chat_type, chat_id, sender_username)
+     VALUES (${userId}, ${title}, ${message}, ${chatType}, ${chatId}, ${senderUsername})
+     RETURNING *
+   `
     return result[0]
   } catch (err) {
     console.error("[db] createNotification error:", err)
@@ -556,10 +556,10 @@ export async function createNotification(
 export async function getUnreadNotifications(userId: string) {
   try {
     const result = await query`
-      SELECT * FROM notifications
-      WHERE user_id = ${userId} AND is_read = FALSE
-      ORDER BY created_at DESC
-    `
+     SELECT * FROM notifications
+     WHERE user_id = ${userId} AND is_read = FALSE
+     ORDER BY created_at DESC
+   `
     return result
   } catch (err) {
     console.error("[db] getUnreadNotifications error:", err)
@@ -570,11 +570,11 @@ export async function getUnreadNotifications(userId: string) {
 export async function markNotificationAsRead(notificationId: string, userId: string) {
   try {
     const result = await query`
-      UPDATE notifications
-      SET is_read = TRUE, created_at = NOW() -- Using created_at for updated_at-like functionality for simplicity
-      WHERE id = ${notificationId} AND user_id = ${userId}
-      RETURNING *
-    `
+     UPDATE notifications
+     SET is_read = TRUE, created_at = NOW() -- Using created_at for updated_at-like functionality for simplicity
+     WHERE id = ${notificationId} AND user_id = ${userId}
+     RETURNING *
+   `
     return result[0]
   } catch (err) {
     console.error("[db] markNotificationAsRead error:", err)
@@ -588,11 +588,11 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 export async function addMessageReaction(messageId: string, userId: string, emoji: string) {
   try {
     const result = await query`
-      INSERT INTO message_reactions (message_id, user_id, emoji)
-      VALUES (${messageId}, ${userId}, ${emoji})
-      ON CONFLICT (message_id, user_id, emoji) DO NOTHING
-      RETURNING *
-    `
+     INSERT INTO message_reactions (message_id, user_id, emoji)
+     VALUES (${messageId}, ${userId}, ${emoji})
+     ON CONFLICT (message_id, user_id, emoji) DO NOTHING
+     RETURNING *
+   `
     return result[0]
   } catch (err) {
     console.error("[db] addMessageReaction error:", err)
@@ -603,11 +603,11 @@ export async function addMessageReaction(messageId: string, userId: string, emoj
 export async function removeMessageReaction(messageId: string, userId: string, emoji: string) {
   try {
     await query`
-      DELETE FROM message_reactions
-      WHERE message_id = ${messageId}
-        AND user_id   = ${userId}
-        AND emoji     = ${emoji}
-    `
+     DELETE FROM message_reactions
+     WHERE message_id = ${messageId}
+       AND user_id   = ${userId}
+       AND emoji     = ${emoji}
+   `
     return true
   } catch (err) {
     console.error("[db] removeMessageReaction error:", err)
@@ -646,11 +646,11 @@ export async function updateUserSettings(userId: string, updates: any) {
     const setClause = setParts.join(", ")
 
     const queryString = `
-      UPDATE users 
-      SET ${setClause}, updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
-    `
+     UPDATE users 
+     SET ${setClause}, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
+   `
 
     console.log("[db] Executing query:", queryString, "with params:", params)
 

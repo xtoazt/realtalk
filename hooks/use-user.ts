@@ -62,10 +62,7 @@ export function useUser() {
       console.log("[useUser] Applying theme from updatedUser:", updatedUser.theme)
       document.documentElement.setAttribute("data-theme", updatedUser.theme)
       document.documentElement.className = `theme-${updatedUser.theme}`
-      // Force a repaint
-      document.body.style.display = "none"
-      document.body.offsetHeight // Trigger reflow
-      document.body.style.display = ""
+      // Removed the force repaint hack
     } else {
       console.warn("[useUser] updatedUser is null/undefined or updatedUser.theme is not a string, cannot apply theme.")
     }
