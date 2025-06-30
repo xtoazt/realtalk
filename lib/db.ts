@@ -224,6 +224,7 @@ export async function searchUsers(searchQuery: string, currentUserId: string) {
 
 export async function getMessages(chatType: string, chatId?: string, userId?: string, limit = 50) {
   try {
+    console.log(`[db/getMessages] Called with chatType: ${chatType}, chatId: ${chatId}, userId: ${userId}`)
     let result
     const baseSelect = `
       SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
@@ -262,8 +263,10 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
     `
 
     if (chatType === "global") {
+      console.log("[db/getMessages] Executing global chat query.")
       result = await query`${baseSelect} ${baseJoin} WHERE m.chat_type = 'global' ${baseGroupBy}`
     } else if (chatType === "dm") {
+      console.log(`[db/getMessages] Executing DM query for userId: ${userId}, chatId: ${chatId}.`)
       result = await query`
         ${baseSelect} ${baseJoin}
         WHERE m.chat_type = 'dm' 
@@ -273,15 +276,17 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
       `
     } else {
       // group chat
+      console.log(`[db/getMessages] Executing group chat query for chatType: ${chatType}, chatId: ${chatId}.`)
       result = await query`
         ${baseSelect} ${baseJoin}
         WHERE m.chat_type = ${chatType} AND m.chat_id = ${chatId}
         ${baseGroupBy}
       `
     }
+    console.log(`[db/getMessages] Query returned ${result.length} rows.`)
     return result.reverse() // Return in chronological order
   } catch (err) {
-    console.error("[db] getMessages error:", err)
+    console.error("[db/getMessages] getMessages error:", err)
     throw new Error("Error connecting to database: " + (err as Error).message)
   }
 }

@@ -8,17 +8,21 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()
     if (!user) {
+      console.warn("[api/messages/GET] Unauthorized: No current user.")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    console.log(`[api/messages/GET] Current user: ${user.username} (${user.id})`)
 
     const { searchParams } = new URL(request.url)
     const chatType = searchParams.get("chatType") || "global"
     const chatId = searchParams.get("chatId")
+    console.log(`[api/messages/GET] Fetching messages for chatType: ${chatType}, chatId: ${chatId}`)
 
     const messages = await getMessages(chatType, chatId, user.id)
+    console.log(`[api/messages/GET] Fetched ${messages.length} messages.`)
     return NextResponse.json({ messages })
   } catch (error: any) {
-    console.error("GET messages API error:", error.message)
+    console.error("[api/messages/GET] Error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
