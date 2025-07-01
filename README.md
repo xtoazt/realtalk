@@ -1,14 +1,16 @@
 
 *All Official Domains*
 
-[1](https://realchat.loimex.es)
+[loimex](https://realchat.loimex.es)
 
-[2](https://realchat.loimex.es)
+[77com](https://realchat.77com.ru)
 
-[3](https://chat-real.royel.cl)
+[royel](https://chat-real.royel.cl)
 
-[4](https://realz3.vercel.app)
+[vercel](https://realz3.vercel.app)
 
-[5](https://realist.dfgh.in)
+[dfgh](https://realist.dfgh.in)
 
-[6](https://chat.real-design.ro)
+[real-design](https://chat.real-design.ro)
+
+[vercel](https://rndm-real.vercel.app)
