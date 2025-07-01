@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Heart, MessageCircle, MoreHorizontal } from "lucide-react"
-import Image from "next/image" // Import Image component
+import Image from "next/image"
 
 interface Message {
   id: string
@@ -16,23 +16,24 @@ interface Message {
   is_ai_response?: boolean
   created_at: string
   mentions?: string[]
-  message_type?: string // Added message_type
-  reactions?: { emoji: string; count: number; reacted_by_me: boolean }[] // Added reactions
-  parent_message_id?: string // Added for replies
-  parent_message_content?: string // Added for replies
-  parent_message_username?: string // Added for replies
+  message_type?: string
+  reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
+  parent_message_id?: string
+  parent_message_content?: string
+  parent_message_username?: string
 }
 
 interface ChatMessageProps {
   message: Message
   currentUserId: string
-  onAddReaction?: (messageId: string, emoji: string) => void // New prop for adding reactions
-  onRemoveReaction?: (messageId: string, emoji: string) => void // New prop for removing reactions
-  onReply?: (message: Message) => void // New prop for replying
+  onAddReaction?: (messageId: string, emoji: string) => void
+  onRemoveReaction?: (messageId: string, emoji: string) => void
+  onReply?: (message: Message) => void
 }
 
 export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveReaction, onReply }: ChatMessageProps) {
   const [showReactions, setShowReactions] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const isOwnMessage = message.sender_id === currentUserId
   const isAI = message.is_ai_response
 
@@ -58,7 +59,7 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
     } else {
       onAddReaction?.(message.id, emoji)
     }
-    setShowReactions(false) // Close reaction picker after selection
+    setShowReactions(false)
   }
 
   const availableEmojis = [
@@ -106,14 +107,23 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
           }`}
         >
           {message.message_type === "image" ? (
-            <div className="relative w-48 h-48 sm:w-64 sm:h-64 overflow-hidden rounded-lg">
-              <Image
-                src={message.content || "/placeholder.svg"}
-                alt="Shared image"
-                layout="fill"
-                objectFit="cover"
-                className="rounded-lg"
-              />
+            <div className="relative max-w-sm">
+              {!imageError ? (
+                <Image
+                  src={message.content || "/placeholder.svg"}
+                  alt="Shared image"
+                  width={400}
+                  height={300}
+                  className="rounded-lg object-cover max-h-80 w-auto"
+                  onError={() => setImageError(true)}
+                  priority={false}
+                  quality={85}
+                />
+              ) : (
+                <div className="w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">Failed to load image</span>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>

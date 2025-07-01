@@ -6,12 +6,15 @@ import { DynamicIsland } from "@/components/dynamic-island"
 import { ChatWindow } from "@/components/chat-window"
 import { FriendsPage } from "@/components/friends-page"
 import { DMsPage } from "@/components/dms-page"
+import { PollsPage } from "@/components/polls-page"
+import { CalendarPage } from "@/components/calendar-page"
 import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
+import { MessageSearch } from "@/components/message-search"
 import { TimeDateDisplay } from "@/components/time-date-display"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe, Trash2 } from "lucide-react"
+import { Plus, Users, Globe, Trash2, Search } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
@@ -40,6 +43,7 @@ export default function DashboardPage() {
     name: string
   }>({ type: null, name: "" })
   const [showCreateGC, setShowCreateGC] = useState(false)
+  const [showMessageSearch, setShowMessageSearch] = useState(false)
   const router = useRouter()
 
   const fetchGroupChats = useCallback(async () => {
@@ -189,6 +193,20 @@ export default function DashboardPage() {
     }
   }
 
+  const handleMessageSearchClick = (chatType: string, chatId?: string) => {
+    if (chatType === "global") {
+      setActiveChat({ type: "global", name: "Global Chat" })
+    } else if (chatType === "dm") {
+      // For DMs, we need to get the friend's username - for now just show the chat
+      setActiveChat({ type: "dm", id: chatId, name: "Direct Message" })
+    } else if (chatType === "group") {
+      // Find the group chat name
+      const groupChat = groupChats.find((gc) => gc.id === chatId)
+      setActiveChat({ type: "group", id: chatId, name: groupChat?.name || "Group Chat" })
+    }
+    setCurrentPage("dashboard")
+  }
+
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -222,9 +240,19 @@ export default function DashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Group Chats</span>
-                    <Button variant="ghost" size="sm" onClick={() => setShowCreateGC(true)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowMessageSearch(true)}
+                        title="Search Messages"
+                      >
+                        <Search className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCreateGC(true)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -310,9 +338,25 @@ export default function DashboardPage() {
             <DMsPage currentUserId={user.id} onSelectDM={handleStartDM} />
           </div>
         )}
+
+        {currentPage === "polls" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <PollsPage currentUserId={user.id} userSignupCode={user.signup_code} />
+          </div>
+        )}
+
+        {currentPage === "calendar" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <CalendarPage currentUserId={user.id} />
+          </div>
+        )}
       </div>
 
       {showCreateGC && user && <CreateGroupChat onClose={() => setShowCreateGC(false)} onCreate={handleCreateGC} />}
+
+      {showMessageSearch && (
+        <MessageSearch onClose={() => setShowMessageSearch(false)} onMessageClick={handleMessageSearchClick} />
+      )}
     </div>
   )
 }

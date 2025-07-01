@@ -73,8 +73,8 @@ export const sql = g.__sql!
  * 4 • Resilient query() helper
  * ----------------------------------------------------------------*/
 export async function query<T = any>(strings: TemplateStringsArray | string, ...params: any[]): Promise<T[]> {
-  const MAX_RETRIES = 5
-  let delay = 250 /* ms */
+  const MAX_RETRIES = 3
+  let delay = 500 /* ms */
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -82,32 +82,39 @@ export async function query<T = any>(strings: TemplateStringsArray | string, ...
       return await (sql as any)(strings, ...params)
     } catch (e: any) {
       const fetchFail = e instanceof TypeError && /fetch/i.test(e.message || "")
-      if (fetchFail && attempt < MAX_RETRIES) {
-        warn(`Fetch failed (attempt ${attempt + 1}/${MAX_RETRIES}) – retrying in ${delay} ms …`)
+      const networkError =
+        e.message?.includes("network") || e.message?.includes("ENOTFOUND") || e.message?.includes("timeout")
+
+      if ((fetchFail || networkError) && attempt < MAX_RETRIES) {
+        warn(`Database connection failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}) – retrying in ${delay} ms …`)
         await new Promise((r) => setTimeout(r, delay))
-        delay *= 2
+        delay *= 1.5
         /* fresh client each time (sidesteps stale DNS / keep-alive sockets) */
         g.__sql = neon(pickUrl())
         continue
       }
-      err("Query failed →", e)
-      throw new Error("Error connecting to database: " + e.message)
+      err("Query failed →", e.message || e)
+      throw new Error("Database connection failed: " + (e.message || "Unknown error"))
     }
   }
   throw new Error("Database unreachable after multiple retries.")
 }
+
 /*------------------------------------------------------------------
- * 5 • Cold-start health check (fail fast during build / first request)
+ * 5 • Conditional startup check (skip in build/static generation)
  * ----------------------------------------------------------------*/
-;(async () => {
-  try {
-    await sql`SELECT 1`
-    info("Startup check ✅  database reachable.")
-  } catch (e: any) {
-    err("Startup check ❌  could not reach database →", e.message)
-    throw e
-  }
-})()
+if (process.env.NODE_ENV !== "production" || process.env.VERCEL_ENV === "development") {
+  // Only run startup check in development or when explicitly needed
+  ;(async () => {
+    try {
+      await sql`SELECT 1`
+      info("Startup check ✅  database reachable.")
+    } catch (e: any) {
+      warn("Startup check ⚠️  database not reachable during build/static generation:", e.message)
+      // Don't throw during build - this is expected
+    }
+  })()
+}
 
 /*───────────────────────────────────────────────────────────────────────────┐
 │ 6.  Database helper functions                                             │
@@ -133,7 +140,7 @@ export async function createUser(username: string, passwordHash: string, signupC
     return result[0]
   } catch (err) {
     console.error("[db] createUser error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -148,7 +155,7 @@ export async function getUserByUsername(username: string) {
     return rows[0]
   } catch (err) {
     console.error("[db] getUserByUsername error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -161,7 +168,7 @@ export async function getUserById(id: string) {
     return result[0]
   } catch (err) {
     console.error("[db] getUserById error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -175,7 +182,7 @@ export async function updateUserActivity(userId: string) {
     return true
   } catch (err) {
     console.error("[db] updateUserActivity error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -199,7 +206,7 @@ export async function getOnlineUsers(currentUserId: string) {
     return result
   } catch (err) {
     console.error("[db] getOnlineUsers error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -218,7 +225,7 @@ export async function searchUsers(searchQuery: string, currentUserId: string) {
     return result
   } catch (err) {
     console.error("[db] searchUsers error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -340,7 +347,7 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
     }
   } catch (err) {
     console.error("[db/getMessages] getMessages error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -363,7 +370,7 @@ export async function createMessage(
     return result[0]
   } catch (err) {
     console.error("[db] createMessage error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -395,7 +402,7 @@ export async function createGroupChat(name: string, creatorId: string, memberIds
     return result[0]
   } catch (err) {
     console.error("[db] createGroupChat error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -412,7 +419,7 @@ export async function getUserGroupChats(userId: string) {
     return result
   } catch (err) {
     console.error("[db] getUserGroupChats error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -446,7 +453,7 @@ export async function deleteGroupChat(groupId: string, creatorId: string) {
   } catch (err) {
     await query`ROLLBACK`
     console.error("[db] deleteGroupChat error:", err)
-    throw new Error("Error deleting group chat: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -482,7 +489,7 @@ export async function createFriendship(requesterId: string, addresseeId: string)
     return result[0]
   } catch (err) {
     console.error("[db] createFriendship error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -497,7 +504,7 @@ export async function updateFriendshipStatus(friendshipId: string, status: strin
     return result[0]
   } catch (err) {
     console.error("[db] updateFriendshipStatus error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -520,7 +527,7 @@ export async function getFriendships(userId: string) {
     return result
   } catch (err) {
     console.error("[db] getFriendships error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -554,7 +561,7 @@ export async function getAcceptedFriends(userId: string) {
     return result
   } catch (err) {
     console.error("[db] getAcceptedFriends error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -586,7 +593,7 @@ export async function getUserDMs(userId: string) {
     return result
   } catch (err) {
     console.error("[db] getUserDMs error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -607,7 +614,7 @@ export async function createNotification(
     return result[0]
   } catch (err) {
     console.error("[db] createNotification error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -621,7 +628,7 @@ export async function getUnreadNotifications(userId: string) {
     return result
   } catch (err) {
     console.error("[db] getUnreadNotifications error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -636,7 +643,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
     return result[0]
   } catch (err) {
     console.error("[db] markNotificationAsRead error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -654,7 +661,7 @@ export async function addMessageReaction(messageId: string, userId: string, emoj
     return result[0]
   } catch (err) {
     console.error("[db] addMessageReaction error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -669,7 +676,7 @@ export async function removeMessageReaction(messageId: string, userId: string, e
     return true
   } catch (err) {
     console.error("[db] removeMessageReaction error:", err)
-    throw new Error("Error connecting to database: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }
 
@@ -720,6 +727,6 @@ export async function updateUserSettings(userId: string, updates: any) {
     return result[0]
   } catch (err) {
     console.error("[db] updateUserSettings error:", err)
-    throw new Error("Error updating user settings: " + (err as Error).message)
+    throw new Error("Database error: " + (err as Error).message)
   }
 }

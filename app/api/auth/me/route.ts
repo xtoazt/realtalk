@@ -14,6 +14,7 @@ export async function GET() {
 
     return NextResponse.json({ user })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[api/auth/me] Error:", error.message)
+    return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
   }
 }

@@ -2,7 +2,19 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, UserPlus, Settings, LogOut, Home, Globe, Info, Bot, Palette } from "lucide-react" // Import Palette
+import {
+  MessageSquare,
+  UserPlus,
+  Settings,
+  LogOut,
+  Home,
+  Globe,
+  Info,
+  Bot,
+  Palette,
+  BarChart3,
+  Calendar,
+} from "lucide-react"
 
 interface DynamicIslandProps {
   currentPage: string
@@ -11,7 +23,7 @@ interface DynamicIslandProps {
   onGlobalChatClick: () => void
   onAIChatClick: () => void
   username: string
-  onThemeCycle: () => void // New prop for theme cycling
+  onThemeCycle: () => void
 }
 
 export function DynamicIsland({
@@ -21,22 +33,23 @@ export function DynamicIsland({
   onGlobalChatClick,
   onAIChatClick,
   username,
-  onThemeCycle, // Destructure new prop
+  onThemeCycle,
 }: DynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
-  // Removed isDragging, dragStart, position, isCustomizing states
 
   const pages = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "friends", label: "Friends", icon: UserPlus },
     { id: "dms", label: "DMs", icon: MessageSquare },
+    { id: "polls", label: "Polls", icon: BarChart3 },
+    { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "about", label: "About", icon: Info },
   ]
 
   const handleExpansion = (expanded: boolean) => {
-    if (isAnimating) return // Prevent re-triggering animation
+    if (isAnimating) return
     setIsAnimating(true)
     setIsExpanded(expanded)
     setTimeout(() => setIsAnimating(false), 300)
@@ -52,21 +65,16 @@ export function DynamicIsland({
     }
   }
 
-  // Removed all dragging and customization useEffects and handlers
-
   return (
-    <div
-      className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`} // Fixed position
-      // Removed onMouseDown
-    >
+    <div className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`}>
       <div
         className={`bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-full transition-all duration-300 ease-out backdrop-blur-md border border-gray-700 ${
           isExpanded
-            ? "px-6 py-3 min-w-[500px] shadow-2xl scale-105"
+            ? "px-4 py-2 min-w-[600px] shadow-2xl scale-105"
             : "px-8 py-4 w-fit shadow-xl hover:shadow-2xl hover:scale-102"
         }`}
-        onMouseEnter={() => handleExpansion(true)} // No longer checking isCustomizing
-        onMouseLeave={() => handleExpansion(false)} // No longer checking isCustomizing
+        onMouseEnter={() => handleExpansion(true)}
+        onMouseLeave={() => handleExpansion(false)}
         style={{
           background: isExpanded
             ? "linear-gradient(135deg, rgba(17,24,39,0.95) 0%, rgba(0,0,0,0.98) 50%, rgba(17,24,39,0.95) 100%)"
@@ -76,8 +84,6 @@ export function DynamicIsland({
             : "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)",
         }}
       >
-        {/* Removed customization indicator */}
-
         {!isExpanded ? (
           <div className="flex items-center gap-4 transition-all duration-200">
             <div className="relative">
@@ -90,15 +96,15 @@ export function DynamicIsland({
             <span className="text-sm text-gray-300 opacity-90 font-medium">@{username}</span>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-2 py-1">
+          <div className="flex items-center justify-center gap-1 py-1">
             {/* Quick Action Buttons */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handlePageClick("global")}
-              className="h-9 px-4 text-white hover:bg-gray-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-gray-600/30"
+              className="h-8 px-3 text-white hover:bg-gray-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-gray-600/30 text-xs"
             >
-              <Globe className="h-4 w-4 mr-2" />
+              <Globe className="h-3 w-3 mr-1" />
               Global
             </Button>
 
@@ -106,13 +112,13 @@ export function DynamicIsland({
               variant="ghost"
               size="sm"
               onClick={() => handlePageClick("ai-chat")}
-              className="h-9 px-4 text-white hover:bg-blue-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-blue-600/30"
+              className="h-8 px-3 text-white hover:bg-blue-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-blue-600/30 text-xs"
             >
-              <Bot className="h-4 w-4 mr-2" />
-              AI Chat
+              <Bot className="h-3 w-3 mr-1" />
+              AI
             </Button>
 
-            <div className="w-px h-6 bg-gray-600 mx-2" />
+            <div className="w-px h-5 bg-gray-600 mx-1" />
 
             {/* Navigation Pages */}
             {pages.map((page) => {
@@ -123,29 +129,29 @@ export function DynamicIsland({
                   variant={currentPage === page.id ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => handlePageClick(page.id)}
-                  className={`h-9 px-4 transition-all duration-200 hover:scale-105 rounded-full ${
+                  className={`h-8 px-3 transition-all duration-200 hover:scale-105 rounded-full text-xs ${
                     currentPage === page.id
                       ? "bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300"
                       : "text-white hover:bg-gray-700/50 border border-gray-600/30"
                   }`}
                 >
-                  <Icon className="h-4 w-4 mr-2" />
+                  <Icon className="h-3 w-3 mr-1" />
                   {page.label}
                 </Button>
               )
             })}
 
-            <div className="w-px h-6 bg-gray-600 mx-2" />
+            <div className="w-px h-5 bg-gray-600 mx-1" />
 
             {/* Theme Cycle Button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={onThemeCycle}
-              className="h-9 px-4 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
+              className="h-8 px-3 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
               title="Cycle Theme"
             >
-              <Palette className="h-4 w-4" />
+              <Palette className="h-3 w-3" />
             </Button>
 
             {/* Sign Out */}
@@ -153,15 +159,13 @@ export function DynamicIsland({
               variant="ghost"
               size="sm"
               onClick={onSignOut}
-              className="h-9 px-4 text-white hover:bg-red-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-red-600/30"
+              className="h-8 px-3 text-white hover:bg-red-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-red-600/30"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-3 w-3" />
             </Button>
           </div>
         )}
       </div>
-
-      {/* Removed customization tooltip */}
     </div>
   )
 }

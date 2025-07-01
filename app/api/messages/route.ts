@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ messages })
   } catch (error: any) {
     console.error("[api/messages/GET] Error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
   }
 }
 
@@ -123,6 +123,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message })
   } catch (error: any) {
     console.error("POST messages API error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
   }
 }
