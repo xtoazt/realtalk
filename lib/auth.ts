@@ -1,132 +1,126 @@
 import bcrypt from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
-import { db } from "@/lib/db"
+import { createUser, getUserByUsername, getUserById } from "./db"
 
-/* -------------------------------------------------------------------------- */
-/*  Constants & helpers                                                       */
-/* -------------------------------------------------------------------------- */
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-fallback-12345"
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "fallback-secret-key"
-const JWT_KEY = new TextEncoder().encode(JWT_SECRET)
-
-/** Generate a signed JWT that lasts 7 days */
-export async function generateToken(userId: string) {
-  return new SignJWT({ userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(JWT_KEY)
+export async function hashPassword(password: string) {
+  console.log("[auth] Hashing password")
+  return bcrypt.hash(password, 12)
 }
 
-/**
- * verifyToken  – Named export required by other modules.
- * Returns the decoded payload on success, or `null`
- * if verification fails.
- */
-export async function verifyToken(token: string | undefined) {
-  if (!token) return null
+export async function verifyPassword(password: string, hashedPassword: string) {
+  console.log("[auth] Verifying password")
+  return bcrypt.compare(password, hashedPassword)
+}
+
+const secret = new TextEncoder().encode(JWT_SECRET)
+
+export async function generateToken(userId: string) {
+  console.log("[auth] Generating token for user:", userId)
   try {
-    const { payload } = await jwtVerify<{ userId: string }>(token, JWT_KEY, {
-      algorithms: ["HS256"],
-    })
+    const token = await new SignJWT({ userId })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(secret)
+    console.log("[auth] Token generated successfully")
+    return token
+  } catch (error) {
+    console.error("[auth] Token generation failed:", error)
+    throw error
+  }
+}
+
+export async function verifyToken(token: string) {
+  try {
+    console.log("[auth] Verifying token")
+    const { payload } = await jwtVerify<{ userId: string }>(token, secret)
+    console.log("[auth] Token verified successfully for user:", payload.userId)
     return payload
-  } catch {
+  } catch (error) {
+    console.error("[auth] Token verification failed:", error)
     return null
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Password utilities                                                        */
-/* -------------------------------------------------------------------------- */
-
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12)
-}
-
-export async function verifyPassword(password: string, hash: string) {
-  return bcrypt.compare(password, hash)
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Session helpers (cookie: auth-token)                                      */
-/* -------------------------------------------------------------------------- */
-
-function setAuthCookie(token: string) {
-  cookies().set("auth-token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  })
-}
-
-export function clearAuthCookie() {
-  cookies().delete("auth-token")
-}
-
 export async function getCurrentUser() {
-  const token = cookies().get("auth-token")?.value
-  const decoded = await verifyToken(token)
-  if (!decoded) return null
+  try {
+    console.log("[auth] Getting current user")
+    const cookieStore = await cookies()
+    const token = cookieStore.get("auth-token")?.value
 
-  return db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.id, decoded.userId),
-  })
+    console.log("[auth-getCurrentUser] Token from cookie:", token ? "Found" : "Not Found")
+
+    if (!token) {
+      console.log("[auth] No token found")
+      return null
+    }
+
+    const decoded = await verifyToken(token)
+    console.log("[auth-getCurrentUser] Decoded payload:", decoded)
+    if (!decoded) {
+      console.log("[auth] Token verification failed")
+      return null
+    }
+
+    const user = await getUserById(decoded.userId)
+    console.log("[auth-getCurrentUser] User from DB:", user ? user.username : "Not Found")
+    console.log("[auth] User retrieved:", user?.username)
+    return user
+  } catch (error) {
+    console.error("[auth] getCurrentUser error:", error)
+    return null
+  }
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Auth flows (server-side)                                                  */
-/* -------------------------------------------------------------------------- */
+export async function signUp(username: string, password: string, signupCode?: string) {
+  console.log("[auth] Starting signup for username:", username)
 
-export async function signUp(username: string, password: string) {
-  const existing = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.username, username),
-  })
-  if (existing) throw new Error("Username already exists")
+  try {
+    const existingUser = await getUserByUsername(username)
+    if (existingUser) {
+      console.log("[auth] Username already taken:", username)
+      throw new Error("Username already taken")
+    }
 
-  const password_hash = await hashPassword(password)
+    const hashedPassword = await hashPassword(password)
+    const user = await createUser(username, hashedPassword, signupCode)
+    console.log("[auth] User created:", user.username)
 
-  const [user] = await db
-    .insert(db.schema.users)
-    .values({
-      username,
-      password_hash,
-      theme: "light",
-      notifications_enabled: false,
-    })
-    .returning()
+    const token = await generateToken(user.id)
+    console.log("[auth] Signup successful for:", username)
 
-  const token = await generateToken(user.id)
-  setAuthCookie(token)
-
-  return user
+    return { user, token }
+  } catch (error) {
+    console.error("[auth] Signup error:", error)
+    throw error
+  }
 }
 
 export async function signIn(username: string, password: string) {
-  const user = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.username, username),
-  })
-  if (!user) throw new Error("Invalid credentials")
+  console.log("[auth] Starting signin for username:", username)
 
-  const valid = await verifyPassword(password, user.password_hash)
-  if (!valid) throw new Error("Invalid credentials")
+  try {
+    const user = await getUserByUsername(username)
+    if (!user) {
+      console.log("[auth] User not found:", username)
+      throw new Error("Invalid username or password")
+    }
 
-  const token = await generateToken(user.id)
-  setAuthCookie(token)
+    const isValid = await verifyPassword(password, user.password_hash)
+    if (!isValid) {
+      console.log("[auth] Invalid password for:", username)
+      throw new Error("Invalid username or password")
+    }
 
-  return user
-}
+    const token = await generateToken(user.id)
+    console.log("[auth] Signin successful for:", username)
 
-/* -------------------------------------------------------------------------- */
-/*  Convenience export for legacy code                                        */
-/* -------------------------------------------------------------------------- */
-
-export const auth = {
-  verifyToken,
-  getCurrentUser,
-  signIn,
-  signUp,
-  clearAuthCookie,
+    return { user: { ...user, password_hash: undefined }, token }
+  } catch (error) {
+    console.error("[auth] Signin error:", error)
+    throw error
+  }
 }

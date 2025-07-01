@@ -730,8 +730,3 @@ export async function updateUserSettings(userId: string, updates: any) {
     throw new Error("Database error: " + (err as Error).message)
   }
 }
-
-/*-------------------------------------------------------------------------*/
-/*  Convenience alias ─ lets callers do:  db`SELECT …`                     */
-/*-------------------------------------------------------------------------*/
-export const db = sql // db behaves exactly like sql
