@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 
 interface User {
@@ -14,6 +14,13 @@ interface User {
   theme: string
   signup_code?: string
 }
+
+interface UserContextValue {
+  user: User | null
+  loading: boolean
+  setUser: (user: User | null) => void
+}
+const UserContext = createContext<UserContextValue | undefined>(undefined)
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null)
@@ -69,4 +76,17 @@ export function useUser() {
   }
 
   return { user, loading, setUser: updateUser }
+}
+
+export function UserProvider({ children }: { children: ReactNode }) {
+  const value = useUser()
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>
+}
+
+export function useUserContext() {
+  const ctx = useContext(UserContext)
+  if (!ctx) {
+    throw new Error("useUserContext must be used within a <UserProvider>")
+  }
+  return ctx
 }

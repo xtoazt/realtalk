@@ -25,14 +25,6 @@ interface GroupChat {
   creator_id: string
 }
 
-const themes = [
-  { id: "monochrome", name: "Monochrome" },
-  { id: "sunset", name: "Sunset" },
-  { id: "sunrise", name: "Sunrise" },
-  { id: "forest", name: "Forest" },
-  { id: "ocean", name: "Ocean" },
-]
-
 export default function DashboardPage() {
   const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
   const [currentPage, setCurrentPage] = useState("dashboard")
@@ -160,38 +152,7 @@ export default function DashboardPage() {
     setCurrentPage("dashboard")
   }
 
-  const handleThemeCycle = async () => {
-    if (!user) {
-      console.warn("[dashboard] handleThemeCycle called but user is null.")
-      return
-    }
-    const currentIndex = themes.findIndex((t) => t.id === user.theme)
-    const nextIndex = (currentIndex + 1) % themes.length
-    const nextThemeId = themes[nextIndex].id
-
-    console.log("[dashboard] Cycling theme from", user.theme, "to", nextThemeId)
-
-    try {
-      const response = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: nextThemeId }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[dashboard] Theme update successful:", data.user.theme)
-        updateLocalUser(data.user) // Update user context, which will apply the theme
-      } else {
-        const errorData = await response.json()
-        console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
-        alert(`Failed to change theme: ${errorData.error || response.statusText}`)
-      }
-    } catch (error: any) {
-      console.error("[dashboard] Failed to update theme:", error)
-      alert(`An unexpected error occurred while changing theme: ${error.message}`)
-    }
-  }
+  // Removed handleThemeCycle as it's replaced by the dark mode switch in settings
 
   const handleMessageSearchClick = (chatType: string, chatId?: string) => {
     if (chatType === "global") {
@@ -232,7 +193,7 @@ export default function DashboardPage() {
         onGlobalChatClick={handleGlobalChatClick}
         onAIChatClick={handleAIChatClick}
         username={user.username}
-        onThemeCycle={handleThemeCycle}
+        // onThemeCycle removed
       />
 
       <div className="pt-20 px-4 pb-4">

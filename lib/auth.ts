@@ -124,3 +124,14 @@ export async function signIn(username: string, password: string) {
     throw error
   }
 }
+
+// Consolidated helper for convenient named import elsewhere
+export const auth = {
+  hashPassword,
+  verifyPassword,
+  generateToken,
+  verifyToken,
+  getCurrentUser,
+  signUp,
+  signIn,
+}

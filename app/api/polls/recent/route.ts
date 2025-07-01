@@ -1,63 +1,50 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
-import { query } from "@/lib/db"
+import { NextResponse } from "next/server"
+import { auth } from "@/lib/auth"
+import { sql } from "@vercel/postgres"
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const userId = session.user.id
+
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
-
-    if (!userId || userId !== user.id) {
-      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
-    }
-
-    // Get the most recent poll that was either created by the user, is public,
-    // or was shared with the user.
-    const polls = await query`
-      SELECT p.*, 
-             pr.selected_option as user_response,
-             COALESCE(response_counts.total_responses, 0) as total_responses
+    // Fetch the most recent poll that is either created by the user, is public,
+    // or has the user as a participant.
+    const result = await sql`
+      SELECT
+        p.id,
+        p.question,
+        p.options,
+        p.created_at,
+        p.creator_id,
+        p.is_public,
+        u.username AS creator_username,
+        (
+          SELECT json_agg(json_build_object('option_text', po.option_text, 'votes', po.votes))
+          FROM poll_options po
+          WHERE po.poll_id = p.id
+        ) AS poll_options,
+        (
+          SELECT COUNT(*)
+          FROM poll_votes pv
+          WHERE pv.poll_id = p.id AND pv.user_id = ${userId}
+        ) > 0 AS has_voted
       FROM polls p
-      LEFT JOIN poll_responses pr ON p.id = pr.poll_id AND pr.user_id = ${user.id}
-      LEFT JOIN (
-        SELECT poll_id, COUNT(*) as total_responses
-        FROM poll_responses
-        GROUP BY poll_id
-      ) response_counts ON p.id = response_counts.poll_id
-      WHERE p.creator_id = ${user.id}
-         OR p.is_public = true
-         OR p.id IN (
-           SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
-         )
+      JOIN users u ON p.creator_id = u.id
+      LEFT JOIN poll_participants pp ON p.id = pp.poll_id
+      WHERE p.creator_id = ${userId} OR p.is_public = TRUE OR pp.user_id = ${userId}
       ORDER BY p.created_at DESC
-      LIMIT 1
+      LIMIT 1;
     `
 
-    if (polls.length === 0) {
-      return NextResponse.json({ poll: null })
-    }
+    const recentPoll = result.rows[0] || null
 
-    const poll = polls[0]
-
-    // Get results for the poll
-    const results = await query`
-      SELECT selected_option as option_index, COUNT(*) as count
-      FROM poll_responses
-      WHERE poll_id = ${poll.id}
-      GROUP BY selected_option
-      ORDER BY selected_option
-    `
-
-    const pollWithResults = { ...poll, results }
-
-    return NextResponse.json({ poll: pollWithResults })
-  } catch (error: any) {
-    console.error("GET recent poll API error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ recentPoll })
+  } catch (error) {
+    console.error("Error fetching recent poll:", error)
+    return NextResponse.json({ error: "Failed to fetch recent poll" }, { status: 500 })
   }
 }

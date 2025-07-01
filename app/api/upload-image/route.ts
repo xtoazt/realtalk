@@ -1,14 +1,14 @@
 import { put } from "@vercel/blob"
 import { NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 
 export const config = {
   runtime: "edge",
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const user = await getCurrentUser()
-  if (!user) {
+  const session = await auth()
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -28,7 +28,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json(blob)
   } catch (error: any) {
-    console.error("Vercel Blob upload error:", error)
-    return NextResponse.json({ error: error.message || "Failed to upload image" }, { status: 500 })
+    console.error("Failed to upload image:", error)
+    return NextResponse.json({ error: `Failed to upload image: ${error.message}` }, { status: 500 })
   }
 }
