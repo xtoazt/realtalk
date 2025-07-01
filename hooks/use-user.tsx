@@ -3,98 +3,75 @@
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
+  useState,
   useMemo,
   type Dispatch,
   type SetStateAction,
   type ReactNode,
 } from "react"
 import { useRouter } from "next/navigation"
+import { type User, getCurrentUser } from "@/lib/auth"
 
-/* ------------------------------------------------------------------ */
-/* Types                                                               */
-/* ------------------------------------------------------------------ */
-export interface User {
-  id: string
-  username: string
-  email?: string | null
-  name_color?: string
-  custom_title?: string
-  has_gold_animation?: boolean
-  notifications_enabled?: boolean
-  theme?: string
-  signup_code?: string
-}
-
+/* -------------------------------------------------------------------------- */
+/* Context                                                                    */
+/* -------------------------------------------------------------------------- */
 interface UserContextValue {
   user: User | null
   loading: boolean
   setUser: Dispatch<SetStateAction<User | null>>
 }
 
-/* ------------------------------------------------------------------ */
-/* Context + Provider                                                  */
-/* ------------------------------------------------------------------ */
 const UserContext = createContext<UserContextValue | undefined>(undefined)
 
+/* -------------------------------------------------------------------------- */
+/* Provider                                                                   */
+/* -------------------------------------------------------------------------- */
 export function UserProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
+  const [loading, setLoading] = useState(true)
 
-  // Fetch current user once on mount
   useEffect(() => {
-    let cancel = false
+    let cancelled = false
 
-    async function fetchUser() {
-      try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" })
-        if (!cancel && res.ok) {
-          const data = await res.json()
-          setUser(data.user ?? null)
+    async function init() {
+      const current = await getCurrentUser()
 
-          // apply theme immediately
-          if (data.user?.theme) {
-            document.documentElement.classList.toggle("dark", data.user.theme === "dark")
-          }
-        } else if (!cancel) {
-          // Not logged-in – redirect to /auth
-          router.push("/auth")
-        }
-      } catch (err) {
-        console.error("[use-user] fetch error", err)
-        if (!cancel) router.push("/auth")
-      } finally {
-        if (!cancel) setLoading(false)
+      if (cancelled) return
+      setUser(current)
+      setLoading(false)
+
+      if (!current) {
+        router.push("/auth")
+        return
+      }
+
+      /* Apply saved theme instantly */
+      if (current.theme === "dark") {
+        document.documentElement.classList.add("dark")
+      } else {
+        document.documentElement.classList.remove("dark")
       }
     }
 
-    fetchUser()
+    init()
+
     return () => {
-      cancel = true
+      cancelled = true
     }
   }, [router])
 
-  const ctxValue = useMemo<UserContextValue>(
-    () => ({
-      user,
-      loading,
-      setUser,
-    }),
-    [user, loading],
-  )
+  const value = useMemo<UserContextValue>(() => ({ user, loading, setUser }), [user, loading])
 
-  return <UserContext.Provider value={ctxValue}>{children}</UserContext.Provider>
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }
 
-/* ------------------------------------------------------------------ */
-/* Hook for consumers                                                  */
-/* ------------------------------------------------------------------ */
+/* -------------------------------------------------------------------------- */
+/* Hook                                                                       */
+/* -------------------------------------------------------------------------- */
 export function useUser() {
   const ctx = useContext(UserContext)
-  if (!ctx) {
-    throw new Error("useUser must be used within a <UserProvider>")
-  }
+  if (!ctx) throw new Error("useUser must be used within a <UserProvider>")
   return ctx
 }
