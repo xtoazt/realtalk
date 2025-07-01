@@ -1,92 +1,81 @@
 "use client"
 
-import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  type ReactNode,
+  type Dispatch,
+  type SetStateAction,
+} from "react"
 
-interface User {
+/* ------------------------------------------------------------------ */
+/* Types                                                               */
+/* ------------------------------------------------------------------ */
+export type User = {
   id: string
   username: string
-  email: string
-  name_color?: string
-  custom_title?: string
-  has_gold_animation?: boolean
-  notifications_enabled: boolean
-  theme: string
-  signup_code?: string
+  email?: string | null
 }
 
-interface UserContextValue {
+/* The shape of the context we expose to consumers */
+type UserContextValue = {
   user: User | null
   loading: boolean
-  setUser: (user: User | null) => void
+  setUser: Dispatch<SetStateAction<User | null>>
 }
+
+/* ------------------------------------------------------------------ */
+/* Context + Provider                                                  */
+/* ------------------------------------------------------------------ */
 const UserContext = createContext<UserContextValue | undefined>(undefined)
 
-export function useUser() {
+/**
+ * UserProvider – wrap your app with this to expose `useUser()` data.
+ */
+export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    let cancelled = false
+
+    async function fetchUser() {
       try {
-        console.log("[useUser] Fetching user data...")
-        const response = await fetch("/api/auth/me")
-        console.log("[useUser] Response status:", response.status)
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log("[useUser] User data received:", data.user?.username)
-          setUser(data.user) // This calls updateUser
-
-          // Apply theme to document element directly on initial load if user data is valid
-          if (data.user && typeof data.user.theme === "string") {
-            console.log("[useUser] Applying theme from initial fetch:", data.user.theme)
-            document.documentElement.setAttribute("data-theme", data.user.theme)
-            document.documentElement.className = `theme-${data.user.theme}`
-          }
-        } else {
-          console.log("[useUser] Auth failed, redirecting to /auth")
-          router.push("/auth")
+        const res = await fetch("/api/auth/me", { cache: "no-store" })
+        if (!cancelled && res.ok) {
+          const { user: u } = (await res.json()) as { user: User | null }
+          setUser(u)
         }
-      } catch (error) {
-        console.error("[useUser] Fetch error:", error)
-        router.push("/auth")
+      } catch {
+        /* eslint-disable no-console */
+        console.warn("use-user: Failed to fetch current user")
+        /* eslint-enable no-console */
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
-    fetchUserData()
-  }, [router])
-
-  const updateUser = (updatedUser: User | null) => {
-    console.log("[useUser] updateUser called with:", updatedUser)
-    setUser(updatedUser) // Always update the state first
-
-    if (updatedUser && typeof updatedUser.theme === "string") {
-      // More robust check for theme
-      console.log("[useUser] Applying theme from updatedUser:", updatedUser.theme)
-      document.documentElement.setAttribute("data-theme", updatedUser.theme)
-      document.documentElement.className = `theme-${updatedUser.theme}`
-      // Removed the force repaint hack
-    } else {
-      console.warn("[useUser] updatedUser is null/undefined or updatedUser.theme is not a string, cannot apply theme.")
+    fetchUser()
+    return () => {
+      cancelled = true
     }
-  }
+  }, [])
 
-  return { user, loading, setUser: updateUser }
-}
-
-export function UserProvider({ children }: { children: ReactNode }) {
-  const value = useUser()
+  const value = useMemo(() => ({ user, loading, setUser }), [user, loading])
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }
 
-export function useUserContext() {
+/* ------------------------------------------------------------------ */
+/* Hook                                                                */
+/* ------------------------------------------------------------------ */
+/**
+ * Access the current user and loading flag anywhere in your app.
+ */
+export function useUser() {
   const ctx = useContext(UserContext)
-  if (!ctx) {
-    throw new Error("useUserContext must be used within a <UserProvider>")
-  }
+  if (!ctx) throw new Error("useUser must be used within <UserProvider />")
   return ctx
 }

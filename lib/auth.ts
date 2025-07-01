@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 import { createUser, getUserByUsername, getUserById } from "./db"
+import "server-only"
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-fallback-12345"
 
@@ -126,7 +127,7 @@ export async function signIn(username: string, password: string) {
 }
 
 // Consolidated helper for convenient named import elsewhere
-export const auth = {
+export const authHelper = {
   hashPassword,
   verifyPassword,
   generateToken,
@@ -134,4 +135,36 @@ export const auth = {
   getCurrentUser,
   signUp,
   signIn,
+}
+
+/**
+ * Minimal auth helper.  Extend as you grow:
+ *   const { user } = await auth.getSession()
+ */
+export const auth = {
+  /**
+   * Returns `{ user }` if logged-in, otherwise `null`.
+   * Uses your existing `/api/auth/me` route so you don’t have to duplicate logic.
+   */
+  async getSession() {
+    const cookieHeader = cookies().toString()
+    if (!cookieHeader) return { user: null as const }
+
+    try {
+      const base =
+        process.env.NEXT_PUBLIC_BASE_URL ??
+        // Fallback to relative path when running in edge / prod.
+        ""
+      const res = await fetch(`${base}/api/auth/me`, {
+        headers: { cookie: cookieHeader },
+        cache: "no-store",
+      })
+      if (!res.ok) return { user: null as const }
+
+      const data = (await res.json()) as { user: unknown }
+      return { user: data.user }
+    } catch {
+      return { user: null as const }
+    }
+  },
 }
