@@ -225,65 +225,119 @@ export async function searchUsers(searchQuery: string, currentUserId: string) {
 export async function getMessages(chatType: string, chatId?: string, userId?: string, limit = 50) {
   try {
     console.log(`[db/getMessages] Called with chatType: ${chatType}, chatId: ${chatId}, userId: ${userId}`)
-    let result
-    const baseSelect = `
-      SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
-             COALESCE(
-               json_agg(
-                 json_build_object(
-                   'emoji', mr.emoji,
-                   'count', mr.reaction_count,
-                   'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
-                 )
-               ) FILTER (WHERE mr.emoji IS NOT NULL), 
-               '[]'::json
-             ) as reactions,
-             pm.content AS parent_message_content, -- Parent message content
-             pu.username AS parent_message_username -- Parent message sender username
-    `
-    const baseJoin = `
-      FROM messages m
-      JOIN users u ON m.sender_id = u.id
-      LEFT JOIN (
-        SELECT 
-          message_id,
-          emoji,
-          COUNT(*) as reaction_count,
-          BOOL_OR(user_id = ${userId || "NULL"}) as user_reacted
-        FROM message_reactions
-        GROUP BY message_id, emoji
-      ) mr ON m.id = mr.message_id
-      LEFT JOIN messages pm ON m.parent_message_id = pm.id -- Join for parent message
-      LEFT JOIN users pu ON pm.sender_id = pu.id -- Join for parent message sender username
-    `
-    const baseGroupBy = `
-      GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation, pm.content, pu.username
-      ORDER BY m.created_at DESC
-      LIMIT ${limit}
-    `
 
     if (chatType === "global") {
-      const globalQuery = `${baseSelect} ${baseJoin} WHERE m.chat_type = 'global' ${baseGroupBy}`
-      console.log("[db/getMessages] Global query:", globalQuery)
-      result = await query`${globalQuery}`
+      console.log("[db/getMessages] Executing global chat query")
+      const result = await query`
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions,
+               pm.content AS parent_message_content,
+               pu.username AS parent_message_username
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || null}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
+        LEFT JOIN messages pm ON m.parent_message_id = pm.id
+        LEFT JOIN users pu ON pm.sender_id = pu.id
+        WHERE m.chat_type = 'global'
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation, pm.content, pu.username
+        ORDER BY m.created_at DESC
+        LIMIT ${limit}
+      `
+      console.log(`[db/getMessages] Global query returned ${result.length} rows`)
+      return result.reverse()
     } else if (chatType === "dm") {
-      const dmQuery = `${baseSelect} ${baseJoin}
+      console.log(`[db/getMessages] Executing DM query for userId: ${userId}, chatId: ${chatId}`)
+      const result = await query`
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions,
+               pm.content AS parent_message_content,
+               pu.username AS parent_message_username
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || null}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
+        LEFT JOIN messages pm ON m.parent_message_id = pm.id
+        LEFT JOIN users pu ON pm.sender_id = pu.id
         WHERE m.chat_type = 'dm' 
-          AND ( (m.sender_id = $1 AND m.chat_id = $2) 
-                OR (m.sender_id = $2 AND m.chat_id = $1) )
-        ${baseGroupBy.replace("$1", "$3").replace("$2", "$4")}` // Adjust parameter placeholders for unsafe
-      console.log("[db/getMessages] DM query:", dmQuery, "Params:", [userId, chatId])
-      result = await sql.unsafe(dmQuery, [userId, chatId, userId, chatId]) // Use sql.unsafe for dynamic query string
+          AND ((m.sender_id = ${userId} AND m.chat_id = ${chatId}) 
+               OR (m.sender_id = ${chatId} AND m.chat_id = ${userId}))
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation, pm.content, pu.username
+        ORDER BY m.created_at DESC
+        LIMIT ${limit}
+      `
+      console.log(`[db/getMessages] DM query returned ${result.length} rows`)
+      return result.reverse()
     } else {
       // group chat
-      const groupQuery = `${baseSelect} ${baseJoin}
-        WHERE m.chat_type = $1 AND m.chat_id = $2
-        ${baseGroupBy.replace("$1", "$3").replace("$2", "$4")}` // Adjust parameter placeholders for unsafe
-      console.log("[db/getMessages] Group query:", groupQuery, "Params:", [chatType, chatId])
-      result = await sql.unsafe(groupQuery, [chatType, chatId, chatType, chatId]) // Use sql.unsafe for dynamic query string
+      console.log(`[db/getMessages] Executing group chat query for chatType: ${chatType}, chatId: ${chatId}`)
+      const result = await query`
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions,
+               pm.content AS parent_message_content,
+               pu.username AS parent_message_username
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || null}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
+        LEFT JOIN messages pm ON m.parent_message_id = pm.id
+        LEFT JOIN users pu ON pm.sender_id = pu.id
+        WHERE m.chat_type = ${chatType} AND m.chat_id = ${chatId}
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation, pm.content, pu.username
+        ORDER BY m.created_at DESC
+        LIMIT ${limit}
+      `
+      console.log(`[db/getMessages] Group query returned ${result.length} rows`)
+      return result.reverse()
     }
-    console.log(`[db/getMessages] Query returned ${result.length} rows.`)
-    return result.reverse() // Return in chronological order
   } catch (err) {
     console.error("[db/getMessages] getMessages error:", err)
     throw new Error("Error connecting to database: " + (err as Error).message)
@@ -638,23 +692,19 @@ export async function updateUserSettings(userId: string, updates: any) {
       throw new Error("No valid fields to update")
     }
 
-    const setParts: string[] = []
-    const params: any[] = [userId] // First parameter is userId for WHERE clause
-    let paramIndex = 2 // Start indexing for dynamic SET values from $2
-
-    for (const key of Object.keys(validUpdates)) {
-      setParts.push(`${key} = $${paramIndex}`)
-      params.push(validUpdates[key])
-      paramIndex++
-    }
-    const setClause = setParts.join(", ")
+    // Build the SET clause dynamically
+    const setClause = Object.keys(validUpdates)
+      .map((key, index) => `${key} = $${index + 2}`) // Start from $2 since $1 is userId
+      .join(", ")
 
     const queryString = `
-     UPDATE users 
-     SET ${setClause}, updated_at = NOW()
-     WHERE id = $1
-     RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
-   `
+      UPDATE users 
+      SET ${setClause}, updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
+    `
+
+    const params = [userId, ...Object.values(validUpdates)]
 
     console.log("[db] Executing query:", queryString, "with params:", params)
 
