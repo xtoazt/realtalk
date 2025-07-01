@@ -2,132 +2,76 @@ import bcrypt from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 import { createUser, getUserByUsername, getUserById } from "./db"
-import "server-only"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-fallback-12345"
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-fallback"
 
+const secret = new TextEncoder().encode(JWT_SECRET)
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
 export async function hashPassword(password: string) {
-  console.log("[auth] Hashing password")
   return bcrypt.hash(password, 12)
 }
 
 export async function verifyPassword(password: string, hashedPassword: string) {
-  console.log("[auth] Verifying password")
   return bcrypt.compare(password, hashedPassword)
 }
 
-const secret = new TextEncoder().encode(JWT_SECRET)
-
 export async function generateToken(userId: string) {
-  console.log("[auth] Generating token for user:", userId)
-  try {
-    const token = await new SignJWT({ userId })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("7d")
-      .sign(secret)
-    console.log("[auth] Token generated successfully")
-    return token
-  } catch (error) {
-    console.error("[auth] Token generation failed:", error)
-    throw error
-  }
+  return new SignJWT({ userId }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("7d").sign(secret)
 }
 
 export async function verifyToken(token: string) {
   try {
-    console.log("[auth] Verifying token")
     const { payload } = await jwtVerify<{ userId: string }>(token, secret)
-    console.log("[auth] Token verified successfully for user:", payload.userId)
     return payload
-  } catch (error) {
-    console.error("[auth] Token verification failed:", error)
+  } catch {
     return null
   }
 }
 
 export async function getCurrentUser() {
-  try {
-    console.log("[auth] Getting current user")
-    const cookieStore = await cookies()
-    const token = cookieStore.get("auth-token")?.value
-
-    console.log("[auth-getCurrentUser] Token from cookie:", token ? "Found" : "Not Found")
-
-    if (!token) {
-      console.log("[auth] No token found")
-      return null
-    }
-
-    const decoded = await verifyToken(token)
-    console.log("[auth-getCurrentUser] Decoded payload:", decoded)
-    if (!decoded) {
-      console.log("[auth] Token verification failed")
-      return null
-    }
-
-    const user = await getUserById(decoded.userId)
-    console.log("[auth-getCurrentUser] User from DB:", user ? user.username : "Not Found")
-    console.log("[auth] User retrieved:", user?.username)
-    return user
-  } catch (error) {
-    console.error("[auth] getCurrentUser error:", error)
-    return null
-  }
+  const token = cookies().get("auth-token")?.value
+  if (!token) return null
+  const decoded = await verifyToken(token)
+  if (!decoded) return null
+  return getUserById(decoded.userId)
 }
 
+// ------------------------------------------------------------------
+// Public helpers required as named exports
+// ------------------------------------------------------------------
+/**
+ * Creates a new user, returns `{ user, token }`.
+ */
 export async function signUp(username: string, password: string, signupCode?: string) {
-  console.log("[auth] Starting signup for username:", username)
+  const existing = await getUserByUsername(username)
+  if (existing) throw new Error("Username already taken")
 
-  try {
-    const existingUser = await getUserByUsername(username)
-    if (existingUser) {
-      console.log("[auth] Username already taken:", username)
-      throw new Error("Username already taken")
-    }
+  const pwHash = await hashPassword(password)
+  const user = await createUser(username, pwHash, signupCode)
+  const token = await generateToken(user.id)
 
-    const hashedPassword = await hashPassword(password)
-    const user = await createUser(username, hashedPassword, signupCode)
-    console.log("[auth] User created:", user.username)
-
-    const token = await generateToken(user.id)
-    console.log("[auth] Signup successful for:", username)
-
-    return { user, token }
-  } catch (error) {
-    console.error("[auth] Signup error:", error)
-    throw error
-  }
+  return { user, token }
 }
 
+/**
+ * Verifies credentials, returns `{ user, token }`.
+ */
 export async function signIn(username: string, password: string) {
-  console.log("[auth] Starting signin for username:", username)
+  const user = await getUserByUsername(username)
+  if (!user) throw new Error("Invalid username or password")
 
-  try {
-    const user = await getUserByUsername(username)
-    if (!user) {
-      console.log("[auth] User not found:", username)
-      throw new Error("Invalid username or password")
-    }
+  const ok = await verifyPassword(password, user.password_hash)
+  if (!ok) throw new Error("Invalid username or password")
 
-    const isValid = await verifyPassword(password, user.password_hash)
-    if (!isValid) {
-      console.log("[auth] Invalid password for:", username)
-      throw new Error("Invalid username or password")
-    }
-
-    const token = await generateToken(user.id)
-    console.log("[auth] Signin successful for:", username)
-
-    return { user: { ...user, password_hash: undefined }, token }
-  } catch (error) {
-    console.error("[auth] Signin error:", error)
-    throw error
-  }
+  const token = await generateToken(user.id)
+  return { user: { ...user, password_hash: undefined }, token }
 }
 
-// Consolidated helper for convenient named import elsewhere
-export const authHelper = {
+/* Public API (named export `auth`) --------------------------------- */
+export const auth = {
   hashPassword,
   verifyPassword,
   generateToken,
@@ -135,36 +79,4 @@ export const authHelper = {
   getCurrentUser,
   signUp,
   signIn,
-}
-
-/**
- * Minimal auth helper.  Extend as you grow:
- *   const { user } = await auth.getSession()
- */
-export const auth = {
-  /**
-   * Returns `{ user }` if logged-in, otherwise `null`.
-   * Uses your existing `/api/auth/me` route so you don’t have to duplicate logic.
-   */
-  async getSession() {
-    const cookieHeader = cookies().toString()
-    if (!cookieHeader) return { user: null as const }
-
-    try {
-      const base =
-        process.env.NEXT_PUBLIC_BASE_URL ??
-        // Fallback to relative path when running in edge / prod.
-        ""
-      const res = await fetch(`${base}/api/auth/me`, {
-        headers: { cookie: cookieHeader },
-        cache: "no-store",
-      })
-      if (!res.ok) return { user: null as const }
-
-      const data = (await res.json()) as { user: unknown }
-      return { user: data.user }
-    } catch {
-      return { user: null as const }
-    }
-  },
 }
