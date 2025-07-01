@@ -20,8 +20,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
+    // Use addRandomSuffix: true to ensure unique filenames and prevent overwrite errors
     const blob = await put(filename, request.body!, {
       access: "public",
+      addRandomSuffix: true,
     })
 
     return NextResponse.json(blob)

@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
     }
 
-    // Get the most recent poll created by the user
+    // Get the most recent poll that was either created by the user, is public,
+    // or was shared with the user.
     const polls = await query`
       SELECT p.*, 
              pr.selected_option as user_response,
@@ -29,6 +30,10 @@ export async function GET(request: NextRequest) {
         GROUP BY poll_id
       ) response_counts ON p.id = response_counts.poll_id
       WHERE p.creator_id = ${user.id}
+         OR p.is_public = true
+         OR p.id IN (
+           SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
+         )
       ORDER BY p.created_at DESC
       LIMIT 1
     `

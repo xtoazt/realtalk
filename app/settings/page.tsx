@@ -75,6 +75,7 @@ export default function SettingsPage() {
       if (permission === "granted") {
         await updateSettings({ notifications_enabled: true })
       } else {
+        // If permission is denied or default, ensure notifications_enabled is false in DB
         if (user?.notifications_enabled) {
           await updateSettings({ notifications_enabled: false })
         }

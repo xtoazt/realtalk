@@ -23,6 +23,7 @@ export default function AboutPage() {
             <p className="text-lg font-semibold text-foreground">Created by Rohan</p>
             <p className="text-muted-foreground">idk why I made this just so I could talk ig</p>
             <p className="text-muted-foreground">plz don't be afraid to share, it actually wont get blocked (prob)</p>
+            <p className="text-muted-foreground">DM *rohan* for questions or concerns</p>
           </CardContent>
         </Card>
       </div>
