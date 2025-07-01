@@ -1,25 +1,16 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-  type ReactNode,
-  type Dispatch,
-  type SetStateAction,
-} from "react"
+import { createContext, useContext, useState, useEffect, useMemo } from "react"
+import type { ReactNode, Dispatch, SetStateAction } from "react"
 
 /* ------------------------------------------------------------------ */
-/* Types                                                               */
+/* Types                                                              */
 /* ------------------------------------------------------------------ */
 export interface AppUser {
   id: string
   username: string
   theme?: "light" | "dark"
   notifications_enabled?: boolean
-  // add extra columns here if needed
 }
 
 interface UserContextValue {
@@ -30,55 +21,51 @@ interface UserContextValue {
 }
 
 /* ------------------------------------------------------------------ */
-/* Context + Provider                                                  */
+/* Context & Provider                                                 */
 /* ------------------------------------------------------------------ */
 const UserContext = createContext<UserContextValue | undefined>(undefined)
 
 /**
- * UserProvider – wrap your app with this to expose `useUser()` data.
+ * Fetches the current user from your API.
+ * Adjust the endpoint if it differs in your project.
  */
+async function fetchCurrentUser(): Promise<AppUser | null> {
+  try {
+    const res = await fetch("/api/auth/me", { cache: "no-store" })
+    if (!res.ok) return null
+    const data = (await res.json()) as { user: AppUser | null }
+    return data.user
+  } catch {
+    return null
+  }
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Helper to fetch current user from your existing endpoint
-  const fetchCurrentUser = async () => {
-    try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" })
-      if (!res.ok) {
-        setUser(null)
-        return
-      }
-      const data = (await res.json()) as { user: AppUser | null }
-      setUser(data.user)
-    } catch {
-      setUser(null)
-    }
-  }
-
-  /** Exposed so components can manually refresh after login/logout */
+  /** Allows components to refresh user data after sign-in/out actions. */
   const refresh = async () => {
     setLoading(true)
-    await fetchCurrentUser()
+    const current = await fetchCurrentUser()
+    setUser(current)
     setLoading(false)
   }
 
-  // Initial load
+  /* Initial load */
   useEffect(() => {
     refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const value = useMemo(() => ({ user, loading, setUser, refresh }), [user, loading])
+  const value = useMemo<UserContextValue>(() => ({ user, loading, setUser, refresh }), [user, loading])
+
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }
 
 /* ------------------------------------------------------------------ */
-/* Hook                                                                */
+/* Hook                                                               */
 /* ------------------------------------------------------------------ */
-/**
- * Access the current user and loading flag anywhere in your app.
- */
 export function useUser() {
   const ctx = useContext(UserContext)
   if (!ctx) {
