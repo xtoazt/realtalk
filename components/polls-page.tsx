@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { BarChart3, Plus, X, Users, Globe, Clock } from "lucide-react"
+import { BarChart3, Plus, X, Users, Globe, Clock, Trash2 } from "lucide-react"
 
 interface Poll {
   id: string
@@ -107,6 +107,27 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
     }
   }
 
+  const handleDeletePoll = async (pollId: string) => {
+    if (confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
+      try {
+        const response = await fetch(`/api/polls/${pollId}`, {
+          method: "DELETE",
+        })
+
+        if (response.ok) {
+          fetchPolls()
+        } else {
+          const errorData = await response.json()
+          console.error("Failed to delete poll:", errorData.error || response.statusText)
+          alert(`Failed to delete poll: ${errorData.error || response.statusText}`)
+        }
+      } catch (error) {
+        console.error("Failed to delete poll:", error)
+        alert("An unexpected error occurred while deleting the poll.")
+      }
+    }
+  }
+
   const handleVote = async (pollId: string, optionIndex: number) => {
     try {
       const response = await fetch(`/api/polls/${pollId}/vote`, {
@@ -203,20 +224,35 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
             <Card key={poll.id} className={`${isExpired(poll.expires_at) ? "opacity-75" : ""}`}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{poll.title}</CardTitle>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{poll.title}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {poll.is_public ? <Globe className="h-3 w-3" /> : <Users className="h-3 w-3" />}
+                          {poll.expires_at && (
+                            <>
+                              <Clock className="h-3 w-3" />
+                              <span className={isExpired(poll.expires_at) ? "text-red-500" : ""}>
+                                {isExpired(poll.expires_at) ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {poll.creator_id === currentUserId && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePoll(poll.id)}
+                            className="text-red-500 hover:bg-red-500/10 h-6 w-6 p-0"
+                            title="Delete Poll"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     {poll.description && <p className="text-sm text-muted-foreground mt-1">{poll.description}</p>}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {poll.is_public ? <Globe className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-                    {poll.expires_at && (
-                      <>
-                        <Clock className="h-3 w-3" />
-                        <span className={isExpired(poll.expires_at) ? "text-red-500" : ""}>
-                          {isExpired(poll.expires_at) ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
-                        </span>
-                      </>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -327,7 +363,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                 />
               </div>
 
-              {userSignupCode === "qwer" && (
+              {userSignupCode === "qwea" && (
                 <div className="flex items-center space-x-2">
                   <Checkbox id="public" checked={isPublic} onCheckedChange={setIsPublic} />
                   <label htmlFor="public" className="text-sm">

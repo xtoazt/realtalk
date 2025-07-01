@@ -10,8 +10,8 @@ import { PollsPage } from "@/components/polls-page"
 import { CalendarPage } from "@/components/calendar-page"
 import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
+import { RecentPoll } from "@/components/recent-poll"
 import { MessageSearch } from "@/components/message-search"
-import { TimeDateDisplay } from "@/components/time-date-display"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Users, Globe, Trash2, Search } from "lucide-react"
@@ -207,6 +207,10 @@ export default function DashboardPage() {
     setCurrentPage("dashboard")
   }
 
+  const handleViewAllPolls = () => {
+    setCurrentPage("polls")
+  }
+
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -290,6 +294,9 @@ export default function DashboardPage() {
 
               {/* Online Users Component */}
               <OnlineUsers currentUserId={user.id} />
+
+              {/* Recent Poll Component */}
+              <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
             </div>
 
             {/* Main Chat Area */}
@@ -316,9 +323,6 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                       <span>Ready to connect</span>
-                    </div>
-                    <div className="mt-6">
-                      <TimeDateDisplay />
                     </div>
                   </CardContent>
                 </Card>

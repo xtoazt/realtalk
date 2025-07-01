@@ -163,7 +163,7 @@ export default function SettingsPage() {
     )
   }
 
-  const canCustomize = user.signup_code === "asdf" || user.signup_code === "qwer"
+  const canCustomize = user.signup_code === "asdf" || user.signup_code === "qwea"
 
   return (
     <div className="min-h-screen bg-background p-4 transition-colors duration-300">
@@ -238,7 +238,7 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {user.signup_code === "qwer" && (
+                {user.signup_code === "qwea" && (
                   <div className="p-3 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg">
                     <p className="text-sm font-medium text-yellow-800">✨ Gold Animation Enabled</p>
                     <p className="text-xs text-yellow-700">Your name appears with a shiny gold animation in chats</p>
