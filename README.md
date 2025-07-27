@@ -1,4 +1,4 @@
-"We are currently on version 34, we are planning to update next month."
+"Please help."
 
 *All Official Domains*
 
