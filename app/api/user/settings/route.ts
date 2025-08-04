@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updates = await request.json()
-    console.log("[settings-api] Updating user settings:", updates)
+    console.log("[settings-api] Updating user settings for user:", user.id, "updates:", updates)
 
     const allowedFields = ["custom_title", "name_color", "notifications_enabled", "theme", "hue"]
     const validUpdates: any = {}
@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest) {
 
     // Validate hue if provided
     if (validUpdates.hue) {
-      const validHues = ["blue", "purple", "pink", "red", "orange", "yellow", "green", "teal"]
+      const validHues = ["red", "orange", "yellow", "green", "blue", "purple", "pink", "gray"]
       if (!validHues.includes(validUpdates.hue)) {
         return NextResponse.json({ error: "Invalid hue selected" }, { status: 400 })
       }
@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest) {
     // Validate theme if provided
     if (validUpdates.theme) {
       const validThemes = ["light", "dark"]
-      if (!validThemes.includes(validUpdates.theme)) {
+      if (!validUpdates.theme.includes(validUpdates.theme)) {
         return NextResponse.json({ error: "Invalid theme selected" }, { status: 400 })
       }
     }
@@ -66,10 +66,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "User not found or no settings updated." }, { status: 404 })
     }
 
-    console.log("[settings-api] Update successful:", result[0])
-    return NextResponse.json({ user: result[0] })
+    const updatedUser = result[0]
+    console.log("[settings-api] Update successful:", updatedUser)
+
+    return NextResponse.json({
+      user: updatedUser,
+      message: "Settings updated successfully",
+    })
   } catch (error: any) {
-    console.error("[settings-api] Error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[settings-api] Error:", error.message, error.stack)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

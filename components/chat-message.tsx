@@ -49,6 +49,13 @@ export function ChatMessage({
   const isAI = message.is_ai_response
   const canDelete = isOwnMessage || currentUserHasGold
 
+  console.log(
+    "[ChatMessage] Rendering message from:",
+    message.username,
+    "has_gold_animation:",
+    message.has_gold_animation,
+  )
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   }

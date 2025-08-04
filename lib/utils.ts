@@ -27,7 +27,7 @@ export function getUsernameClassName(isAI?: boolean, hasGold?: boolean, hasCusto
     return "text-blue-500 font-medium"
   }
   if (hasGold) {
-    return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+    return "gold-username"
   }
   return "font-medium"
 }

@@ -23,6 +23,7 @@ interface UserContextType {
   setUser: (user: User | null) => void
   loading: boolean
   signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -79,6 +80,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty("--hue", hueValues[hue as keyof typeof hueValues] || "220")
   }
 
+  const refreshUser = async () => {
+    try {
+      console.log("[useUser] Refreshing user data...")
+      const response = await fetch("/api/auth/me", {
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[useUser] Refreshed user:", data.user?.username)
+        setUser(data.user)
+        return data.user
+      } else {
+        console.log("[useUser] No authenticated user during refresh")
+        setUser(null)
+        return null
+      }
+    } catch (error) {
+      console.error("[useUser] Error refreshing user:", error)
+      setUser(null)
+      return null
+    }
+  }
+
   const signOut = async () => {
     try {
       console.log("[useUser] Signing out...")
@@ -109,14 +134,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        console.log("[useUser] Fetching current user...")
+        console.log("[useUser] Initial user fetch...")
         const response = await fetch("/api/auth/me", {
           credentials: "include",
         })
 
         if (response.ok) {
           const data = await response.json()
-          console.log("[useUser] Fetched user:", data.user?.username)
+          console.log("[useUser] Initial user fetched:", data.user?.username)
           setUser(data.user)
         } else {
           console.log("[useUser] No authenticated user")
@@ -133,7 +158,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     fetchUser()
   }, [])
 
-  return <UserContext.Provider value={{ user, setUser, loading, signOut }}>{children}</UserContext.Provider>
+  return (
+    <UserContext.Provider value={{ user, setUser, loading, signOut, refreshUser }}>{children}</UserContext.Provider>
+  )
 }
 
 export function useUser() {

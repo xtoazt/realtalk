@@ -12,21 +12,23 @@ import { Settings, Palette, Bell, User, Trash2, Save, Loader2 } from "lucide-rea
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SettingsPage() {
-  const { user, setUser, signOut } = useUser()
+  const { user, setUser, signOut, loading: userLoading, refreshUser } = useUser()
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
   // Form state
-  const [theme, setTheme] = useState(user?.theme || "light")
-  const [hue, setHue] = useState(user?.hue || "blue")
-  const [notifications, setNotifications] = useState(user?.notifications_enabled ?? true)
-  const [customTitle, setCustomTitle] = useState(user?.custom_title || "")
-  const [nameColor, setNameColor] = useState(user?.name_color || "")
+  const [theme, setTheme] = useState("light")
+  const [hue, setHue] = useState("blue")
+  const [notifications, setNotifications] = useState(true)
+  const [customTitle, setCustomTitle] = useState("")
+  const [nameColor, setNameColor] = useState("")
 
+  // Initialize form state when user loads
   useEffect(() => {
     if (user) {
+      console.log("[settings] Initializing form with user data:", user)
       setTheme(user.theme || "light")
       setHue(user.hue || "blue")
       setNotifications(user.notifications_enabled ?? true)
@@ -35,6 +37,7 @@ export default function SettingsPage() {
     }
   }, [user])
 
+  // Clear messages after 3 seconds
   useEffect(() => {
     if (error || success) {
       const timer = setTimeout(() => {
@@ -50,6 +53,7 @@ export default function SettingsPage() {
 
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
       console.log("[settings] Saving settings:", { theme, hue, notifications, customTitle, nameColor })
@@ -73,8 +77,9 @@ export default function SettingsPage() {
       }
 
       const data = await response.json()
-      console.log("[settings] Settings updated:", data.user)
+      console.log("[settings] Settings updated successfully:", data.user)
 
+      // Update user context with new data
       setUser(data.user)
       setSuccess("Settings updated successfully!")
     } catch (err) {
@@ -152,10 +157,32 @@ export default function SettingsPage() {
     document.documentElement.style.setProperty("--hue", hueValues[newHue as keyof typeof hueValues] || "220")
   }
 
+  // Show loading state while user is being fetched
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <div className="text-muted-foreground">Loading user data...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if no user after loading
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">User data not available. Redirecting...</div>
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+              <p className="text-muted-foreground mb-4">Please sign in to access your settings.</p>
+              <Button onClick={() => (window.location.href = "/auth")}>Go to Sign In</Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
