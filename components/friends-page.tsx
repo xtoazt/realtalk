@@ -1,402 +1,340 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useUser } from "@/hooks/use-user"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Users, Search, Check, X, MessageCircle, Loader2 } from "lucide-react"
+import { Users, UserPlus, Search, Check, X, MessageCircle } from "lucide-react"
 import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
-interface Friendship {
-  id: string
-  requester_id: string
-  addressee_id: string
-  status: string
-  requester_username: string
-  addressee_username: string
-  requester_name_color?: string
-  addressee_name_color?: string
-  requester_has_gold: boolean
-  addressee_has_gold: boolean
-  created_at: string
-}
-
-interface SearchUser {
+interface Friend {
   id: string
   username: string
   name_color?: string
-  custom_title?: string
   has_gold_animation?: boolean
+  custom_title?: string
+  status: "pending_sent" | "pending_received" | "accepted"
+  created_at: string
 }
 
 interface FriendsPageProps {
-  onStartDM?: (userId: string, username: string) => void
+  currentUserId: string
+  onStartDM: (userId: string, username: string) => void
 }
 
-export function FriendsPage({ onStartDM }: FriendsPageProps) {
-  const { user } = useUser()
-  const [friendships, setFriendships] = useState<Friendship[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<SearchUser[]>([])
+export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [newFriendUsername, setNewFriendUsername] = useState("")
   const [loading, setLoading] = useState(true)
-  const [searching, setSearching] = useState(false)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [sendingRequest, setSendingRequest] = useState(false)
 
-  useEffect(() => {
-    if (user) {
-      fetchFriendships()
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      searchUsers()
-    } else {
-      setSearchResults([])
-    }
-  }, [searchQuery])
-
-  const fetchFriendships = async () => {
+  const fetchFriends = useCallback(async () => {
     try {
-      const response = await fetch("/api/friends", {
-        credentials: "include",
-      })
-
+      const response = await fetch("/api/friends")
       if (response.ok) {
         const data = await response.json()
-        setFriendships(data.friendships || [])
-      } else {
-        console.error("Failed to fetch friendships")
+        setFriends(data.friends)
       }
     } catch (error) {
-      console.error("Friendships fetch error:", error)
+      console.error("Failed to fetch friends:", error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const searchUsers = async () => {
-    if (!searchQuery.trim()) return
+  useEffect(() => {
+    fetchFriends()
+  }, [fetchFriends])
 
-    setSearching(true)
-    try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`, {
-        credentials: "include",
-      })
+  const sendFriendRequest = async () => {
+    if (!newFriendUsername.trim() || sendingRequest) return
 
-      if (response.ok) {
-        const data = await response.json()
-        setSearchResults(data.users || [])
-      } else {
-        console.error("Failed to search users")
-        setSearchResults([])
-      }
-    } catch (error) {
-      console.error("Search error:", error)
-      setSearchResults([])
-    } finally {
-      setSearching(false)
-    }
-  }
-
-  const sendFriendRequest = async (friendId: string) => {
-    setActionLoading(friendId)
+    setSendingRequest(true)
     try {
       const response = await fetch("/api/friends", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ friendId }),
+        body: JSON.stringify({ username: newFriendUsername.trim() }),
       })
 
       if (response.ok) {
-        await fetchFriendships()
-        setSearchQuery("")
-        setSearchResults([])
+        setNewFriendUsername("")
+        await fetchFriends()
       } else {
-        const errorData = await response.json()
-        console.error("Failed to send friend request:", errorData.error)
+        const error = await response.json()
+        alert(error.error || "Failed to send friend request")
       }
     } catch (error) {
-      console.error("Friend request error:", error)
+      console.error("Failed to send friend request:", error)
+      alert("Failed to send friend request")
     } finally {
-      setActionLoading(null)
+      setSendingRequest(false)
     }
   }
 
-  const respondToFriendRequest = async (friendshipId: string, status: string) => {
-    setActionLoading(friendshipId)
+  const handleFriendRequest = async (friendId: string, action: "accept" | "reject") => {
     try {
-      const response = await fetch(`/api/friends/${friendshipId}`, {
+      const response = await fetch(`/api/friends/${friendId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ action }),
       })
 
       if (response.ok) {
-        await fetchFriendships()
+        await fetchFriends()
       } else {
-        console.error("Failed to respond to friend request")
+        const error = await response.json()
+        alert(error.error || `Failed to ${action} friend request`)
       }
     } catch (error) {
-      console.error("Friend response error:", error)
-    } finally {
-      setActionLoading(null)
+      console.error(`Failed to ${action} friend request:`, error)
+      alert(`Failed to ${action} friend request`)
     }
   }
 
-  const startDM = (userId: string, username: string) => {
-    onStartDM?.(userId, username)
+  const getFilteredFriends = (status: string) => {
+    return friends
+      .filter((friend) => {
+        if (status === "all") return friend.status === "accepted"
+        return friend.status === status
+      })
+      .filter((friend) => (searchTerm ? friend.username.toLowerCase().includes(searchTerm.toLowerCase()) : true))
   }
 
-  const getFriendInfo = (friendship: Friendship) => {
-    if (!user) return null
-
-    const isRequester = friendship.requester_id === user.id
-    return {
-      id: isRequester ? friendship.addressee_id : friendship.requester_id,
-      username: isRequester ? friendship.addressee_username : friendship.requester_username,
-      nameColor: isRequester ? friendship.addressee_name_color : friendship.requester_name_color,
-      hasGold: isRequester ? friendship.addressee_has_gold : friendship.requester_has_gold,
-    }
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline">Pending</Badge>
-      case "accepted":
-        return <Badge variant="default">Friends</Badge>
-      case "blocked":
-        return <Badge variant="destructive">Blocked</Badge>
-      default:
-        return null
-    }
-  }
-
-  if (!user) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-gray-500">Loading friends...</p>
+        </div>
       </div>
     )
   }
 
-  const pendingRequests = friendships.filter((f) => f.status === "pending" && f.addressee_id === user.id)
-  const sentRequests = friendships.filter((f) => f.status === "pending" && f.requester_id === user.id)
-  const acceptedFriends = friendships.filter((f) => f.status === "accepted")
+  const acceptedFriends = getFilteredFriends("all")
+  const pendingReceived = getFilteredFriends("pending_received")
+  const pendingSent = getFilteredFriends("pending_sent")
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Users className="h-6 w-6" />
+          Friends
+        </h2>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Add Friends
+            Add Friend
           </CardTitle>
-          <CardDescription>Search for users to send friend requests</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <div className="flex gap-2">
             <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users..."
-              className="pl-10"
+              value={newFriendUsername}
+              onChange={(e) => setNewFriendUsername(e.target.value)}
+              placeholder="Enter username"
+              onKeyPress={(e) => e.key === "Enter" && sendFriendRequest()}
             />
-            {searching && (
-              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
-            )}
+            <Button onClick={sendFriendRequest} disabled={!newFriendUsername.trim() || sendingRequest}>
+              {sendingRequest ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-
-          {searchResults.length > 0 && (
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {searchResults.map((searchUser) => {
-                const existingFriendship = friendships.find(
-                  (f) =>
-                    (f.requester_id === user.id && f.addressee_id === searchUser.id) ||
-                    (f.addressee_id === user.id && f.requester_id === searchUser.id),
-                )
-
-                return (
-                  <div key={searchUser.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div
-                        className={getUsernameClassName(false, searchUser.has_gold_animation, !!searchUser.name_color)}
-                        style={
-                          shouldApplyCustomColor(searchUser.has_gold_animation, false)
-                            ? getUsernameColorStyle(searchUser.name_color)
-                            : {}
-                        }
-                      >
-                        @{searchUser.username}
-                      </div>
-                      {searchUser.custom_title && (
-                        <div className="text-xs text-gray-500 italic">{searchUser.custom_title}</div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {existingFriendship ? (
-                        getStatusBadge(existingFriendship.status)
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => sendFriendRequest(searchUser.id)}
-                          disabled={actionLoading === searchUser.id}
-                        >
-                          {actionLoading === searchUser.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <UserPlus className="h-4 w-4 mr-1" />
-                              Add
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {pendingRequests.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending Friend Requests</CardTitle>
-            <CardDescription>People who want to be your friend</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {pendingRequests.map((friendship) => {
-                const friendInfo = getFriendInfo(friendship)
-                if (!friendInfo) return null
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search friends..."
+          className="pl-10"
+        />
+      </div>
 
-                return (
-                  <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div
-                      className={getUsernameClassName(false, friendInfo.hasGold, !!friendInfo.nameColor)}
-                      style={
-                        shouldApplyCustomColor(friendInfo.hasGold, false)
-                          ? getUsernameColorStyle(friendInfo.nameColor)
-                          : {}
-                      }
-                    >
-                      @{friendInfo.username}
+      <Tabs defaultValue="friends" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="friends" className="flex items-center gap-2">
+            Friends
+            {acceptedFriends.length > 0 && <Badge variant="secondary">{acceptedFriends.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="pending" className="flex items-center gap-2">
+            Pending
+            {pendingReceived.length > 0 && <Badge variant="destructive">{pendingReceived.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="sent" className="flex items-center gap-2">
+            Sent
+            {pendingSent.length > 0 && <Badge variant="outline">{pendingSent.length}</Badge>}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="friends" className="space-y-2">
+          {acceptedFriends.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No friends yet</h3>
+                <p className="text-gray-500 text-center">
+                  {searchTerm ? "No friends match your search" : "Add some friends to get started!"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            acceptedFriends.map((friend) => (
+              <Card key={friend.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {friend.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={getUsernameClassName(false, friend.has_gold_animation, !!friend.name_color)}
+                            style={
+                              shouldApplyCustomColor(friend.has_gold_animation, false)
+                                ? getUsernameColorStyle(friend.name_color)
+                                : {}
+                            }
+                          >
+                            {friend.username}
+                          </span>
+                          {friend.custom_title && (
+                            <span className="text-xs text-gray-500 italic">{friend.custom_title}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">Friends since {formatDate(friend.created_at)}</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => onStartDM(friend.id, friend.username)}>
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-2">
+          {pendingReceived.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <UserPlus className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No pending requests</h3>
+                <p className="text-gray-500 text-center">Friend requests will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            pendingReceived.map((friend) => (
+              <Card key={friend.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {friend.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={getUsernameClassName(false, friend.has_gold_animation, !!friend.name_color)}
+                            style={
+                              shouldApplyCustomColor(friend.has_gold_animation, false)
+                                ? getUsernameColorStyle(friend.name_color)
+                                : {}
+                            }
+                          >
+                            {friend.username}
+                          </span>
+                          {friend.custom_title && (
+                            <span className="text-xs text-gray-500 italic">{friend.custom_title}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">Sent request on {formatDate(friend.created_at)}</p>
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => respondToFriendRequest(friendship.id, "accepted")}
-                        disabled={actionLoading === friendship.id}
-                      >
-                        {actionLoading === friendship.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
+                      <Button variant="outline" size="sm" onClick={() => handleFriendRequest(friend.id, "accept")}>
+                        <Check className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => respondToFriendRequest(friendship.id, "blocked")}
-                        disabled={actionLoading === friendship.id}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleFriendRequest(friend.id, "reject")}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
 
-      {sentRequests.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Sent Requests</CardTitle>
-            <CardDescription>Friend requests you've sent</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {sentRequests.map((friendship) => {
-                const friendInfo = getFriendInfo(friendship)
-                if (!friendInfo) return null
-
-                return (
-                  <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div
-                      className={getUsernameClassName(false, friendInfo.hasGold, !!friendInfo.nameColor)}
-                      style={
-                        shouldApplyCustomColor(friendInfo.hasGold, false)
-                          ? getUsernameColorStyle(friendInfo.nameColor)
-                          : {}
-                      }
-                    >
-                      @{friendInfo.username}
+        <TabsContent value="sent" className="space-y-2">
+          {pendingSent.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <UserPlus className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No sent requests</h3>
+                <p className="text-gray-500 text-center">Requests you send will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            pendingSent.map((friend) => (
+              <Card key={friend.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {friend.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={getUsernameClassName(false, friend.has_gold_animation, !!friend.name_color)}
+                            style={
+                              shouldApplyCustomColor(friend.has_gold_animation, false)
+                                ? getUsernameColorStyle(friend.name_color)
+                                : {}
+                            }
+                          >
+                            {friend.username}
+                          </span>
+                          {friend.custom_title && (
+                            <span className="text-xs text-gray-500 italic">{friend.custom_title}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">Request sent on {formatDate(friend.created_at)}</p>
+                      </div>
                     </div>
                     <Badge variant="outline">Pending</Badge>
                   </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {acceptedFriends.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Friends ({acceptedFriends.length})
-            </CardTitle>
-            <CardDescription>Your accepted friends</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {acceptedFriends.map((friendship) => {
-                const friendInfo = getFriendInfo(friendship)
-                if (!friendInfo) return null
-
-                return (
-                  <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div
-                      className={getUsernameClassName(false, friendInfo.hasGold, !!friendInfo.nameColor)}
-                      style={
-                        shouldApplyCustomColor(friendInfo.hasGold, false)
-                          ? getUsernameColorStyle(friendInfo.nameColor)
-                          : {}
-                      }
-                    >
-                      @{friendInfo.username}
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => startDM(friendInfo.id, friendInfo.username)}>
-                      <MessageCircle className="h-4 w-4 mr-1" />
-                      Message
-                    </Button>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {loading && (
-        <div className="flex items-center justify-center h-32">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

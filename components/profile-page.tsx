@@ -2,381 +2,349 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useUser } from "@/hooks/use-user"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User, Camera, Save, MessageCircle, UserPlus, Loader2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { User, Edit, Save, X, Calendar, MessageCircle, UserPlus } from "lucide-react"
+import Image from "next/image"
 import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface ProfileUser {
   id: string
   username: string
-  profile_picture?: string
-  bio?: string
-  created_at: string
+  email?: string
   name_color?: string
   custom_title?: string
   has_gold_animation?: boolean
+  profile_picture?: string
+  bio?: string
+  created_at: string
+  signup_code?: string
 }
 
 interface ProfilePageProps {
-  userId?: string
-  onStartDM?: (userId: string) => void
+  userId: string
+  currentUserId: string
+  onStartDM?: (userId: string, username: string) => void
+  onAddFriend?: (username: string) => void
 }
 
-export function ProfilePage({ userId, onStartDM }: ProfilePageProps) {
-  const { user: currentUser } = useUser()
+export function ProfilePage({ userId, currentUserId, onStartDM, onAddFriend }: ProfilePageProps) {
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null)
-  const [isOwnProfile, setIsOwnProfile] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
-  // Edit state
-  const [editMode, setEditMode] = useState(false)
+  // Edit form state
   const [editBio, setEditBio] = useState("")
+  const [editCustomTitle, setEditCustomTitle] = useState("")
 
-  const targetUserId = userId || currentUser?.id
+  const isOwnProfile = userId === currentUserId
 
-  useEffect(() => {
-    if (targetUserId) {
-      fetchProfile()
-    }
-  }, [targetUserId])
-
-  useEffect(() => {
-    if (error || success) {
-      const timer = setTimeout(() => {
-        setError(null)
-        setSuccess(null)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [error, success])
-
-  const fetchProfile = async () => {
-    if (!targetUserId) return
-
+  const fetchProfile = useCallback(async () => {
     try {
-      setError(null)
-      const response = await fetch(`/api/users/${targetUserId}`, {
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch profile")
+      const response = await fetch(`/api/users/${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setProfileUser(data.user)
+        setEditBio(data.user.bio || "")
+        setEditCustomTitle(data.user.custom_title || "")
       }
-
-      const data = await response.json()
-      setProfileUser(data.user)
-      setFriendshipStatus(data.friendshipStatus)
-      setIsOwnProfile(data.isOwnProfile)
-      setEditBio(data.user.bio || "")
-    } catch (err) {
-      console.error("Profile fetch error:", err)
-      setError("Failed to load profile")
+    } catch (error) {
+      console.error("Failed to fetch profile:", error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file || !isOwnProfile) return
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
-    setUploading(true)
-    setError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append("image", file)
-
-      const uploadResponse = await fetch("/api/upload-image", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      })
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image")
-      }
-
-      const uploadData = await uploadResponse.json()
-
-      // Update profile with new image URL
-      const profileResponse = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ profile_picture: uploadData.url }),
-      })
-
-      if (!profileResponse.ok) {
-        throw new Error("Failed to update profile picture")
-      }
-
-      setSuccess("Profile picture updated!")
-      await fetchProfile()
-    } catch (err) {
-      console.error("Image upload error:", err)
-      setError("Failed to upload profile picture")
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const saveBio = async () => {
-    if (!isOwnProfile || saving) return
+  const handleSaveProfile = async () => {
+    if (!profileUser || saving) return
 
     setSaving(true)
-    setError(null)
-
     try {
       const response = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ bio: editBio }),
+        body: JSON.stringify({
+          bio: editBio.trim() || null,
+          custom_title: editCustomTitle.trim() || null,
+        }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update bio")
+      if (response.ok) {
+        const data = await response.json()
+        setProfileUser(data.user)
+        setEditing(false)
+      } else {
+        const error = await response.json()
+        alert(error.error || "Failed to update profile")
       }
-
-      setSuccess("Bio updated!")
-      setEditMode(false)
-      await fetchProfile()
-    } catch (err) {
-      console.error("Bio update error:", err)
-      setError(err instanceof Error ? err.message : "Failed to update bio")
+    } catch (error) {
+      console.error("Failed to update profile:", error)
+      alert("Failed to update profile")
     } finally {
       setSaving(false)
     }
   }
 
-  const sendFriendRequest = async () => {
-    if (!profileUser || isOwnProfile) return
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || uploadingImage) return
 
+    const formData = new FormData()
+    formData.append("image", file)
+
+    setUploadingImage(true)
     try {
-      setError(null)
-      const response = await fetch("/api/friends", {
+      const response = await fetch("/api/upload-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ friendId: profileUser.id }),
+        body: formData,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to send friend request")
-      }
+      if (response.ok) {
+        const data = await response.json()
 
-      setSuccess("Friend request sent!")
-      await fetchProfile()
-    } catch (err) {
-      console.error("Friend request error:", err)
-      setError(err instanceof Error ? err.message : "Failed to send friend request")
+        // Update profile with new image
+        const updateResponse = await fetch("/api/user/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile_picture: data.url }),
+        })
+
+        if (updateResponse.ok) {
+          const updateData = await updateResponse.json()
+          setProfileUser(updateData.user)
+        }
+      } else {
+        const error = await response.json()
+        alert(error.error || "Failed to upload image")
+      }
+    } catch (error) {
+      console.error("Failed to upload image:", error)
+      alert("Failed to upload image")
+    } finally {
+      setUploadingImage(false)
     }
   }
 
-  const startDM = async () => {
-    if (!profileUser || isOwnProfile || !onStartDM) return
-    onStartDM(profileUser.id)
+  const formatJoinDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString([], {
+      month: "long",
+      year: "numeric",
+    })
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-
-  if (error && !profileUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Alert className="max-w-md border-red-500">
-          <AlertDescription className="text-red-700">{error}</AlertDescription>
-        </Alert>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-gray-500">Loading profile...</p>
+        </div>
       </div>
     )
   }
 
   if (!profileUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Alert className="max-w-md">
-          <AlertDescription>Profile not found</AlertDescription>
-        </Alert>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <User className="h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">User not found</h3>
+          <p className="text-gray-500 text-center">This user profile could not be loaded</p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <User className="h-8 w-8" />
-          {isOwnProfile ? "Your Profile" : `${profileUser.username}'s Profile`}
-        </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <User className="h-6 w-6" />
+          Profile
+        </h2>
+        {isOwnProfile && (
+          <Button
+            variant={editing ? "outline" : "default"}
+            onClick={() => {
+              if (editing) {
+                setEditBio(profileUser.bio || "")
+                setEditCustomTitle(profileUser.custom_title || "")
+              }
+              setEditing(!editing)
+            }}
+          >
+            {editing ? (
+              <>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
-      {error && (
-        <Alert className="mb-6 border-red-500">
-          <AlertDescription className="text-red-700">{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="mb-6 border-green-500">
-          <AlertDescription className="text-green-700">{success}</AlertDescription>
-        </Alert>
-      )}
-
       <Card>
-        <CardHeader>
-          <div className="flex items-start gap-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={profileUser.profile_picture || "/placeholder.svg"} />
-                <AvatarFallback className="text-2xl">{profileUser.username.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Profile Picture */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                {profileUser.profile_picture ? (
+                  <Image
+                    src={profileUser.profile_picture || "/placeholder.svg"}
+                    alt={`${profileUser.username}'s profile`}
+                    width={120}
+                    height={120}
+                    className="rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-30 h-30 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                    {profileUser.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
 
               {isOwnProfile && (
-                <label className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90">
-                  <Camera className="h-4 w-4" />
+                <div>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
                     className="hidden"
-                    disabled={uploading}
+                    id="profile-image-upload"
+                    disabled={uploadingImage}
                   />
-                  {uploading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-primary/80 rounded-full">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  )}
-                </label>
+                  <Label
+                    htmlFor="profile-image-upload"
+                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                  >
+                    {uploadingImage ? "Uploading..." : "Change Photo"}
+                  </Label>
+                </div>
               )}
             </div>
 
-            <div className="flex-1">
-              <CardTitle
-                className={`text-2xl ${getUsernameClassName(false, profileUser.has_gold_animation, !!profileUser.name_color)}`}
-                style={
-                  shouldApplyCustomColor(profileUser.has_gold_animation, false)
-                    ? getUsernameColorStyle(profileUser.name_color)
-                    : {}
-                }
-              >
-                @{profileUser.username}
-              </CardTitle>
-              {profileUser.custom_title && (
-                <p className="text-sm text-muted-foreground italic mt-1">{profileUser.custom_title}</p>
+            {/* Profile Info */}
+            <div className="flex-1 space-y-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span
+                    className={`text-2xl ${getUsernameClassName(false, profileUser.has_gold_animation, !!profileUser.name_color)}`}
+                    style={
+                      shouldApplyCustomColor(profileUser.has_gold_animation, false)
+                        ? getUsernameColorStyle(profileUser.name_color)
+                        : {}
+                    }
+                  >
+                    {profileUser.username}
+                  </span>
+                  {profileUser.signup_code === "asdf" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                    >
+                      Gold Member
+                    </Badge>
+                  )}
+                </div>
+
+                {editing ? (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="customTitle">Custom Title</Label>
+                      <Input
+                        id="customTitle"
+                        value={editCustomTitle}
+                        onChange={(e) => setEditCustomTitle(e.target.value)}
+                        placeholder="Enter a custom title"
+                        maxLength={50}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  profileUser.custom_title && (
+                    <p className="text-gray-600 dark:text-gray-400 italic">{profileUser.custom_title}</p>
+                  )
+                )}
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Bio</Label>
+                {editing ? (
+                  <Textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    placeholder="Tell us about yourself..."
+                    maxLength={500}
+                    rows={4}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">{profileUser.bio || "No bio provided"}</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Calendar className="h-4 w-4" />
+                <span>Joined {formatJoinDate(profileUser.created_at)}</span>
+              </div>
+
+              {editing && (
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleSaveProfile} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
-              <CardDescription>Member since {new Date(profileUser.created_at).toLocaleDateString()}</CardDescription>
 
               {!isOwnProfile && (
-                <div className="flex gap-2 mt-4">
-                  <Button onClick={startDM} size="sm">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Send DM
-                  </Button>
-
-                  {friendshipStatus === null && (
-                    <Button onClick={sendFriendRequest} variant="outline" size="sm">
+                <div className="flex gap-2 pt-4">
+                  {onStartDM && (
+                    <Button onClick={() => onStartDM(profileUser.id, profileUser.username)}>
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Send Message
+                    </Button>
+                  )}
+                  {onAddFriend && (
+                    <Button variant="outline" onClick={() => onAddFriend(profileUser.username)}>
                       <UserPlus className="h-4 w-4 mr-2" />
                       Add Friend
                     </Button>
                   )}
-
-                  {friendshipStatus === "pending" && (
-                    <Button variant="outline" size="sm" disabled>
-                      Friend Request Sent
-                    </Button>
-                  )}
-
-                  {friendshipStatus === "accepted" && (
-                    <Button variant="outline" size="sm" disabled>
-                      Friends
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Bio</Label>
-              {isOwnProfile && !editMode && (
-                <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
-                  Edit
-                </Button>
-              )}
-            </div>
-
-            {editMode && isOwnProfile ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={editBio}
-                  onChange={(e) => setEditBio(e.target.value)}
-                  placeholder="Tell us about yourself..."
-                  maxLength={500}
-                  rows={4}
-                />
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{editBio.length}/500 characters</p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditMode(false)
-                        setEditBio(profileUser.bio || "")
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={saveBio} disabled={saving}>
-                      {saving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="min-h-[100px] p-3 bg-muted rounded-md">
-                {profileUser.bio ? (
-                  <p className="whitespace-pre-wrap">{profileUser.bio}</p>
-                ) : (
-                  <p className="text-muted-foreground italic">
-                    {isOwnProfile ? "Add a bio to tell others about yourself" : "No bio yet"}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

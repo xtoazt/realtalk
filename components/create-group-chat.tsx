@@ -1,70 +1,60 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Users, Plus, Search, Loader2 } from "lucide-react"
+import { Users, Plus, Search, X } from "lucide-react"
 import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface User {
   id: string
   username: string
   name_color?: string
-  custom_title?: string
   has_gold_animation?: boolean
+  custom_title?: string
 }
 
 interface CreateGroupChatProps {
-  onGroupCreated?: (groupId: string) => void
+  currentUserId: string
+  onCreateGroup: (name: string, memberIds: string[]) => void
+  onCancel: () => void
 }
 
-export function CreateGroupChat({ onGroupCreated }: CreateGroupChatProps) {
-  const { user } = useUser()
+export function CreateGroupChat({ currentUserId, onCreateGroup, onCancel }: CreateGroupChatProps) {
   const [groupName, setGroupName] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<User[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [users, setUsers] = useState<User[]>([])
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (searchQuery.trim()) {
+    if (searchTerm.trim()) {
       searchUsers()
     } else {
-      setSearchResults([])
+      setUsers([])
     }
-  }, [searchQuery])
+  }, [searchTerm])
 
   const searchUsers = async () => {
-    if (!searchQuery.trim()) return
-
     setSearching(true)
     try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`, {
-        credentials: "include",
-      })
-
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchTerm)}`)
       if (response.ok) {
         const data = await response.json()
-        setSearchResults(data.users || [])
-      } else {
-        console.error("Failed to search users")
-        setSearchResults([])
+        setUsers(data.users.filter((user: User) => user.id !== currentUserId))
       }
     } catch (error) {
-      console.error("Search error:", error)
-      setSearchResults([])
+      console.error("Failed to search users:", error)
     } finally {
       setSearching(false)
     }
   }
 
-  const toggleUserSelection = (userId: string) => {
+  const handleUserToggle = (userId: string) => {
     const newSelected = new Set(selectedUsers)
     if (newSelected.has(userId)) {
       newSelected.delete(userId)
@@ -74,51 +64,18 @@ export function CreateGroupChat({ onGroupCreated }: CreateGroupChatProps) {
     setSelectedUsers(newSelected)
   }
 
-  const createGroup = async () => {
-    if (!groupName.trim()) {
-      setError("Group name is required")
-      return
-    }
-
-    if (selectedUsers.size === 0) {
-      setError("Please select at least one user")
-      return
-    }
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || selectedUsers.size === 0) return
 
     setLoading(true)
-    setError(null)
-
     try {
-      const response = await fetch("/api/group-chats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: groupName,
-          memberIds: Array.from(selectedUsers),
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setGroupName("")
-        setSelectedUsers(new Set())
-        setSearchQuery("")
-        setSearchResults([])
-        onGroupCreated?.(data.groupChat.id)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || "Failed to create group chat")
-      }
+      await onCreateGroup(groupName.trim(), Array.from(selectedUsers))
     } catch (error) {
-      console.error("Create group error:", error)
-      setError("Failed to create group chat")
+      console.error("Failed to create group:", error)
     } finally {
       setLoading(false)
     }
   }
-
-  if (!user) return null
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -130,8 +87,6 @@ export function CreateGroupChat({ onGroupCreated }: CreateGroupChatProps) {
         <CardDescription>Create a new group chat with your friends</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <div className="text-sm text-red-500 bg-red-50 p-2 rounded">{error}</div>}
-
         <div>
           <Label htmlFor="groupName">Group Name</Label>
           <Input
@@ -149,65 +104,111 @@ export function CreateGroupChat({ onGroupCreated }: CreateGroupChatProps) {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               id="userSearch"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search users..."
               className="pl-10"
             />
-            {searching && (
-              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
-            )}
           </div>
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
-            {searchResults.map((searchUser) => (
-              <div key={searchUser.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`user-${searchUser.id}`}
-                  checked={selectedUsers.has(searchUser.id)}
-                  onCheckedChange={() => toggleUserSelection(searchUser.id)}
-                />
-                <label htmlFor={`user-${searchUser.id}`} className="flex-1 cursor-pointer">
-                  <span
-                    className={getUsernameClassName(false, searchUser.has_gold_animation, !!searchUser.name_color)}
-                    style={
-                      shouldApplyCustomColor(searchUser.has_gold_animation, false)
-                        ? getUsernameColorStyle(searchUser.name_color)
-                        : {}
-                    }
-                  >
-                    @{searchUser.username}
-                  </span>
-                  {searchUser.custom_title && (
-                    <span className="text-xs text-gray-500 ml-2 italic">{searchUser.custom_title}</span>
-                  )}
-                </label>
-              </div>
-            ))}
-          </div>
-        )}
-
         {selectedUsers.size > 0 && (
-          <div className="text-sm text-gray-600">
-            Selected: {selectedUsers.size} user{selectedUsers.size !== 1 ? "s" : ""}
+          <div>
+            <Label>Selected Members ({selectedUsers.size})</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {Array.from(selectedUsers).map((userId) => {
+                const user = users.find((u) => u.id === userId)
+                if (!user) return null
+                return (
+                  <div
+                    key={userId}
+                    className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full text-sm"
+                  >
+                    <span
+                      className={getUsernameClassName(false, user.has_gold_animation, !!user.name_color)}
+                      style={
+                        shouldApplyCustomColor(user.has_gold_animation, false)
+                          ? getUsernameColorStyle(user.name_color)
+                          : {}
+                      }
+                    >
+                      {user.username}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0 hover:bg-red-500/20"
+                      onClick={() => handleUserToggle(userId)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
-        <Button onClick={createGroup} disabled={loading} className="w-full">
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Group
-            </>
-          )}
-        </Button>
+        {searchTerm && (
+          <div className="max-h-48 overflow-y-auto border rounded-md">
+            {searching ? (
+              <div className="p-4 text-center text-gray-500">Searching...</div>
+            ) : users.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">No users found</div>
+            ) : (
+              <div className="space-y-1 p-2">
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
+                  >
+                    <Checkbox
+                      id={user.id}
+                      checked={selectedUsers.has(user.id)}
+                      onCheckedChange={() => handleUserToggle(user.id)}
+                    />
+                    <div className="flex-1">
+                      <span
+                        className={getUsernameClassName(false, user.has_gold_animation, !!user.name_color)}
+                        style={
+                          shouldApplyCustomColor(user.has_gold_animation, false)
+                            ? getUsernameColorStyle(user.name_color)
+                            : {}
+                        }
+                      >
+                        {user.username}
+                      </span>
+                      {user.custom_title && <span className="text-xs text-gray-500 ml-2">{user.custom_title}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-4">
+          <Button variant="outline" onClick={onCancel} className="flex-1 bg-transparent">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateGroup}
+            disabled={!groupName.trim() || selectedUsers.size === 0 || loading}
+            className="flex-1"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Group
+              </>
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )
