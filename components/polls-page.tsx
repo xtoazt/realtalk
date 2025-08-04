@@ -1,33 +1,26 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
+import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { BarChart3, Plus, X, Users, Globe, Clock, Trash2, Vote } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Plus, Trash2, Vote, Users, Calendar, Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Poll {
   id: string
-  title: string
-  description?: string
+  question: string
   options: string[]
-  is_public: boolean
-  creator_username: string
-  creator_id: string
-  expires_at?: string
+  votes: number[]
+  total_votes: number
+  created_by: string
+  created_by_username: string
   created_at: string
-  user_response?: number
-  results: { option_index: number; count: number }[]
-  total_responses: number
-}
-
-interface Friend {
-  friend_id: string
-  friend_username: string
-  friend_name_color?: string
-  friend_has_gold?: boolean
+  user_vote?: number
 }
 
 interface PollsPageProps {
@@ -36,454 +29,327 @@ interface PollsPageProps {
 }
 
 export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
+  const { user } = useUser()
   const [polls, setPolls] = useState<Poll[]>([])
-  const [friends, setFriends] = useState<Friend[]>([])
-  const [showCreatePoll, setShowCreatePoll] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [votingPollId, setVotingPollId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [voting, setVoting] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   // Create poll form state
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [options, setOptions] = useState(["", ""])
-  const [isPublic, setIsPublic] = useState(false)
-  const [selectedFriends, setSelectedFriends] = useState<string[]>([])
-  const [expiresAt, setExpiresAt] = useState("")
-
-  const fetchPolls = useCallback(async () => {
-    try {
-      console.log("[polls-page] Fetching polls...")
-      const response = await fetch("/api/polls")
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[polls-page] Fetched polls:", data.polls)
-        setPolls(data.polls)
-      } else {
-        console.error("[polls-page] Failed to fetch polls:", response.status)
-        const errorData = await response.json()
-        console.error("[polls-page] Error data:", errorData)
-      }
-    } catch (error) {
-      console.error("[polls-page] Fetch error:", error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const fetchFriends = useCallback(async () => {
-    try {
-      const response = await fetch("/api/friends/accepted")
-      if (response.ok) {
-        const data = await response.json()
-        setFriends(data.friends)
-      }
-    } catch (error) {
-      console.error("Failed to fetch friends:", error)
-    }
-  }, [])
+  const [newPoll, setNewPoll] = useState({
+    question: "",
+    options: ["", ""],
+  })
 
   useEffect(() => {
     fetchPolls()
-    fetchFriends()
-  }, [fetchPolls, fetchFriends])
+  }, [])
 
-  const handleCreatePoll = async () => {
-    if (!title.trim() || options.filter((o) => o.trim()).length < 2) return
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError(null)
+        setSuccess(null)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [error, success])
+
+  const fetchPolls = async () => {
+    try {
+      setError(null)
+      const response = await fetch("/api/polls/recent", {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch polls")
+      }
+
+      const data = await response.json()
+      console.log("[polls] Fetched polls:", data.polls)
+      setPolls(data.polls || [])
+    } catch (err) {
+      console.error("[polls] Fetch error:", err)
+      setError("Failed to load polls")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createPoll = async () => {
+    if (!user || creating) return
+
+    // Validate form
+    if (!newPoll.question.trim()) {
+      setError("Question is required")
+      return
+    }
+
+    const validOptions = newPoll.options.filter((opt) => opt.trim())
+    if (validOptions.length < 2) {
+      setError("At least 2 options are required")
+      return
+    }
+
+    setCreating(true)
+    setError(null)
 
     try {
       const response = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          options: options.filter((o) => o.trim()),
-          is_public: isPublic,
-          shared_with: selectedFriends,
-          expires_at: expiresAt || undefined,
+          question: newPoll.question.trim(),
+          options: validOptions,
         }),
       })
 
-      if (response.ok) {
-        setShowCreatePoll(false)
-        resetForm()
-        fetchPolls()
-      } else {
+      if (!response.ok) {
         const errorData = await response.json()
-        console.error("Failed to create poll:", errorData.error)
-        alert(`Failed to create poll: ${errorData.error}`)
+        throw new Error(errorData.error || "Failed to create poll")
       }
-    } catch (error) {
-      console.error("Failed to create poll:", error)
-      alert("An unexpected error occurred while creating the poll.")
+
+      const data = await response.json()
+      console.log("[polls] Created poll:", data.poll)
+
+      setSuccess("Poll created successfully!")
+      setNewPoll({ question: "", options: ["", ""] })
+      await fetchPolls() // Refresh polls
+    } catch (err) {
+      console.error("[polls] Create error:", err)
+      setError(err instanceof Error ? err.message : "Failed to create poll")
+    } finally {
+      setCreating(false)
     }
   }
 
-  const handleDeletePoll = async (pollId: string) => {
-    if (confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
-      try {
-        const response = await fetch(`/api/polls/${pollId}`, {
-          method: "DELETE",
-        })
+  const votePoll = async (pollId: string, optionIndex: number) => {
+    if (!user || voting) return
 
-        if (response.ok) {
-          fetchPolls()
-        } else {
-          const errorData = await response.json()
-          alert(`Failed to delete poll: ${errorData.error || response.statusText}`)
-        }
-      } catch (error) {
-        console.error("Failed to delete poll:", error)
-        alert("An unexpected error occurred while deleting the poll.")
-      }
-    }
-  }
-
-  const handleVote = async (pollId: string, optionIndex: number) => {
-    console.log(`[polls-page] Voting on poll ${pollId} with option ${optionIndex}`)
-    setVotingPollId(pollId)
+    setVoting(pollId)
+    setError(null)
 
     try {
+      console.log(`[polls] Voting on poll ${pollId}, option ${optionIndex}`)
+
       const response = await fetch(`/api/polls/${pollId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ option_index: optionIndex }),
+        credentials: "include",
+        body: JSON.stringify({ optionIndex }),
       })
 
-      const data = await response.json()
-      console.log(`[polls-page] Vote response:`, response.status, data)
-
-      if (response.ok) {
-        console.log("[polls-page] Vote successful, refreshing polls")
-        await fetchPolls() // Refresh to get updated results
-      } else {
-        console.error("Failed to vote:", data.error)
-        alert(`Failed to vote: ${data.error || "Unknown error"}`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to vote")
       }
-    } catch (error) {
-      console.error("Failed to vote:", error)
-      alert("An unexpected error occurred while voting.")
+
+      const data = await response.json()
+      console.log("[polls] Vote response:", data)
+
+      setSuccess("Vote cast successfully!")
+      await fetchPolls() // Refresh polls to show updated results
+    } catch (err) {
+      console.error("[polls] Vote error:", err)
+      setError(err instanceof Error ? err.message : "Failed to vote")
     } finally {
-      setVotingPollId(null)
+      setVoting(null)
     }
   }
 
-  const resetForm = () => {
-    setTitle("")
-    setDescription("")
-    setOptions(["", ""])
-    setIsPublic(false)
-    setSelectedFriends([])
-    setExpiresAt("")
-  }
-
   const addOption = () => {
-    if (options.length < 6) {
-      setOptions([...options, ""])
+    if (newPoll.options.length < 6) {
+      setNewPoll((prev) => ({
+        ...prev,
+        options: [...prev.options, ""],
+      }))
     }
   }
 
   const removeOption = (index: number) => {
-    if (options.length > 2) {
-      setOptions(options.filter((_, i) => i !== index))
+    if (newPoll.options.length > 2) {
+      setNewPoll((prev) => ({
+        ...prev,
+        options: prev.options.filter((_, i) => i !== index),
+      }))
     }
   }
 
   const updateOption = (index: number, value: string) => {
-    const newOptions = [...options]
-    newOptions[index] = value
-    setOptions(newOptions)
-  }
-
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
-    if (hasGold) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    return nameColor ? { color: nameColor } : {}
-  }
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  const isExpired = (expiresAt?: string) => {
-    if (!expiresAt) return false
-    return new Date(expiresAt) < new Date()
-  }
-
-  const getPercentage = (count: number, total: number) => {
-    if (total === 0) return 0
-    return Math.round((count / total) * 100)
+    setNewPoll((prev) => ({
+      ...prev,
+      options: prev.options.map((opt, i) => (i === index ? value : opt)),
+    }))
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground animate-pulse">Loading polls...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 relative z-10">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Polls</h2>
-        <Button onClick={() => setShowCreatePoll(true)} className="hover-lift hover-glow">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Poll
-        </Button>
+    <div className="container mx-auto p-6 max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Vote className="h-8 w-8" />
+          Polls
+        </h1>
+        <p className="text-muted-foreground">Create and participate in community polls</p>
       </div>
 
-      <div className="grid gap-4">
+      {error && (
+        <Alert className="mb-6 border-red-500">
+          <AlertDescription className="text-red-700">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="mb-6 border-green-500">
+          <AlertDescription className="text-green-700">{success}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Create Poll */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Create New Poll
+          </CardTitle>
+          <CardDescription>Ask the community a question</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="question">Question</Label>
+            <Textarea
+              id="question"
+              placeholder="What would you like to ask?"
+              value={newPoll.question}
+              onChange={(e) => setNewPoll((prev) => ({ ...prev, question: e.target.value }))}
+              maxLength={200}
+            />
+            <p className="text-sm text-muted-foreground mt-1">{newPoll.question.length}/200 characters</p>
+          </div>
+
+          <div>
+            <Label>Options</Label>
+            <div className="space-y-2">
+              {newPoll.options.map((option, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    placeholder={`Option ${index + 1}`}
+                    value={option}
+                    onChange={(e) => updateOption(index, e.target.value)}
+                    maxLength={100}
+                  />
+                  {newPoll.options.length > 2 && (
+                    <Button variant="outline" size="icon" onClick={() => removeOption(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {newPoll.options.length < 6 && (
+              <Button variant="outline" size="sm" onClick={addOption} className="mt-2 bg-transparent">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Option
+              </Button>
+            )}
+          </div>
+
+          <Button onClick={createPoll} disabled={creating}>
+            {creating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Poll
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Polls List */}
+      <div className="space-y-6">
         {polls.length === 0 ? (
-          <Card className="glass-effect animate-fadeIn">
+          <Card>
             <CardContent className="text-center py-8">
-              <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No polls yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Create your first poll to gather opinions!</p>
+              <Vote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">No polls yet. Create the first one!</p>
             </CardContent>
           </Card>
         ) : (
-          polls.map((poll, index) => {
-            const hasVoted = poll.user_response !== undefined
-            const expired = isExpired(poll.expires_at)
-            return (
-              <Card
-                key={poll.id}
-                className={`glass-effect hover-lift animate-fadeIn ${expired ? "opacity-75" : ""}`}
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{poll.title}</CardTitle>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {poll.is_public ? <Globe className="h-3 w-3 hue-accent" /> : <Users className="h-3 w-3" />}
-                            <Vote className="h-3 w-3" />
-                            <span>{poll.total_responses} votes</span>
-                            {poll.expires_at && (
-                              <>
-                                <Clock className="h-3 w-3" />
-                                <span className={expired ? "text-red-500" : ""}>
-                                  {expired ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          {poll.creator_id === currentUserId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeletePoll(poll.id)}
-                              className="text-red-500 hover:bg-red-500/10 h-6 w-6 p-0"
-                              title="Delete Poll"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      {poll.description && <p className="text-sm text-muted-foreground mt-1">{poll.description}</p>}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span className={poll.creator_username ? getUsernameStyle(undefined, false) : ""}>
-                      by @{poll.creator_username}
-                    </span>
-                    <span>
-                      {hasVoted ? "You voted" : "Click to vote"} • {poll.total_responses} total votes
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {poll.options.map((option, optionIndex) => {
-                    const result = poll.results.find((r) => r.option_index === optionIndex)
-                    const count = result?.count || 0
-                    const percentage = getPercentage(count, poll.total_responses)
-                    const isSelected = poll.user_response === optionIndex
-                    const isVoting = votingPollId === poll.id
+          polls.map((poll) => (
+            <Card key={poll.id}>
+              <CardHeader>
+                <CardTitle>{poll.question}</CardTitle>
+                <CardDescription className="flex items-center gap-4">
+                  <span className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    by @{poll.created_by_username}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(poll.created_at).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Vote className="h-4 w-4" />
+                    {poll.total_votes} votes
+                  </span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {poll.options.map((option, index) => {
+                  const votes = poll.votes[index] || 0
+                  const percentage = poll.total_votes > 0 ? (votes / poll.total_votes) * 100 : 0
+                  const hasVoted = poll.user_vote !== undefined
+                  const isUserVote = poll.user_vote === index
 
-                    return (
-                      <div key={optionIndex} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Button
-                            variant={isSelected ? "default" : "outline"}
-                            className={`flex-1 justify-start hover-lift transition-all duration-200 ${
-                              isSelected ? "hue-shadow" : ""
-                            } ${!hasVoted && !expired ? "cursor-pointer" : ""}`}
-                            onClick={() => !hasVoted && !expired && !isVoting && handleVote(poll.id, optionIndex)}
-                            disabled={hasVoted || expired || isVoting}
-                          >
-                            <span className="flex-1 text-left">{option}</span>
-                            {isVoting && (
-                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin ml-2" />
-                            )}
-                          </Button>
-                          {hasVoted && (
-                            <span className="text-sm text-muted-foreground ml-3 min-w-[60px] text-right">
-                              {count} ({percentage}%)
-                            </span>
-                          )}
-                        </div>
-                        {hasVoted && (
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-2 rounded-full transition-all duration-700 ease-out ${
-                                isSelected
-                                  ? "bg-gradient-to-r from-blue-500 to-purple-500 hue-shadow"
-                                  : "bg-gray-400 dark:bg-gray-600"
-                              }`}
-                              style={{
-                                width: `${percentage}%`,
-                                backgroundColor: isSelected ? `hsl(var(--hue) 60% 50%)` : undefined,
-                              }}
-                            />
-                          </div>
-                        )}
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className={`font-medium ${isUserVote ? "text-primary" : ""}`}>
+                          {option} {isUserVote && "✓"}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {votes} votes ({percentage.toFixed(1)}%)
+                        </span>
                       </div>
-                    )
-                  })}
-                  {!hasVoted && !expired && (
-                    <p className="text-xs text-muted-foreground text-center mt-4 opacity-70">
-                      Click on an option to cast your vote
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })
+
+                      {hasVoted ? (
+                        <Progress value={percentage} className="h-2" />
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => votePoll(poll.id, index)}
+                          disabled={voting === poll.id}
+                          className="w-full"
+                        >
+                          {voting === poll.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vote"}
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
-
-      {/* Create Poll Modal */}
-      {showCreatePoll && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto glass-effect animate-fadeIn">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Create Poll</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowCreatePoll(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Poll title"
-                  className="focus:hue-shadow"
-                />
-              </div>
-
-              <div>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Description (optional)"
-                  rows={2}
-                  className="focus:hue-shadow"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Options</label>
-                {options.map((option, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={option}
-                      onChange={(e) => updateOption(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
-                      className="focus:hue-shadow"
-                    />
-                    {options.length > 2 && (
-                      <Button variant="ghost" size="sm" onClick={() => removeOption(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {options.length < 6 && (
-                  <Button variant="outline" size="sm" onClick={addOption} className="hover-lift bg-transparent">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Option
-                  </Button>
-                )}
-              </div>
-
-              <div>
-                <Input
-                  type="datetime-local"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                  className="focus:hue-shadow"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Optional expiration date</p>
-              </div>
-
-              {userSignupCode === "qwea" && (
-                <div className="flex items-center space-x-2 p-3 hue-bg rounded-lg">
-                  <Checkbox id="public" checked={isPublic} onCheckedChange={setIsPublic} />
-                  <label htmlFor="public" className="text-sm font-medium">
-                    Share with all users (public poll)
-                  </label>
-                </div>
-              )}
-
-              {!isPublic && (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Share with friends</label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {friends.map((friend) => (
-                      <div key={friend.friend_id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={friend.friend_id}
-                          checked={selectedFriends.includes(friend.friend_id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedFriends([...selectedFriends, friend.friend_id])
-                            } else {
-                              setSelectedFriends(selectedFriends.filter((id) => id !== friend.friend_id))
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={friend.friend_id}
-                          className="text-sm cursor-pointer"
-                          style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
-                        >
-                          <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
-                            @{friend.friend_username}
-                          </span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleCreatePoll}
-                  disabled={!title.trim() || options.filter((o) => o.trim()).length < 2}
-                  className="flex-1 hover-glow"
-                >
-                  Create Poll
-                </Button>
-                <Button variant="outline" onClick={() => setShowCreatePoll(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

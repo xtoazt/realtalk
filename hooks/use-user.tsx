@@ -6,96 +6,125 @@ interface User {
   id: string
   username: string
   email?: string
+  signup_code?: string
   name_color?: string
   custom_title?: string
   has_gold_animation?: boolean
-  notifications_enabled: boolean
-  theme: string
-  hue: string
-  signup_code?: string
+  notifications_enabled?: boolean
+  theme?: string
+  hue?: string
   profile_picture?: string
   bio?: string
+  created_at?: string
 }
 
 interface UserContextType {
   user: User | null
-  loading: boolean
   setUser: (user: User | null) => void
+  loading: boolean
+  signOut: () => Promise<void>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUserState] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Apply theme and hue to document
-  const applyThemeAndHue = (userData: User | null) => {
-    if (typeof window === "undefined") return
+  const setUser = (newUser: User | null) => {
+    console.log("[useUser] Setting user:", newUser?.username || "null")
+    setUserState(newUser)
 
-    if (userData) {
-      console.log("[UserProvider] Applying theme:", userData.theme, "hue:", userData.hue)
-
-      // Apply theme
-      if (userData.theme === "dark") {
-        document.documentElement.classList.add("dark")
-      } else {
-        document.documentElement.classList.remove("dark")
-      }
-
-      // Apply hue
-      const hueClasses = [
-        "hue-blue",
-        "hue-purple",
-        "hue-pink",
-        "hue-red",
-        "hue-orange",
-        "hue-yellow",
-        "hue-green",
-        "hue-teal",
-      ]
-      hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
-
-      if (userData.hue) {
-        document.documentElement.classList.add(`hue-${userData.hue}`)
-      }
+    if (newUser) {
+      // Apply theme and hue to document
+      applyTheme(newUser.theme || "light", newUser.hue || "blue")
     } else {
-      // Reset to defaults when no user
-      document.documentElement.classList.remove("dark")
-      const hueClasses = [
-        "hue-blue",
-        "hue-purple",
-        "hue-pink",
-        "hue-red",
-        "hue-orange",
-        "hue-yellow",
-        "hue-green",
-        "hue-teal",
-      ]
-      hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
-      document.documentElement.classList.add("hue-blue")
+      // Reset to defaults when user is null
+      applyTheme("light", "blue")
+    }
+  }
+
+  const applyTheme = (theme: string, hue: string) => {
+    console.log("[useUser] Applying theme:", theme, "hue:", hue)
+
+    // Remove existing theme classes
+    document.documentElement.classList.remove("light", "dark")
+    document.documentElement.classList.remove(
+      "hue-red",
+      "hue-orange",
+      "hue-yellow",
+      "hue-green",
+      "hue-blue",
+      "hue-purple",
+      "hue-pink",
+      "hue-gray",
+    )
+
+    // Apply new theme and hue
+    document.documentElement.classList.add(theme)
+    document.documentElement.classList.add(`hue-${hue}`)
+
+    // Set CSS custom properties for hue
+    const hueValues = {
+      red: "0",
+      orange: "25",
+      yellow: "45",
+      green: "120",
+      blue: "220",
+      purple: "270",
+      pink: "320",
+      gray: "0",
+    }
+
+    document.documentElement.style.setProperty("--hue", hueValues[hue as keyof typeof hueValues] || "220")
+  }
+
+  const signOut = async () => {
+    try {
+      console.log("[useUser] Signing out...")
+
+      // Call sign out API
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        console.warn("[useUser] Sign out API failed, but continuing...")
+      }
+
+      // Clear user state
+      setUser(null)
+
+      // Force redirect to clear any cached state
+      window.location.href = "/auth"
+    } catch (error) {
+      console.error("[useUser] Sign out error:", error)
+      // Force redirect even if API fails
+      setUser(null)
+      window.location.href = "/auth"
     }
   }
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        console.log("[UserProvider] Fetching user data...")
-        const response = await fetch("/api/auth/me")
+        console.log("[useUser] Fetching current user...")
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        })
+
         if (response.ok) {
-          const userData = await response.json()
-          console.log("[UserProvider] User data received:", userData.user)
-          setUser(userData.user)
-          applyThemeAndHue(userData.user)
+          const data = await response.json()
+          console.log("[useUser] Fetched user:", data.user?.username)
+          setUser(data.user)
         } else {
-          console.log("[UserProvider] No user found")
+          console.log("[useUser] No authenticated user")
           setUser(null)
-          applyThemeAndHue(null)
         }
       } catch (error) {
-        console.error("[UserProvider] Fetch error:", error)
+        console.error("[useUser] Error fetching user:", error)
         setUser(null)
-        applyThemeAndHue(null)
       } finally {
         setLoading(false)
       }
@@ -104,13 +133,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     fetchUser()
   }, [])
 
-  const updateUser = (updatedUser: User | null) => {
-    console.log("[UserProvider] updateUser called with:", updatedUser)
-    setUser(updatedUser)
-    applyThemeAndHue(updatedUser)
-  }
-
-  return <UserContext.Provider value={{ user, loading, setUser: updateUser }}>{children}</UserContext.Provider>
+  return <UserContext.Provider value={{ user, setUser, loading, signOut }}>{children}</UserContext.Provider>
 }
 
 export function useUser() {

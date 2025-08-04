@@ -1,56 +1,45 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getCurrentUser } from "@/lib/auth"
-import { query } from "@/lib/db"
+import { updateUserProfile } from "@/lib/db"
+import { verifyAuth } from "@/lib/auth"
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
+    const userId = await verifyAuth(request)
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const updates = await request.json()
-    console.log("[profile-api] Updating profile:", updates)
+    const body = await request.json()
+    const { profile_picture, bio } = body
 
-    const allowedFields = ["profile_picture", "bio"]
-    const validUpdates: any = {}
+    console.log("[profile] Updating profile for user:", userId, { profile_picture: !!profile_picture, bio: !!bio })
 
-    for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key)) {
-        if (key === "bio" && typeof value === "string" && value.length > 500) {
-          return NextResponse.json({ error: "Bio must be 500 characters or less" }, { status: 400 })
-        }
-        validUpdates[key] = value
-      }
+    // Validate inputs
+    if (bio && bio.length > 500) {
+      return NextResponse.json({ error: "Bio must be 500 characters or less" }, { status: 400 })
     }
 
-    if (Object.keys(validUpdates).length === 0) {
-      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
+    if (profile_picture && typeof profile_picture !== "string") {
+      return NextResponse.json({ error: "Invalid profile picture URL" }, { status: 400 })
     }
 
-    // Build dynamic update query
-    const setClause = Object.keys(validUpdates)
-      .map((key, index) => `${key} = $${index + 2}`)
-      .join(", ")
+    // Update profile
+    const updatedUser = await updateUserProfile(userId, {
+      profile_picture: profile_picture || null,
+      bio: bio || null,
+    })
 
-    const queryString = `
-      UPDATE users 
-      SET ${setClause}, updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, 
-                notifications_enabled, theme, hue, profile_picture, bio
-    `
+    console.log("[profile] Profile updated successfully")
 
-    const params = [user.id, ...Object.values(validUpdates)]
-    const result = await query.unsafe(queryString, params)
-
-    if (result.length === 0) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    return NextResponse.json({ user: result[0] })
-  } catch (error: any) {
-    console.error("[profile-api] Error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({
+      success: true,
+      user: updatedUser,
+    })
+  } catch (error) {
+    console.error("[profile] Update error:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to update profile" },
+      { status: 500 },
+    )
   }
 }

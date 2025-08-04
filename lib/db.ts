@@ -51,7 +51,7 @@ export async function getUserById(id: string) {
   try {
     const result = await sql`
       SELECT id, username, email, signup_code, name_color, custom_title, has_gold_animation, 
-             notifications_enabled, theme, hue, profile_picture, bio
+             notifications_enabled, theme, hue, profile_picture, bio, created_at
       FROM users WHERE id = ${id}
     `
     return result[0]
@@ -246,6 +246,31 @@ export async function createMessage(
     return result[0]
   } catch (err) {
     console.error("[db] createMessage error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function getMessageById(messageId: string) {
+  try {
+    const result = await sql`
+      SELECT m.*, u.username
+      FROM messages m
+      JOIN users u ON m.sender_id = u.id
+      WHERE m.id = ${messageId}
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] getMessageById error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function deleteMessage(messageId: string) {
+  try {
+    await sql`DELETE FROM messages WHERE id = ${messageId}`
+    return true
+  } catch (err) {
+    console.error("[db] deleteMessage error:", err)
     throw new Error("Database error: " + (err as Error).message)
   }
 }
@@ -457,6 +482,21 @@ export async function getUserDMs(userId: string) {
   }
 }
 
+export async function getFriendshipStatus(userId: string, friendId: string) {
+  try {
+    const result = await sql`
+      SELECT status FROM friendships 
+      WHERE (requester_id = ${userId} AND addressee_id = ${friendId})
+         OR (requester_id = ${friendId} AND addressee_id = ${userId})
+      LIMIT 1
+    `
+    return result[0]?.status || null
+  } catch (err) {
+    console.error("[db] getFriendshipStatus error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
 export async function createNotification(
   userId: string,
   title: string,
@@ -574,5 +614,84 @@ export async function updateUserSettings(userId: string, updates: any) {
   } catch (err) {
     console.error("[db] updateUserSettings error:", err)
     throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function updateUserProfile(userId: string, updates: { profile_picture?: string; bio?: string }) {
+  try {
+    const validUpdates: any = {}
+
+    if (updates.profile_picture !== undefined) {
+      validUpdates.profile_picture = updates.profile_picture
+    }
+    if (updates.bio !== undefined) {
+      validUpdates.bio = updates.bio
+    }
+
+    if (Object.keys(validUpdates).length === 0) {
+      throw new Error("No valid fields to update")
+    }
+
+    const setClause = Object.keys(validUpdates)
+      .map((key, index) => `${key} = $${index + 2}`)
+      .join(", ")
+
+    const queryString = `
+      UPDATE users 
+      SET ${setClause}, updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio, created_at
+    `
+
+    const params = [userId, ...Object.values(validUpdates)]
+    const result = await sql.unsafe(queryString, params)
+
+    if (result.length === 0) {
+      throw new Error("User not found or no profile updated.")
+    }
+
+    return result[0]
+  } catch (err) {
+    console.error("[db] updateUserProfile error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function votePoll(pollId: string, userId: string, optionIndex: number) {
+  try {
+    // Check if user already voted
+    const existingVote = await sql`
+      SELECT * FROM poll_votes 
+      WHERE poll_id = ${pollId} AND user_id = ${userId}
+    `
+
+    if (existingVote.length > 0) {
+      return { success: false, error: "You have already voted on this poll" }
+    }
+
+    // Get poll to validate option index
+    const poll = await sql`
+      SELECT * FROM polls WHERE id = ${pollId}
+    `
+
+    if (!poll[0]) {
+      return { success: false, error: "Poll not found" }
+    }
+
+    const pollOptions = JSON.parse(poll[0].options)
+    if (optionIndex >= pollOptions.length) {
+      return { success: false, error: "Invalid option index" }
+    }
+
+    // Cast vote
+    await sql`
+      INSERT INTO poll_votes (poll_id, user_id, option_index)
+      VALUES (${pollId}, ${userId}, ${optionIndex})
+    `
+
+    return { success: true }
+  } catch (error) {
+    console.error("Vote poll error:", error)
+    return { success: false, error: "Failed to cast vote" }
   }
 }

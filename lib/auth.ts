@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 import { query } from "@/lib/db"
 import bcrypt from "bcryptjs"
+import type { NextRequest } from "next/server"
 
 const key = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret-key")
 
@@ -87,4 +88,24 @@ export async function signIn(username: string, password: string) {
 
   const token = await encrypt({ userId: user.id })
   return { user, token }
+}
+
+export async function verifyAuth(request: NextRequest): Promise<string | null> {
+  try {
+    const token = request.cookies.get("auth-token")?.value
+
+    if (!token) {
+      return null
+    }
+
+    const payload = await decrypt(token)
+    if (!payload || !payload.userId) {
+      return null
+    }
+
+    return payload.userId
+  } catch (error) {
+    console.error("[verifyAuth] Error:", error)
+    return null
+  }
 }
