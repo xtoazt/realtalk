@@ -30,7 +30,7 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 217.2 32.6% 17.5%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
@@ -41,7 +41,7 @@
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
@@ -104,16 +104,33 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
+.dark .glass-effect {
+  @apply bg-gray-900/90 border-gray-700/30;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .hue-accent {
   color: hsl(var(--hue) 70% 50%);
+}
+
+.dark .hue-accent {
+  color: hsl(var(--hue) 60% 60%);
 }
 
 .hue-shadow {
   box-shadow: 0 4px 20px hsla(var(--hue), 50%, 50%, 0.15);
 }
 
+.dark .hue-shadow {
+  box-shadow: 0 4px 20px hsla(var(--hue), 60%, 60%, 0.25);
+}
+
 .hue-border {
   border-color: hsl(var(--hue) 50% 70%);
+}
+
+.dark .hue-border {
+  border-color: hsl(var(--hue) 40% 50%);
 }
 
 .hue-bg {
@@ -179,8 +196,16 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+.dark .hover-lift:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
 .hover-glow:hover {
   box-shadow: 0 0 20px hsla(var(--hue), 70%, 50%, 0.4);
+}
+
+.dark .hover-glow:hover {
+  box-shadow: 0 0 20px hsla(var(--hue), 60%, 60%, 0.6);
 }
 
 /* Custom scrollbar */
@@ -197,6 +222,61 @@
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--hue) 40% 50%);
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--hue) 60% 60%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--hue) 50% 60%);
+}
+
+/* Dark mode improvements */
+.dark .bg-card {
+  @apply bg-gray-900/95;
+}
+
+.dark .border {
+  @apply border-gray-700/50;
+}
+
+.dark .text-muted-foreground {
+  @apply text-gray-400;
+}
+
+.dark .hover\:bg-accent\/50:hover {
+  @apply bg-gray-800/50;
+}
+
+.dark .bg-accent\/50 {
+  @apply bg-gray-800/50;
+}
+
+/* Better dark mode button styles */
+.dark .bg-primary\/10 {
+  @apply bg-gray-700/30;
+}
+
+.dark .text-primary {
+  @apply text-gray-200;
+}
+
+/* Improved dark mode for specific components */
+.dark .bg-gray-100 {
+  @apply bg-gray-800;
+}
+
+.dark .bg-gray-200 {
+  @apply bg-gray-700;
+}
+
+.dark .text-gray-600 {
+  @apply text-gray-300;
+}
+
+.dark .text-gray-500 {
+  @apply text-gray-400;
 }

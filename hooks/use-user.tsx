@@ -27,6 +27,52 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Apply theme and hue to document
+  const applyThemeAndHue = (userData: User | null) => {
+    if (typeof window === "undefined") return
+
+    if (userData) {
+      // Apply theme
+      if (userData.theme === "dark") {
+        document.documentElement.classList.add("dark")
+      } else {
+        document.documentElement.classList.remove("dark")
+      }
+
+      // Apply hue
+      const hueClasses = [
+        "hue-blue",
+        "hue-purple",
+        "hue-pink",
+        "hue-red",
+        "hue-orange",
+        "hue-yellow",
+        "hue-green",
+        "hue-teal",
+      ]
+      hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
+
+      if (userData.hue) {
+        document.documentElement.classList.add(`hue-${userData.hue}`)
+      }
+    } else {
+      // Reset to defaults when no user
+      document.documentElement.classList.remove("dark")
+      const hueClasses = [
+        "hue-blue",
+        "hue-purple",
+        "hue-pink",
+        "hue-red",
+        "hue-orange",
+        "hue-yellow",
+        "hue-green",
+        "hue-teal",
+      ]
+      hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
+      document.documentElement.classList.add("hue-blue")
+    }
+  }
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -34,16 +80,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (response.ok) {
           const userData = await response.json()
           setUser(userData.user)
-
-          // Apply user's hue if available
-          if (userData.user?.hue) {
-            document.documentElement.className = document.documentElement.className
-              .replace(/hue-\w+/g, "")
-              .concat(` hue-${userData.user.hue}`)
-          }
+          applyThemeAndHue(userData.user)
+        } else {
+          setUser(null)
+          applyThemeAndHue(null)
         }
       } catch (error) {
         console.error("Failed to fetch user:", error)
+        setUser(null)
+        applyThemeAndHue(null)
       } finally {
         setLoading(false)
       }
@@ -54,12 +99,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const updateUser = (updatedUser: User | null) => {
     setUser(updatedUser)
-
-    if (updatedUser?.hue) {
-      document.documentElement.className = document.documentElement.className
-        .replace(/hue-\w+/g, "")
-        .concat(` hue-${updatedUser.hue}`)
-    }
+    applyThemeAndHue(updatedUser)
   }
 
   return <UserContext.Provider value={{ user, loading, setUser: updateUser }}>{children}</UserContext.Provider>

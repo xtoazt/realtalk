@@ -26,11 +26,19 @@ interface GroupChat {
 }
 
 const themes = [
-  { id: "monochrome", name: "Monochrome" },
-  { id: "sunset", name: "Sunset" },
-  { id: "sunrise", name: "Sunrise" },
-  { id: "forest", name: "Forest" },
-  { id: "ocean", name: "Ocean" },
+  { id: "light", name: "Light" },
+  { id: "dark", name: "Dark" },
+]
+
+const hues = [
+  { id: "blue", name: "Blue" },
+  { id: "purple", name: "Purple" },
+  { id: "pink", name: "Pink" },
+  { id: "red", name: "Red" },
+  { id: "orange", name: "Orange" },
+  { id: "yellow", name: "Yellow" },
+  { id: "green", name: "Green" },
+  { id: "teal", name: "Teal" },
 ]
 
 export default function DashboardPage() {
@@ -103,9 +111,9 @@ export default function DashboardPage() {
 
         if (response.ok) {
           console.log(`Group chat ${groupId} deleted successfully.`)
-          fetchGroupChats() // Refresh the list
+          fetchGroupChats()
           if (activeChat.type === "group" && activeChat.id === groupId) {
-            setActiveChat({ type: null, name: "" }) // Clear active chat if deleted
+            setActiveChat({ type: null, name: "" })
           }
         } else {
           const errorData = await response.json()
@@ -121,10 +129,25 @@ export default function DashboardPage() {
 
   const handleSignOut = async () => {
     try {
-      await fetch("/api/auth/signout", { method: "POST" })
-      router.push("/auth")
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "include", // Ensure cookies are sent
+      })
+
+      if (response.ok) {
+        // Clear user state immediately
+        updateLocalUser(null)
+        // Force a hard redirect to clear any cached state
+        window.location.href = "/auth"
+      } else {
+        console.error("Sign out failed:", response.status)
+        // Force redirect anyway
+        window.location.href = "/auth"
+      }
     } catch (error) {
       console.error("Failed to sign out:", error)
+      // Force redirect anyway
+      window.location.href = "/auth"
     }
   }
 
@@ -165,23 +188,25 @@ export default function DashboardPage() {
       console.warn("[dashboard] handleThemeCycle called but user is null.")
       return
     }
-    const currentIndex = themes.findIndex((t) => t.id === user.theme)
-    const nextIndex = (currentIndex + 1) % themes.length
-    const nextThemeId = themes[nextIndex].id
 
-    console.log("[dashboard] Cycling theme from", user.theme, "to", nextThemeId)
+    // Cycle through themes
+    const currentThemeIndex = themes.findIndex((t) => t.id === user.theme)
+    const nextThemeIndex = (currentThemeIndex + 1) % themes.length
+    const nextTheme = themes[nextThemeIndex].id
+
+    console.log("[dashboard] Cycling theme from", user.theme, "to", nextTheme)
 
     try {
       const response = await fetch("/api/user/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: nextThemeId }),
+        body: JSON.stringify({ theme: nextTheme }),
       })
 
       if (response.ok) {
         const data = await response.json()
         console.log("[dashboard] Theme update successful:", data.user.theme)
-        updateLocalUser(data.user) // Update user context, which will apply the theme
+        updateLocalUser(data.user)
       } else {
         const errorData = await response.json()
         console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
@@ -193,14 +218,47 @@ export default function DashboardPage() {
     }
   }
 
+  const handleHueCycle = async () => {
+    if (!user) {
+      console.warn("[dashboard] handleHueCycle called but user is null.")
+      return
+    }
+
+    // Cycle through hues
+    const currentHueIndex = hues.findIndex((h) => h.id === user.hue)
+    const nextHueIndex = (currentHueIndex + 1) % hues.length
+    const nextHue = hues[nextHueIndex].id
+
+    console.log("[dashboard] Cycling hue from", user.hue, "to", nextHue)
+
+    try {
+      const response = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hue: nextHue }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[dashboard] Hue update successful:", data.user.hue)
+        updateLocalUser(data.user)
+      } else {
+        const errorData = await response.json()
+        console.error("[dashboard] Failed to update hue:", errorData.error || response.statusText)
+        alert(`Failed to change hue: ${errorData.error || response.statusText}`)
+      }
+    } catch (error: any) {
+      console.error("[dashboard] Failed to update hue:", error)
+      alert(`An unexpected error occurred while changing hue: ${error.message}`)
+    }
+  }
+
   const handleMessageSearchClick = (chatType: string, chatId?: string) => {
     if (chatType === "global") {
       setActiveChat({ type: "global", name: "Global Chat" })
     } else if (chatType === "dm") {
-      // For DMs, we need to get the friend's username - for now just show the chat
       setActiveChat({ type: "dm", id: chatId, name: "Direct Message" })
     } else if (chatType === "group") {
-      // Find the group chat name
       const groupChat = groupChats.find((gc) => gc.id === chatId)
       setActiveChat({ type: "group", id: chatId, name: groupChat?.name || "Group Chat" })
     }
@@ -233,6 +291,7 @@ export default function DashboardPage() {
         onAIChatClick={handleAIChatClick}
         username={user.username}
         onThemeCycle={handleThemeCycle}
+        onHueCycle={handleHueCycle}
       />
 
       <div className="pt-20 px-4 pb-4">
@@ -292,10 +351,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Online Users Component */}
               <OnlineUsers currentUserId={user.id} />
-
-              {/* Recent Poll Component */}
               <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
             </div>
 

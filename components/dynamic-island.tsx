@@ -14,6 +14,7 @@ import {
   Palette,
   BarChart3,
   Calendar,
+  Moon,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -24,6 +25,7 @@ interface DynamicIslandProps {
   onAIChatClick: () => void
   username: string
   onThemeCycle: () => void
+  onHueCycle: () => void
 }
 
 export function DynamicIsland({
@@ -34,6 +36,7 @@ export function DynamicIsland({
   onAIChatClick,
   username,
   onThemeCycle,
+  onHueCycle,
 }: DynamicIslandProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -68,9 +71,9 @@ export function DynamicIsland({
   return (
     <div className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`}>
       <div
-        className={`bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white rounded-full transition-all duration-300 ease-out backdrop-blur-md border border-gray-700 ${
+        className={`bg-gradient-to-r from-gray-900 via-black to-gray-900 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 text-white rounded-full transition-all duration-300 ease-out backdrop-blur-md border border-gray-700 dark:border-gray-600 ${
           isExpanded
-            ? "px-4 py-2 min-w-[600px] shadow-2xl scale-105"
+            ? "px-4 py-2 min-w-[700px] shadow-2xl scale-105"
             : "px-8 py-4 w-fit shadow-xl hover:shadow-2xl hover:scale-102"
         }`}
         onMouseEnter={() => handleExpansion(true)}
@@ -143,13 +146,24 @@ export function DynamicIsland({
 
             <div className="w-px h-5 bg-gray-600 mx-1" />
 
-            {/* Theme Cycle Button */}
+            {/* Theme Toggle Button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={onThemeCycle}
               className="h-8 px-3 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
-              title="Cycle Theme"
+              title="Toggle Theme"
+            >
+              <Moon className="h-3 w-3" />
+            </Button>
+
+            {/* Hue Cycle Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onHueCycle}
+              className="h-8 px-3 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
+              title="Cycle Color"
             >
               <Palette className="h-3 w-3" />
             </Button>
