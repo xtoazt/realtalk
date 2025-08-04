@@ -13,7 +13,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Get the message to check ownership
     const messageResult = await query`
-      SELECT sender_id FROM messages WHERE id = ${messageId}
+      SELECT m.*, u.signup_code
+      FROM messages m
+      JOIN users u ON m.sender_id = u.id
+      WHERE m.id = ${messageId}
     `
 
     if (messageResult.length === 0) {
@@ -22,29 +25,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     const message = messageResult[0]
 
-    // Check if user can delete the message
-    // User can delete if they own the message OR they have gold animation (qwea signup code)
-    const canDelete = message.sender_id === user.id || user.has_gold_animation
+    // Check if user can delete this message
+    const canDelete = message.sender_id === user.id || user.signup_code === "qwea"
 
     if (!canDelete) {
-      return NextResponse.json({ error: "Unauthorized to delete this message" }, { status: 403 })
+      return NextResponse.json({ error: "Not authorized to delete this message" }, { status: 403 })
     }
 
-    // Delete the message and its reactions
-    await query`BEGIN`
+    // Delete the message
+    await query`DELETE FROM messages WHERE id = ${messageId}`
 
-    try {
-      await query`DELETE FROM message_reactions WHERE message_id = ${messageId}`
-      await query`DELETE FROM messages WHERE id = ${messageId}`
-      await query`COMMIT`
-
-      return NextResponse.json({ success: true })
-    } catch (error) {
-      await query`ROLLBACK`
-      throw error
-    }
+    return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error("Delete message API error:", error.message)
+    console.error("[delete-message] Error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

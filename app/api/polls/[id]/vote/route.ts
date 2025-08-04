@@ -25,12 +25,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       WHERE p.id = ${pollId}
         AND (p.is_public = true
              OR p.creator_id = ${user.id}
-             OR p.id IN (
-               SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
+             OR EXISTS (
+               SELECT 1 FROM poll_shares WHERE poll_id = p.id AND user_id = ${user.id}
              ))
     `
 
     if (pollCheck.length === 0) {
+      console.log(`[vote] Poll not found or access denied for poll ${pollId}`)
       return NextResponse.json({ error: "Poll not found or access denied" }, { status: 404 })
     }
 
@@ -55,11 +56,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       RETURNING *
     `
 
-    console.log(`[vote] Vote recorded:`, voteResult[0])
+    console.log(`[vote] Vote recorded successfully:`, voteResult[0])
 
     return NextResponse.json({ success: true, vote: voteResult[0] })
   } catch (error: any) {
-    console.error("Vote API error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[vote] API error:", error.message)
+    return NextResponse.json({ error: "Failed to record vote: " + error.message }, { status: 500 })
   }
 }

@@ -1,14 +1,13 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Camera, UserPlus, MessageCircle } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { User, MessageCircle, UserPlus, Save, Calendar } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
-import Image from "next/image"
 
 interface ProfileUser {
   id: string
@@ -18,24 +17,26 @@ interface ProfileUser {
   has_gold_animation?: boolean
   profile_picture?: string
   bio?: string
-  signup_code?: string
+  created_at: string
+}
+
+interface FriendshipStatus {
+  status: string
+  canSendRequest: boolean
 }
 
 interface ProfilePageProps {
-  userId?: string // If provided, show another user's profile
-  onStartDM?: (userId: string, username: string) => void
-  onSendFriendRequest?: (userId: string) => void
+  userId?: string
+  onStartDM?: (userId: string) => void
 }
 
-export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfilePageProps) {
-  const { user: currentUser, setUser: updateCurrentUser } = useUser()
+export function ProfilePage({ userId, onStartDM }: ProfilePageProps) {
+  const { user: currentUser } = useUser()
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null)
+  const [friendship, setFriendship] = useState<FriendshipStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
-
-  // Form state
   const [bio, setBio] = useState("")
   const [profilePicture, setProfilePicture] = useState("")
 
@@ -43,52 +44,31 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (isOwnProfile && currentUser) {
-        setProfileUser(currentUser)
-        setBio(currentUser.bio || "")
-        setProfilePicture(currentUser.profile_picture || "")
-      } else if (userId) {
-        try {
-          const response = await fetch(`/api/users/${userId}`)
+      try {
+        const targetUserId = userId || currentUser?.id
+        if (!targetUserId) return
+
+        if (isOwnProfile && currentUser) {
+          setProfileUser(currentUser as ProfileUser)
+          setBio(currentUser.bio || "")
+          setProfilePicture(currentUser.profile_picture || "")
+        } else {
+          const response = await fetch(`/api/users/${targetUserId}`)
           if (response.ok) {
             const data = await response.json()
             setProfileUser(data.user)
+            setFriendship(data.friendship)
           }
-        } catch (error) {
-          console.error("Failed to fetch profile:", error)
         }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     fetchProfile()
   }, [userId, currentUser, isOwnProfile])
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploadingImage(true)
-    try {
-      const response = await fetch(`/api/upload-image?filename=${encodeURIComponent(file.name)}`, {
-        method: "POST",
-        body: file,
-      })
-
-      if (response.ok) {
-        const blob = await response.json()
-        setProfilePicture(blob.url)
-      } else {
-        const errorData = await response.json()
-        alert(`Failed to upload image: ${errorData.error || response.statusText}`)
-      }
-    } catch (error) {
-      console.error("Image upload error:", error)
-      alert("An unexpected error occurred during image upload.")
-    } finally {
-      setUploadingImage(false)
-    }
-  }
 
   const handleSaveProfile = async () => {
     if (!isOwnProfile) return
@@ -99,33 +79,61 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profile_picture: profilePicture || null,
           bio: bio.trim() || null,
+          profile_picture: profilePicture.trim() || null,
         }),
       })
 
       if (response.ok) {
         const data = await response.json()
-        updateCurrentUser(data.user)
         setProfileUser(data.user)
         setEditing(false)
       } else {
         const errorData = await response.json()
-        alert(`Failed to update profile: ${errorData.error || response.statusText}`)
+        alert(`Failed to update profile: ${errorData.error}`)
       }
     } catch (error) {
       console.error("Failed to update profile:", error)
-      alert("An unexpected error occurred while updating profile.")
+      alert("An unexpected error occurred")
     } finally {
       setSaving(false)
     }
   }
 
-  const getUsernameStyle = (user: ProfileUser) => {
-    if (user.has_gold_animation) {
+  const handleSendFriendRequest = async () => {
+    if (!profileUser || !friendship?.canSendRequest) return
+
+    try {
+      const response = await fetch("/api/friends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addressee_id: profileUser.id }),
+      })
+
+      if (response.ok) {
+        setFriendship({ status: "pending", canSendRequest: false })
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to send friend request: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Failed to send friend request:", error)
+      alert("An unexpected error occurred")
+    }
+  }
+
+  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+    if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
-    return user.name_color ? { color: user.name_color } : {}
+    return nameColor ? { color: nameColor } : {}
+  }
+
+  const formatJoinDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+    })
   }
 
   if (loading) {
@@ -145,129 +153,118 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{isOwnProfile ? "Your Profile" : `@${profileUser.username}'s Profile`}</h2>
-        {isOwnProfile && (
-          <Button onClick={() => setEditing(!editing)} variant={editing ? "outline" : "default"}>
-            {editing ? "Cancel" : "Edit Profile"}
-          </Button>
-        )}
-      </div>
-
+    <div className="space-y-6 relative z-10">
       <Card className="glass-effect hover-lift animate-fadeIn">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Profile Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Profile Picture */}
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              {profileUser.profile_picture ? (
-                <Image
-                  src={profileUser.profile_picture || "/placeholder.svg"}
-                  alt={`${profileUser.username}'s profile`}
-                  width={100}
-                  height={100}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-gray-200 dark:border-gray-700">
-                  <User className="h-12 w-12 text-gray-400" />
-                </div>
-              )}
-              {editing && (
-                <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors">
-                  <Camera className="h-4 w-4" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={uploadingImage}
-                  />
-                </label>
-              )}
-              {uploadingImage && (
-                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-            </div>
+          <div className="flex items-start gap-4">
+            <Avatar className="w-20 h-20">
+              <AvatarImage src={profileUser.profile_picture || "/placeholder.svg"} />
+              <AvatarFallback className="text-2xl">{profileUser.username.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
             <div className="flex-1">
-              <h3
-                className={`text-2xl font-bold ${profileUser.has_gold_animation ? getUsernameStyle(profileUser) : ""}`}
-                style={!profileUser.has_gold_animation ? getUsernameStyle(profileUser) : {}}
-              >
-                @{profileUser.username}
-              </h3>
-              {profileUser.custom_title && (
-                <p className="text-sm italic text-muted-foreground mt-1">{profileUser.custom_title}</p>
-              )}
-              {profileUser.signup_code && (
-                <div className="mt-2">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {profileUser.signup_code === "asdf" && "✨ Custom Colors"}
-                    {profileUser.signup_code === "qwea" && "👑 Gold Member"}
-                  </span>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1
+                    className="text-2xl font-bold"
+                    style={getUsernameStyle(profileUser.name_color, profileUser.has_gold_animation)}
+                  >
+                    @{profileUser.username}
+                  </h1>
+                  {profileUser.custom_title && (
+                    <p className="text-sm text-muted-foreground mt-1">{profileUser.custom_title}</p>
+                  )}
                 </div>
-              )}
+                <div className="flex gap-2">
+                  {isOwnProfile ? (
+                    <Button
+                      onClick={() => setEditing(!editing)}
+                      variant="outline"
+                      className="hover-lift bg-transparent"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      {editing ? "Cancel" : "Edit Profile"}
+                    </Button>
+                  ) : (
+                    <>
+                      {friendship?.canSendRequest && (
+                        <Button onClick={handleSendFriendRequest} className="hover-glow">
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add Friend
+                        </Button>
+                      )}
+                      {friendship?.status === "accepted" && onStartDM && (
+                        <Button
+                          onClick={() => onStartDM(profileUser.id)}
+                          variant="outline"
+                          className="hover-lift bg-transparent"
+                        >
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          Message
+                        </Button>
+                      )}
+                      {friendship?.status === "pending" && (
+                        <Button disabled variant="outline">
+                          Request Sent
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Bio */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Bio</label>
-            {editing ? (
-              <Textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell us about yourself..."
-                rows={4}
-                maxLength={500}
-                className="resize-none"
-              />
-            ) : (
-              <div className="min-h-[100px] p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                {profileUser.bio ? (
-                  <p className="text-sm whitespace-pre-wrap">{profileUser.bio}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    {isOwnProfile ? "Add a bio to tell others about yourself" : "No bio available"}
-                  </p>
-                )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {editing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Profile Picture URL</label>
+                <Input
+                  value={profilePicture}
+                  onChange={(e) => setProfilePicture(e.target.value)}
+                  placeholder="https://example.com/your-image.jpg"
+                  className="mt-1"
+                />
               </div>
-            )}
-            {editing && <p className="text-xs text-muted-foreground mt-1">{bio.length}/500 characters</p>}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            {editing ? (
-              <>
-                <Button onClick={handleSaveProfile} disabled={saving} className="flex-1">
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>
-                  Cancel
-                </Button>
-              </>
-            ) : !isOwnProfile ? (
-              <>
-                <Button onClick={() => onStartDM?.(profileUser.id, profileUser.username)} className="flex-1">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Send Message
-                </Button>
-                <Button variant="outline" onClick={() => onSendFriendRequest?.(profileUser.id)}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Friend
-                </Button>
-              </>
-            ) : null}
-          </div>
+              <div>
+                <label className="text-sm font-medium">Bio</label>
+                <Textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell us about yourself..."
+                  rows={4}
+                  maxLength={500}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">{bio.length}/500 characters</p>
+              </div>
+              <Button onClick={handleSaveProfile} disabled={saving} className="hover-glow">
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {profileUser.bio ? (
+                <div>
+                  <h3 className="font-medium mb-2">About</h3>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{profileUser.bio}</p>
+                </div>
+              ) : isOwnProfile ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p>No bio yet. Click "Edit Profile" to add one!</p>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p>This user hasn't added a bio yet.</p>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Joined {formatJoinDate(profileUser.created_at)}</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

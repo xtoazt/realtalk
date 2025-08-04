@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,6 +20,8 @@ interface User {
   theme: string
   hue: string
   signup_code?: string
+  profile_picture?: string
+  bio?: string
 }
 
 const hues = [
@@ -36,26 +37,21 @@ const hues = [
 
 export default function SettingsPage() {
   const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
-  const { theme, setTheme } = useTheme()
   const [saving, setSaving] = useState(false)
   const [customTitle, setCustomTitle] = useState("")
   const [nameColor, setNameColor] = useState("#6366f1")
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
+    console.log("[settings] User loading:", userLoading, "User:", user)
+
     if (!userLoading && user) {
       setCustomTitle(user.custom_title || "")
       setNameColor(user.name_color || "#6366f1")
       checkNotificationPermission()
-
-      // Apply user's hue
-      if (user.hue) {
-        document.documentElement.className = document.documentElement.className
-          .replace(/hue-\w+/g, "")
-          .concat(` hue-${user.hue}`)
-      }
     }
   }, [user, userLoading])
 
@@ -85,8 +81,10 @@ export default function SettingsPage() {
       return
     }
 
+    console.log("[settings] Updating settings:", updates)
     setSaving(true)
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await fetch("/api/user/settings", {
@@ -95,21 +93,18 @@ export default function SettingsPage() {
         body: JSON.stringify(updates),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        updateLocalUser(data.user)
+      const data = await response.json()
+      console.log("[settings] Response:", response.status, data)
 
-        // Apply hue change immediately
-        if (updates.hue) {
-          document.documentElement.className = document.documentElement.className
-            .replace(/hue-\w+/g, "")
-            .concat(` hue-${updates.hue}`)
-        }
+      if (response.ok) {
+        updateLocalUser(data.user)
+        setSuccess("Settings updated successfully!")
+        setTimeout(() => setSuccess(null), 3000)
       } else {
-        const errorData = await response.json()
-        setError(`Failed to update settings: ${errorData.error || response.statusText}`)
+        setError(`Failed to update settings: ${data.error || response.statusText}`)
       }
     } catch (error: any) {
+      console.error("[settings] Update error:", error)
       setError(`An unexpected error occurred: ${error.message}`)
     } finally {
       setSaving(false)
@@ -147,7 +142,7 @@ export default function SettingsPage() {
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground animate-pulse">Loading...</div>
+        <div className="text-muted-foreground animate-pulse">Loading settings...</div>
       </div>
     )
   }
@@ -155,7 +150,10 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">User data not available. Redirecting...</div>
+        <div className="text-center">
+          <div className="text-muted-foreground mb-4">Unable to load user data</div>
+          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+        </div>
       </div>
     )
   }
@@ -176,6 +174,12 @@ export default function SettingsPage() {
         {error && (
           <div className="text-sm text-destructive text-center p-3 bg-destructive/10 rounded-lg mb-4 animate-fadeIn border border-destructive/20">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="text-sm text-green-600 text-center p-3 bg-green-100 dark:bg-green-900/30 rounded-lg mb-4 animate-fadeIn border border-green-300 dark:border-green-700">
+            {success}
           </div>
         )}
 
@@ -205,18 +209,20 @@ export default function SettingsPage() {
               {/* Dark Mode Toggle */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  {user.theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                   <div>
                     <p className="font-medium">Dark Mode</p>
                     <p className="text-sm text-muted-foreground">Toggle between light and dark themes</p>
                   </div>
                 </div>
                 <Switch
-                  checked={theme === "dark"}
+                  checked={user.theme === "dark"}
                   onCheckedChange={(checked) => {
-                    setTheme(checked ? "dark" : "light")
-                    updateSettings({ theme: checked ? "dark" : "light" })
+                    const newTheme = checked ? "dark" : "light"
+                    console.log("[settings] Toggling theme to:", newTheme)
+                    updateSettings({ theme: newTheme })
                   }}
+                  disabled={saving}
                 />
               </div>
 
@@ -230,12 +236,16 @@ export default function SettingsPage() {
                   {hues.map((hue) => (
                     <button
                       key={hue.id}
-                      onClick={() => updateSettings({ hue: hue.id })}
+                      onClick={() => {
+                        console.log("[settings] Changing hue to:", hue.id)
+                        updateSettings({ hue: hue.id })
+                      }}
+                      disabled={saving}
                       className={`p-3 rounded-lg border-2 transition-all duration-200 hover-lift ${
                         user.hue === hue.id
                           ? "border-current hue-shadow"
                           : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                      }`}
+                      } ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
                       style={{
                         borderColor: user.hue === hue.id ? hue.color : undefined,
                         boxShadow: user.hue === hue.id ? `0 4px 20px ${hue.color}30` : undefined,
