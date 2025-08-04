@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Camera, Save, MessageCircle, UserPlus, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
+import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface ProfileUser {
   id: string
@@ -272,8 +272,12 @@ export function ProfilePage({ userId, onStartDM }: ProfilePageProps) {
 
             <div className="flex-1">
               <CardTitle
-                className={cn("text-2xl", getUsernameGoldClass(profileUser.has_gold_animation))}
-                style={getUsernameColorStyle(profileUser.name_color)}
+                className={`text-2xl ${getUsernameClassName(false, profileUser.has_gold_animation, !!profileUser.name_color)}`}
+                style={
+                  shouldApplyCustomColor(profileUser.has_gold_animation, false)
+                    ? getUsernameColorStyle(profileUser.name_color)
+                    : {}
+                }
               >
                 @{profileUser.username}
               </CardTitle>

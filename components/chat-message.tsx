@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
 import Image from "next/image"
-import { cn, getUsernameColorStyle, getUsernameGoldClass, getAIUsernameClass } from "@/lib/utils"
+import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface Message {
   id: string
@@ -93,12 +93,9 @@ export function ChatMessage({
       <div className={`max-w-[70%] ${isOwnMessage ? "order-2" : "order-1"}`}>
         <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
           <span
-            className={cn(
-              message.is_ai_response ? getAIUsernameClass() : getUsernameGoldClass(message.has_gold_animation),
-              !message.is_ai_response && !message.has_gold_animation && message.name_color ? "font-medium" : "",
-            )}
+            className={getUsernameClassName(isAI, message.has_gold_animation, !!message.name_color)}
             style={
-              !message.is_ai_response && !message.has_gold_animation ? getUsernameColorStyle(message.name_color) : {}
+              shouldApplyCustomColor(message.has_gold_animation, isAI) ? getUsernameColorStyle(message.name_color) : {}
             }
           >
             {isAI ? "AI Assistant" : message.username}

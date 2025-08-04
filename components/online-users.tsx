@@ -1,112 +1,138 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Wifi } from "lucide-react"
-import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
+import { useState, useEffect } from "react"
+import { useUser } from "@/hooks/use-user"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Users, MessageCircle, Loader2 } from "lucide-react"
+import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface OnlineUser {
   id: string
   username: string
   name_color?: string
-  has_gold_animation?: boolean
+  has_gold_animation: boolean
   last_active: string
 }
 
 interface OnlineUsersProps {
-  currentUserId: string
+  onStartDM?: (userId: string, username: string) => void
 }
 
-export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
+export function OnlineUsers({ onStartDM }: OnlineUsersProps) {
+  const { user } = useUser()
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchOnlineUsers = useCallback(async () => {
+  useEffect(() => {
+    if (user) {
+      fetchOnlineUsers()
+      const interval = setInterval(fetchOnlineUsers, 30000) // Update every 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  const fetchOnlineUsers = async () => {
     try {
-      // The API route now handles filtering by friends based on currentUserId
-      const response = await fetch("/api/users/online")
+      const response = await fetch("/api/users/online", {
+        credentials: "include",
+      })
+
       if (response.ok) {
         const data = await response.json()
-        setOnlineUsers(data.onlineUsers) // Data already filtered by friends on server
+        setOnlineUsers(data.users || [])
+      } else {
+        console.error("Failed to fetch online users")
       }
     } catch (error) {
-      console.error("Failed to fetch online users:", error)
+      console.error("Online users fetch error:", error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }
 
-  const updateActivity = useCallback(async () => {
-    try {
-      await fetch("/api/user/activity", { method: "POST" })
-    } catch (error) {
-      console.error("Failed to update activity:", error)
+  const startDM = (userId: string, username: string) => {
+    onStartDM?.(userId, username)
+  }
+
+  const getActivityStatus = (lastActive: string) => {
+    const now = new Date()
+    const lastActiveDate = new Date(lastActive)
+    const diffInMinutes = (now.getTime() - lastActiveDate.getTime()) / (1000 * 60)
+
+    if (diffInMinutes < 5) {
+      return { status: "online", color: "bg-green-500" }
+    } else if (diffInMinutes < 10) {
+      return { status: "away", color: "bg-yellow-500" }
+    } else {
+      return { status: "offline", color: "bg-gray-400" }
     }
-  }, [])
+  }
 
-  useEffect(() => {
-    fetchOnlineUsers()
-    updateActivity()
-
-    // Update activity every 2 minutes
-    const activityInterval = setInterval(updateActivity, 2 * 60 * 1000)
-
-    // Fetch online users every 30 seconds
-    const fetchInterval = setInterval(fetchOnlineUsers, 30 * 1000)
-
-    return () => {
-      clearInterval(activityInterval)
-      clearInterval(fetchInterval)
-    }
-  }, [fetchOnlineUsers, updateActivity])
-
-  if (loading) {
+  if (!user) {
     return (
-      <Card className="animate-fadeIn">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Online Friends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground animate-pulse">Loading...</div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-32">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
     )
   }
 
   return (
-    <Card className="animate-fadeIn">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Wifi className="h-5 w-5 text-green-500" />
+          <Users className="h-5 w-5" />
           Online Friends ({onlineUsers.length})
         </CardTitle>
+        <CardDescription>Friends who have been active recently</CardDescription>
       </CardHeader>
       <CardContent>
-        {onlineUsers.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No online friends</p>
-            <p className="text-sm mt-1">Add some friends to see them here!</p>
+        {loading ? (
+          <div className="flex items-center justify-center h-20">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : onlineUsers.length > 0 ? (
+          <div className="space-y-2">
+            {onlineUsers.map((onlineUser) => {
+              const activity = getActivityStatus(onlineUser.last_active)
+              return (
+                <div
+                  key={onlineUser.id}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className={`w-3 h-3 rounded-full ${activity.color}`} />
+                    </div>
+                    <div>
+                      <div
+                        className={getUsernameClassName(false, onlineUser.has_gold_animation, !!onlineUser.name_color)}
+                        style={
+                          shouldApplyCustomColor(onlineUser.has_gold_animation, false)
+                            ? getUsernameColorStyle(onlineUser.name_color)
+                            : {}
+                        }
+                      >
+                        @{onlineUser.username}
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {activity.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => startDM(onlineUser.id, onlineUser.username)}>
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
+            })}
           </div>
         ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {onlineUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-              >
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span
-                  className={cn("text-sm", getUsernameGoldClass(user.has_gold_animation))}
-                  style={getUsernameColorStyle(user.name_color)}
-                >
-                  @{user.username}
-                </span>
-              </div>
-            ))}
+          <div className="text-center py-8 text-gray-500">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No friends online right now</p>
+            <p className="text-sm">Friends who have been active in the last 10 minutes will appear here</p>
           </div>
         )}
       </CardContent>

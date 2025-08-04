@@ -1,399 +1,360 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
+import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar, Plus, X, Users, Clock, ChevronLeft, ChevronRight } from "lucide-react"
-import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Calendar, Plus, Clock, MapPin, Users, Loader2 } from "lucide-react"
+import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface CalendarEvent {
   id: string
   title: string
   description?: string
-  start_time: string
-  end_time: string
-  is_collaborative: boolean
-  creator_username: string
+  event_date: string
+  location?: string
   creator_id: string
+  creator_username: string
+  creator_name_color?: string
+  creator_has_gold: boolean
   created_at: string
-  participants?: { user_id: string; username: string; status: string }[]
 }
 
-interface Friend {
-  friend_id: string
-  friend_username: string
-  friend_name_color?: string
-  friend_has_gold?: boolean
-}
-
-interface CalendarPageProps {
-  currentUserId: string
-}
-
-export function CalendarPage({ currentUserId }: CalendarPageProps) {
+export function CalendarPage() {
+  const { user } = useUser()
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [friends, setFriends] = useState<Friend[]>([])
-  const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [creating, setCreating] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Create event form state
+  // Form state
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [startTime, setStartTime] = useState("")
-  const [endTime, setEndTime] = useState("")
-  const [isCollaborative, setIsCollaborative] = useState(false)
-  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
+  const [eventDate, setEventDate] = useState("")
+  const [location, setLocation] = useState("")
 
-  const fetchEvents = useCallback(async () => {
+  useEffect(() => {
+    if (user) {
+      fetchEvents()
+    }
+  }, [user])
+
+  const fetchEvents = async () => {
     try {
-      const response = await fetch("/api/calendar")
+      const response = await fetch("/api/calendar", {
+        credentials: "include",
+      })
+
       if (response.ok) {
         const data = await response.json()
-        setEvents(data.events)
+        setEvents(data.events || [])
+      } else {
+        console.error("Failed to fetch events")
       }
     } catch (error) {
-      console.error("Failed to fetch events:", error)
+      console.error("Events fetch error:", error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }
 
-  const fetchFriends = useCallback(async () => {
-    try {
-      const response = await fetch("/api/friends/accepted")
-      if (response.ok) {
-        const data = await response.json()
-        setFriends(data.friends)
-      }
-    } catch (error) {
-      console.error("Failed to fetch friends:", error)
+  const createEvent = async () => {
+    if (!title.trim() || !eventDate) {
+      setError("Title and date are required")
+      return
     }
-  }, [])
 
-  useEffect(() => {
-    fetchEvents()
-    fetchFriends()
-  }, [fetchEvents, fetchFriends])
-
-  const handleCreateEvent = async () => {
-    if (!title.trim() || !startTime || !endTime) return
+    setCreating(true)
+    setError(null)
 
     try {
       const response = await fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           title: title.trim(),
-          description: description.trim() || undefined,
-          start_time: startTime,
-          end_time: endTime,
-          is_collaborative: isCollaborative,
-          participants: selectedParticipants,
+          description: description.trim() || null,
+          event_date: eventDate,
+          location: location.trim() || null,
         }),
       })
 
       if (response.ok) {
-        setShowCreateEvent(false)
-        resetForm()
-        fetchEvents()
+        await fetchEvents()
+        setTitle("")
+        setDescription("")
+        setEventDate("")
+        setLocation("")
+        setShowCreateForm(false)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || "Failed to create event")
       }
     } catch (error) {
-      console.error("Failed to create event:", error)
+      console.error("Create event error:", error)
+      setError("Failed to create event")
+    } finally {
+      setCreating(false)
     }
   }
 
-  const resetForm = () => {
-    setTitle("")
-    setDescription("")
-    setStartTime("")
-    setEndTime("")
-    setIsCollaborative(false)
-    setSelectedParticipants([])
-  }
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const isToday = date.toDateString() === now.toDateString()
+    const isTomorrow = date.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString()
 
-  const formatDateTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
-  const getEventsForDate = (date: Date) => {
-    const dateStr = date.toDateString()
-    return events.filter((event) => {
-      const eventDate = new Date(event.start_time).toDateString()
-      return eventDate === dateStr
-    })
-  }
-
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
-
-    const days = []
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null)
+    if (isToday) {
+      return `Today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    } else if (isTomorrow) {
+      return `Tomorrow at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    } else {
+      return date.toLocaleString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     }
-
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day))
-    }
-
-    return days
   }
 
-  const navigateMonth = (direction: "prev" | "next") => {
-    setCurrentDate((prev) => {
-      const newDate = new Date(prev)
-      if (direction === "prev") {
-        newDate.setMonth(prev.getMonth() - 1)
-      } else {
-        newDate.setMonth(prev.getMonth() + 1)
-      }
-      return newDate
-    })
+  const isEventUpcoming = (dateString: string) => {
+    return new Date(dateString) > new Date()
   }
 
-  const isToday = (date: Date | null) => {
-    if (!date) return false
-    const today = new Date()
-    return date.toDateString() === today.toDateString()
-  }
-
-  if (loading) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground animate-pulse">Loading calendar...</div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
-  const days = getDaysInMonth(currentDate)
-  const monthYear = currentDate.toLocaleDateString([], { month: "long", year: "numeric" })
+  const upcomingEvents = events.filter((event) => isEventUpcoming(event.event_date))
+  const pastEvents = events.filter((event) => !isEventUpcoming(event.event_date))
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Calendar</h2>
-        <Button onClick={() => setShowCreateEvent(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Event
-        </Button>
-      </div>
-
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {monthYear}
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth("next")}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Community Calendar
+              </CardTitle>
+              <CardDescription>Upcoming events and gatherings</CardDescription>
             </div>
+            <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Event
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {days.map((date, index) => {
-              const dayEvents = date ? getEventsForDate(date) : []
-              return (
-                <div
-                  key={index}
-                  className={`min-h-[80px] p-1 border rounded-lg ${
-                    date ? "hover:bg-accent/50 cursor-pointer" : ""
-                  } ${isToday(date) ? "bg-primary/10 border-primary" : ""}`}
-                >
-                  {date && (
-                    <>
-                      <div className={`text-sm font-medium ${isToday(date) ? "text-primary" : ""}`}>
-                        {date.getDate()}
-                      </div>
-                      <div className="space-y-1">
-                        {dayEvents.slice(0, 2).map((event) => (
-                          <div
-                            key={event.id}
-                            className="text-xs p-1 bg-primary/20 rounded truncate"
-                            title={event.title}
-                          >
-                            {event.title}
-                          </div>
-                        ))}
-                        {dayEvents.length > 2 && (
-                          <div className="text-xs text-muted-foreground">+{dayEvents.length - 2} more</div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Upcoming Events */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Upcoming Events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {events.length === 0 ? (
-            <div className="text-center py-8">
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No events scheduled</p>
-              <p className="text-sm text-muted-foreground mt-1">Create your first event to get started!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {events
-                .filter((event) => new Date(event.start_time) >= new Date())
-                .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                .slice(0, 5)
-                .map((event) => (
-                  <div key={event.id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{event.title}</h4>
-                        {event.description && <p className="text-sm text-muted-foreground mt-1">{event.description}</p>}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span>
-                            {formatDateTime(event.start_time)} - {formatDateTime(event.end_time)}
-                          </span>
-                          {event.is_collaborative && (
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              <span>Collaborative</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">Created by @{event.creator_username}</div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Create Event Modal */}
-      {showCreateEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Create Event</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowCreateEvent(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" />
-              </div>
+        {showCreateForm && (
+          <CardContent className="border-t">
+            <div className="space-y-4 pt-4">
+              {error && <div className="text-sm text-red-500 bg-red-50 p-2 rounded">{error}</div>}
 
               <div>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Description (optional)"
-                  rows={2}
+                <Label htmlFor="title">Event Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter event title"
+                  maxLength={100}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-sm font-medium">Start Time</label>
-                  <Input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">End Time</label>
-                  <Input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-                </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Event description (optional)"
+                  maxLength={500}
+                  rows={3}
+                />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox id="collaborative" checked={isCollaborative} onCheckedChange={setIsCollaborative} />
-                <label htmlFor="collaborative" className="text-sm">
-                  Make this a collaborative event
-                </label>
-              </div>
-
-              {isCollaborative && (
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Invite participants</label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {friends.map((friend) => (
-                      <div key={friend.friend_id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={friend.friend_id}
-                          checked={selectedParticipants.includes(friend.friend_id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedParticipants([...selectedParticipants, friend.friend_id])
-                            } else {
-                              setSelectedParticipants(selectedParticipants.filter((id) => id !== friend.friend_id))
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={friend.friend_id}
-                          className={cn("text-sm cursor-pointer", getUsernameGoldClass(friend.friend_has_gold))}
-                          style={getUsernameColorStyle(friend.friend_name_color)}
-                        >
-                          <span
-                            className={getUsernameGoldClass(friend.friend_has_gold)}
-                            style={getUsernameColorStyle(friend.friend_name_color)}
-                          >
-                            @{friend.friend_username}
-                          </span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                  <Label htmlFor="eventDate">Date & Time</Label>
+                  <Input
+                    id="eventDate"
+                    type="datetime-local"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                  />
                 </div>
-              )}
+
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Event location (optional)"
+                    maxLength={100}
+                  />
+                </div>
+              </div>
 
               <div className="flex gap-2">
-                <Button
-                  onClick={handleCreateEvent}
-                  disabled={!title.trim() || !startTime || !endTime}
-                  className="flex-1"
-                >
-                  Create Event
+                <Button onClick={createEvent} disabled={creating}>
+                  {creating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Event
+                    </>
+                  )}
                 </Button>
-                <Button variant="outline" onClick={() => setShowCreateEvent(false)}>
+                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
                   Cancel
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="h-6 w-6 animate-spin" />
         </div>
+      ) : (
+        <>
+          {upcomingEvents.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Events ({upcomingEvents.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {upcomingEvents.map((event) => (
+                    <div key={event.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-lg">{event.title}</h3>
+                        <Badge variant="default">Upcoming</Badge>
+                      </div>
+
+                      {event.description && <p className="text-gray-600 mb-3">{event.description}</p>}
+
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {formatEventDate(event.event_date)}
+                        </div>
+
+                        {event.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {event.location}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          Created by{" "}
+                          <span
+                            className={getUsernameClassName(false, event.creator_has_gold, !!event.creator_name_color)}
+                            style={
+                              shouldApplyCustomColor(event.creator_has_gold, false)
+                                ? getUsernameColorStyle(event.creator_name_color)
+                                : {}
+                            }
+                          >
+                            @{event.creator_username}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {pastEvents.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Past Events ({pastEvents.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {pastEvents.slice(0, 5).map((event) => (
+                    <div key={event.id} className="border rounded-lg p-4 opacity-75">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-lg">{event.title}</h3>
+                        <Badge variant="secondary">Past</Badge>
+                      </div>
+
+                      {event.description && <p className="text-gray-600 mb-3">{event.description}</p>}
+
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {formatEventDate(event.event_date)}
+                        </div>
+
+                        {event.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {event.location}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          Created by{" "}
+                          <span
+                            className={getUsernameClassName(false, event.creator_has_gold, !!event.creator_name_color)}
+                            style={
+                              shouldApplyCustomColor(event.creator_has_gold, false)
+                                ? getUsernameColorStyle(event.creator_name_color)
+                                : {}
+                            }
+                          >
+                            @{event.creator_username}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {events.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No events yet</h3>
+                <p className="text-gray-500 mb-4">Be the first to create a community event!</p>
+                <Button onClick={() => setShowCreateForm(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Event
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   )

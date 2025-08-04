@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest) {
       UPDATE users 
       SET ${setClause}, updated_at = NOW()
       WHERE id = $1
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio, created_at
     `
 
     const params = [user.id, ...Object.values(validUpdates)]

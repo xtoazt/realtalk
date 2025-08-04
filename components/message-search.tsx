@@ -1,147 +1,219 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useUser } from "@/hooks/use-user"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, X, MessageCircle } from "lucide-react"
-import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Search, MessageCircle, Calendar, Users, Loader2 } from "lucide-react"
+import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
 
 interface SearchResult {
   id: string
   content: string
+  sender_id: string
   username: string
   name_color?: string
-  has_gold_animation?: boolean
-  created_at: string
+  has_gold_animation: boolean
   chat_type: string
   chat_id?: string
-  message_type?: string
+  created_at: string
+  context_before?: string
+  context_after?: string
 }
 
-interface MessageSearchProps {
-  onClose: () => void
-  onMessageClick?: (chatType: string, chatId?: string) => void
-}
-
-export function MessageSearch({ onClose, onMessageClick }: MessageSearchProps) {
-  const [query, setQuery] = useState("")
-  const [results, setResults] = useState<SearchResult[]>([])
+export function MessageSearch() {
+  const { user } = useUser()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (query.trim().length >= 2) {
-        searchMessages()
+    const delayedSearch = setTimeout(() => {
+      if (searchQuery.trim()) {
+        performSearch()
       } else {
-        setResults([])
+        setSearchResults([])
+        setHasSearched(false)
       }
     }, 500)
 
-    return () => clearTimeout(timeoutId)
-  }, [query])
+    return () => clearTimeout(delayedSearch)
+  }, [searchQuery])
 
-  const searchMessages = async () => {
+  const performSearch = async () => {
+    if (!searchQuery.trim()) return
+
     setLoading(true)
+    setHasSearched(true)
+
     try {
-      const response = await fetch(`/api/messages/search?q=${encodeURIComponent(query.trim())}`)
+      const response = await fetch(`/api/messages/search?q=${encodeURIComponent(searchQuery)}`, {
+        credentials: "include",
+      })
+
       if (response.ok) {
         const data = await response.json()
-        setResults(data.messages || [])
+        setSearchResults(data.messages || [])
+      } else {
+        console.error("Failed to search messages")
+        setSearchResults([])
       }
     } catch (error) {
-      console.error("Failed to search messages:", error)
+      console.error("Search error:", error)
+      setSearchResults([])
     } finally {
       setLoading(false)
     }
   }
 
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (diffInDays === 0) {
+      return `Today at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    } else if (diffInDays === 1) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    } else if (diffInDays < 7) {
+      return date.toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })
+    } else {
+      return date.toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    }
   }
 
-  const getChatDisplayName = (result: SearchResult) => {
-    if (result.chat_type === "global") return "Global Chat"
-    if (result.chat_type === "dm") return "Direct Message"
-    return "Group Chat"
+  const getChatTypeIcon = (chatType: string) => {
+    switch (chatType) {
+      case "global":
+        return <MessageCircle className="h-4 w-4" />
+      case "group":
+        return <Users className="h-4 w-4" />
+      case "dm":
+        return <MessageCircle className="h-4 w-4" />
+      default:
+        return <MessageCircle className="h-4 w-4" />
+    }
+  }
+
+  const getChatTypeBadge = (chatType: string) => {
+    switch (chatType) {
+      case "global":
+        return <Badge variant="default">Global</Badge>
+      case "group":
+        return <Badge variant="secondary">Group</Badge>
+      case "dm":
+        return <Badge variant="outline">DM</Badge>
+      default:
+        return <Badge variant="outline">{chatType}</Badge>
+    }
+  }
+
+  const highlightSearchTerm = (text: string, searchTerm: string) => {
+    if (!searchTerm) return text
+
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi")
+    const parts = text.split(regex)
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <mark key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
+          {part}
+        </mark>
+      ) : (
+        part
+      ),
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Search Messages
+            Message Search
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <CardDescription>Search through all your messages and conversations</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search messages..."
-              className="flex-1"
-              autoFocus
+              className="pl-10"
             />
             {loading && (
-              <div className="flex items-center px-3">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              </div>
-            )}
-          </div>
-
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {query.trim().length < 2 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Type at least 2 characters to search</p>
-              </div>
-            ) : results.length === 0 && !loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No messages found for "{query}"</p>
-              </div>
-            ) : (
-              results.map((result) => (
-                <div
-                  key={result.id}
-                  className="p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
-                  onClick={() => {
-                    onMessageClick?.(result.chat_type, result.chat_id)
-                    onClose()
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className={cn("text-sm font-medium", getUsernameGoldClass(result.has_gold_animation))}
-                      style={getUsernameColorStyle(result.name_color)}
-                    >
-                      @{result.username}
-                    </span>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{getChatDisplayName(result)}</span>
-                      <span>•</span>
-                      <span>{formatTime(result.created_at)}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {result.message_type === "image" ? "📷 Shared an image" : result.content}
-                  </p>
-                </div>
-              ))
+              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
             )}
           </div>
         </CardContent>
       </Card>
+
+      {hasSearched && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Results {searchResults.length > 0 && `(${searchResults.length})`}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-20">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : searchResults.length > 0 ? (
+              <div className="space-y-4">
+                {searchResults.map((result) => (
+                  <div key={result.id} className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getChatTypeIcon(result.chat_type)}
+                        <span
+                          className={getUsernameClassName(false, result.has_gold_animation, !!result.name_color)}
+                          style={
+                            shouldApplyCustomColor(result.has_gold_animation, false)
+                              ? getUsernameColorStyle(result.name_color)
+                              : {}
+                          }
+                        >
+                          @{result.username}
+                        </span>
+                        {getChatTypeBadge(result.chat_type)}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar className="h-4 w-4" />
+                        {formatDate(result.created_at)}
+                      </div>
+                    </div>
+
+                    <div className="text-sm">
+                      {result.context_before && <span className="text-gray-500">...{result.context_before}</span>}
+                      <span className="font-medium">{highlightSearchTerm(result.content, searchQuery)}</span>
+                      {result.context_after && <span className="text-gray-500">{result.context_after}...</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Search className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">No messages found</p>
+                <p className="text-sm text-gray-400">Try different search terms</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { CSSProperties } from "react" // Import React for CSSProperties type
+import type { CSSProperties } from "react"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -16,20 +16,28 @@ export function getUsernameColorStyle(nameColor?: string): CSSProperties {
 }
 
 /**
- * Returns a string of Tailwind CSS classes for the gold animation effect.
- * @param hasGold Boolean indicating if the user has gold animation.
- * @returns A string of Tailwind classes or an empty string.
+ * Returns the appropriate className for username styling based on user properties.
+ * @param isAI Whether this is an AI user
+ * @param hasGold Whether the user has gold animation
+ * @param hasCustomColor Whether the user has a custom name color
+ * @returns A string of Tailwind classes
  */
-export function getUsernameGoldClass(hasGold?: boolean): string {
-  return hasGold
-    ? "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    : ""
+export function getUsernameClassName(isAI?: boolean, hasGold?: boolean, hasCustomColor?: boolean): string {
+  if (isAI) {
+    return "text-blue-500 font-medium"
+  }
+  if (hasGold) {
+    return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+  }
+  return "font-medium"
 }
 
 /**
- * Returns a string of Tailwind CSS classes for the AI user's styling.
- * @returns A string of Tailwind classes.
+ * Returns whether to apply custom color styling (for use with style prop).
+ * @param hasGold Whether the user has gold animation
+ * @param isAI Whether this is an AI user
+ * @returns Boolean indicating if custom color should be applied
  */
-export function getAIUsernameClass(): string {
-  return "text-blue-500 font-medium"
+export function shouldApplyCustomColor(hasGold?: boolean, isAI?: boolean): boolean {
+  return !hasGold && !isAI
 }
