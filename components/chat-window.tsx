@@ -41,10 +41,9 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
   const [hasNewMessages, setHasNewMessages] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const messagesRef = useRef<Message[]>([]) // To hold the latest messages for comparison
+  const messagesRef = useRef<Message[]>([])
   const { user } = useUser()
 
-  // Keep messagesRef updated with the latest messages state
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
@@ -80,24 +79,19 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       }
 
       const data = await response.json()
-      console.log("[ChatWindow] Received messages data:", data.messages)
 
       if (data.messages) {
-        // Determine new messages for notification purposes using messagesRef
         const currentMessageIds = new Set(messagesRef.current.map((m) => m.id))
         const newMessagesForNotification = data.messages.filter(
           (newMessage: Message) => !currentMessageIds.has(newMessage.id),
         )
 
-        setMessages(data.messages) // Update the main messages state
-        console.log("[ChatWindow] Messages state updated. Current messages count:", data.messages.length)
+        setMessages(data.messages)
 
-        // Show new message indicator if user is scrolled up
         if (newMessagesForNotification.length > 0 && showScrollButton) {
           setHasNewMessages(true)
         }
 
-        // Enhanced notification support
         if (user && user.notifications_enabled && newMessagesForNotification.length > 0) {
           newMessagesForNotification.forEach((newMessage: Message) => {
             if (newMessage.sender_id !== currentUserId) {
@@ -145,9 +139,8 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     } finally {
       setLoading(false)
     }
-  }, [chatType, chatId, user, currentUserId, chatName, showScrollButton]) // Removed 'messages' from dependencies
+  }, [chatType, chatId, user, currentUserId, chatName, showScrollButton])
 
-  // Initial scroll to bottom only on first load
   useEffect(() => {
     if (!loading && messages.length > 0) {
       setTimeout(() => {
@@ -160,7 +153,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     fetchMessages()
     const interval = setInterval(fetchMessages, 2000)
     return () => clearInterval(interval)
-  }, [chatType, chatId, fetchMessages]) // Added fetchMessages to dependency array
+  }, [chatType, chatId, fetchMessages])
 
   const handleSendMessage = async (content: string, parentMessageId?: string, messageType = "text") => {
     setSending(true)
@@ -172,22 +165,19 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
       })
 
       if (response.ok) {
-        // Check if user was near bottom before sending message
         const wasNearBottom = messagesContainerRef.current
           ? messagesContainerRef.current.scrollHeight -
               messagesContainerRef.current.scrollTop -
               messagesContainerRef.current.clientHeight <
             100
-          : true // Default to true if ref not available
+          : true
 
-        // Fetch messages first to get the new message
-        await fetchMessages() // Await this to ensure messages state is updated
+        await fetchMessages()
 
-        // Only scroll to bottom if user was already near the bottom
         if (wasNearBottom) {
           setTimeout(() => {
             scrollToBottom()
-          }, 100) // Small delay to allow DOM to update
+          }, 100)
         }
       } else {
         console.error("Failed to send message:", response.status, await response.text())
@@ -241,6 +231,24 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
     setReplyToMessage(null)
   }
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/delete`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        fetchMessages()
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to delete message:", errorData.error)
+        alert(`Failed to delete message: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Failed to delete message:", error)
+      alert("An error occurred while deleting the message")
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -280,16 +288,17 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
               key={message.id}
               message={message}
               currentUserId={currentUserId}
+              currentUserHasGold={user?.has_gold_animation || false}
               onAddReaction={handleAddReaction}
               onRemoveReaction={handleRemoveReaction}
               onReply={handleReply}
+              onDelete={handleDeleteMessage}
             />
           ))
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Scroll to bottom button */}
       {showScrollButton && (
         <div className="absolute bottom-20 right-4 z-10">
           <Button

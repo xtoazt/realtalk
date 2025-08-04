@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, MoreHorizontal } from "lucide-react"
+import { Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
 import Image from "next/image"
 
 interface Message {
@@ -26,16 +26,27 @@ interface Message {
 interface ChatMessageProps {
   message: Message
   currentUserId: string
+  currentUserHasGold?: boolean
   onAddReaction?: (messageId: string, emoji: string) => void
   onRemoveReaction?: (messageId: string, emoji: string) => void
   onReply?: (message: Message) => void
+  onDelete?: (messageId: string) => void
 }
 
-export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveReaction, onReply }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  currentUserId,
+  currentUserHasGold = false,
+  onAddReaction,
+  onRemoveReaction,
+  onReply,
+  onDelete,
+}: ChatMessageProps) {
   const [showReactions, setShowReactions] = useState(false)
   const [imageError, setImageError] = useState(false)
   const isOwnMessage = message.sender_id === currentUserId
   const isAI = message.is_ai_response
+  const canDelete = isOwnMessage || currentUserHasGold
 
   const getUsernameStyle = () => {
     if (isAI) return "text-blue-500 font-medium"
@@ -60,6 +71,12 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
       onAddReaction?.(message.id, emoji)
     }
     setShowReactions(false)
+  }
+
+  const handleDelete = () => {
+    if (confirm("Are you sure you want to delete this message?")) {
+      onDelete?.(message.id)
+    }
   }
 
   const availableEmojis = [
@@ -96,14 +113,18 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
         </div>
 
         {message.parent_message_id && message.parent_message_content && message.parent_message_username && (
-          <div className="mb-1 p-2 bg-gray-100 border-l-4 border-blue-400 rounded-r-md text-xs text-gray-600 italic">
+          <div className="mb-1 p-2 bg-gray-100 dark:bg-gray-800 border-l-4 border-blue-400 rounded-r-md text-xs text-gray-600 dark:text-gray-300 italic">
             Replying to @{message.parent_message_username}: "{message.parent_message_content}"
           </div>
         )}
 
         <div
           className={`px-4 py-2 rounded-2xl ${
-            isOwnMessage ? "bg-black text-white" : isAI ? "bg-blue-50 border border-blue-200" : "bg-gray-100"
+            isOwnMessage
+              ? "bg-black dark:bg-gray-700 text-white"
+              : isAI
+                ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
+                : "bg-gray-100 dark:bg-gray-800"
           }`}
         >
           {message.message_type === "image" ? (
@@ -120,8 +141,8 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
                   quality={85}
                 />
               ) : (
-                <div className="w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">Failed to load image</span>
+                <div className="w-64 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Failed to load image</span>
                 </div>
               )}
             </div>
@@ -138,7 +159,9 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
                 variant="outline"
                 size="sm"
                 className={`h-6 px-2 rounded-full text-xs ${
-                  reaction.reacted_by_me ? "bg-blue-100 border-blue-400" : "bg-gray-50"
+                  reaction.reacted_by_me
+                    ? "bg-blue-100 dark:bg-blue-900/50 border-blue-400"
+                    : "bg-gray-50 dark:bg-gray-800"
                 }`}
                 onClick={() => handleReactionClick(reaction.emoji)}
               >
@@ -157,12 +180,22 @@ export function ChatMessage({ message, currentUserId, onAddReaction, onRemoveRea
               <MessageCircle className="h-3 w-3" />
             </Button>
           )}
+          {canDelete && onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-red-500 hover:bg-red-500/10"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="h-6 px-2">
             <MoreHorizontal className="h-3 w-3" />
           </Button>
 
           {showReactions && (
-            <div className="absolute bottom-full left-0 mb-2 flex gap-1 p-2 bg-white border rounded-lg shadow-lg z-10">
+            <div className="absolute bottom-full left-0 mb-2 flex gap-1 p-2 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-10">
               {availableEmojis.map((emoji) => (
                 <Button
                   key={emoji}

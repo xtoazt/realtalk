@@ -15,6 +15,7 @@ import {
   BarChart3,
   Calendar,
   Moon,
+  User,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -47,6 +48,7 @@ export function DynamicIsland({
     { id: "dms", label: "DMs", icon: MessageSquare },
     { id: "polls", label: "Polls", icon: BarChart3 },
     { id: "calendar", label: "Calendar", icon: Calendar },
+    { id: "profile", label: "Profile", icon: User },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "about", label: "About", icon: Info },
   ]
@@ -73,7 +75,7 @@ export function DynamicIsland({
       <div
         className={`bg-gradient-to-r from-gray-900 via-black to-gray-900 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 text-white rounded-full transition-all duration-300 ease-out backdrop-blur-md border border-gray-700 dark:border-gray-600 ${
           isExpanded
-            ? "px-4 py-2 min-w-[700px] shadow-2xl scale-105"
+            ? "px-4 py-2 min-w-[750px] shadow-2xl scale-105"
             : "px-8 py-4 w-fit shadow-xl hover:shadow-2xl hover:scale-102"
         }`}
         onMouseEnter={() => handleExpansion(true)}

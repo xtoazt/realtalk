@@ -21,9 +21,9 @@ export async function createUser(username: string, passwordHash: string, signupC
     }
 
     const result = await sql`
-      INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active)
-      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW())
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
+      INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active, theme, hue)
+      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW(), 'light', 'blue')
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio
     `
     return result[0]
   } catch (err) {
@@ -50,7 +50,8 @@ export async function getUserByUsername(username: string) {
 export async function getUserById(id: string) {
   try {
     const result = await sql`
-      SELECT id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue
+      SELECT id, username, email, signup_code, name_color, custom_title, has_gold_animation, 
+             notifications_enabled, theme, hue, profile_picture, bio
       FROM users WHERE id = ${id}
     `
     return result[0]
@@ -559,7 +560,7 @@ export async function updateUserSettings(userId: string, updates: any) {
       UPDATE users 
       SET ${setClause}, updated_at = NOW()
       WHERE id = $1
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio
     `
 
     const params = [userId, ...Object.values(validUpdates)]

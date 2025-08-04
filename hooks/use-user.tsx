@@ -13,6 +13,8 @@ interface User {
   theme: string
   hue: string
   signup_code?: string
+  profile_picture?: string
+  bio?: string
 }
 
 interface UserContextType {
@@ -32,6 +34,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return
 
     if (userData) {
+      console.log("[UserProvider] Applying theme:", userData.theme, "hue:", userData.hue)
+
       // Apply theme
       if (userData.theme === "dark") {
         document.documentElement.classList.add("dark")
@@ -76,17 +80,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        console.log("[UserProvider] Fetching user data...")
         const response = await fetch("/api/auth/me")
         if (response.ok) {
           const userData = await response.json()
+          console.log("[UserProvider] User data received:", userData.user)
           setUser(userData.user)
           applyThemeAndHue(userData.user)
         } else {
+          console.log("[UserProvider] No user found")
           setUser(null)
           applyThemeAndHue(null)
         }
       } catch (error) {
-        console.error("Failed to fetch user:", error)
+        console.error("[UserProvider] Fetch error:", error)
         setUser(null)
         applyThemeAndHue(null)
       } finally {
@@ -98,6 +105,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const updateUser = (updatedUser: User | null) => {
+    console.log("[UserProvider] updateUser called with:", updatedUser)
     setUser(updatedUser)
     applyThemeAndHue(updatedUser)
   }

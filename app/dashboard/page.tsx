@@ -8,6 +8,7 @@ import { FriendsPage } from "@/components/friends-page"
 import { DMsPage } from "@/components/dms-page"
 import { PollsPage } from "@/components/polls-page"
 import { CalendarPage } from "@/components/calendar-page"
+import { ProfilePage } from "@/components/profile-page"
 import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
 import { RecentPoll } from "@/components/recent-poll"
@@ -131,22 +132,18 @@ export default function DashboardPage() {
     try {
       const response = await fetch("/api/auth/signout", {
         method: "POST",
-        credentials: "include", // Ensure cookies are sent
+        credentials: "include",
       })
 
       if (response.ok) {
-        // Clear user state immediately
         updateLocalUser(null)
-        // Force a hard redirect to clear any cached state
         window.location.href = "/auth"
       } else {
         console.error("Sign out failed:", response.status)
-        // Force redirect anyway
         window.location.href = "/auth"
       }
     } catch (error) {
       console.error("Failed to sign out:", error)
-      // Force redirect anyway
       window.location.href = "/auth"
     }
   }
@@ -184,12 +181,8 @@ export default function DashboardPage() {
   }
 
   const handleThemeCycle = async () => {
-    if (!user) {
-      console.warn("[dashboard] handleThemeCycle called but user is null.")
-      return
-    }
+    if (!user) return
 
-    // Cycle through themes
     const currentThemeIndex = themes.findIndex((t) => t.id === user.theme)
     const nextThemeIndex = (currentThemeIndex + 1) % themes.length
     const nextTheme = themes[nextThemeIndex].id
@@ -219,12 +212,8 @@ export default function DashboardPage() {
   }
 
   const handleHueCycle = async () => {
-    if (!user) {
-      console.warn("[dashboard] handleHueCycle called but user is null.")
-      return
-    }
+    if (!user) return
 
-    // Cycle through hues
     const currentHueIndex = hues.findIndex((h) => h.id === user.hue)
     const nextHueIndex = (currentHueIndex + 1) % hues.length
     const nextHue = hues[nextHueIndex].id
@@ -269,6 +258,26 @@ export default function DashboardPage() {
     setCurrentPage("polls")
   }
 
+  const handleSendFriendRequest = async (userId: string) => {
+    try {
+      const response = await fetch("/api/friends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addresseeId: userId }),
+      })
+
+      if (response.ok) {
+        alert("Friend request sent!")
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to send friend request: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Failed to send friend request:", error)
+      alert("An error occurred while sending friend request")
+    }
+  }
+
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -297,7 +306,6 @@ export default function DashboardPage() {
       <div className="pt-20 px-4 pb-4">
         {currentPage === "dashboard" && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
-            {/* Sidebar for chat types */}
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">
               <Card className="animate-fadeIn">
                 <CardHeader>
@@ -355,7 +363,6 @@ export default function DashboardPage() {
               <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
             </div>
 
-            {/* Main Chat Area */}
             <div className="flex-1 h-full">
               {activeChat.type ? (
                 <div className="animate-fadeIn">
@@ -408,6 +415,12 @@ export default function DashboardPage() {
         {currentPage === "calendar" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <CalendarPage currentUserId={user.id} />
+          </div>
+        )}
+
+        {currentPage === "profile" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <ProfilePage onStartDM={handleStartDM} onSendFriendRequest={handleSendFriendRequest} />
           </div>
         )}
       </div>
