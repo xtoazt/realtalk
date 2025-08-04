@@ -74,13 +74,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const contextValue: UserContextType = {
-    user,
-    loading,
-    setUser: updateUser,
-  }
-
-  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
+  return <UserContext.Provider value={{ user, loading, setUser: updateUser }}>{children}</UserContext.Provider>
 }
 
 export function useUser() {
