@@ -1,7 +1,6 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 
 interface User {
   id: string
@@ -27,18 +26,13 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        console.log("[useUser] Fetching user data...")
         const response = await fetch("/api/auth/me")
-        console.log("[useUser] Response status:", response.status)
-
         if (response.ok) {
           const userData = await response.json()
-          console.log("[useUser] User data received:", userData.user?.username)
           setUser(userData.user)
 
           // Apply user's hue if available
@@ -47,27 +41,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
               .replace(/hue-\w+/g, "")
               .concat(` hue-${userData.user.hue}`)
           }
-        } else {
-          console.log("[useUser] Auth failed, redirecting to /auth")
-          router.push("/auth")
         }
       } catch (error) {
-        console.error("[useUser] Fetch error:", error)
-        router.push("/auth")
+        console.error("Failed to fetch user:", error)
       } finally {
         setLoading(false)
       }
     }
 
     fetchUser()
-  }, [router])
+  }, [])
 
   const updateUser = (updatedUser: User | null) => {
-    console.log("[useUser] updateUser called with:", updatedUser)
     setUser(updatedUser)
 
     if (updatedUser?.hue) {
-      console.log("[useUser] Applying hue:", updatedUser.hue)
       document.documentElement.className = document.documentElement.className
         .replace(/hue-\w+/g, "")
         .concat(` hue-${updatedUser.hue}`)
