@@ -29,7 +29,7 @@ export async function verifyToken(token: string) {
 }
 
 export async function getCurrentUser() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")?.value
 
   if (!token) return null
@@ -50,31 +50,41 @@ export async function hashPassword(password: string) {
 export async function signUp(username: string, password: string, signupCode?: string) {
   const hashedPassword = await hashPassword(password)
 
+  // Set default values based on signup code
+  let nameColor = null
+  let hasGoldAnimation = false
+
+  if (signupCode === "asdf") {
+    nameColor = "#6366f1" // Default indigo color
+  } else if (signupCode === "qwea") {
+    hasGoldAnimation = true
+  }
+
   const users = await query`
-    INSERT INTO users (username, password, signup_code, theme, hue, notifications_enabled)
-    VALUES (${username}, ${hashedPassword}, ${signupCode || null}, 'light', 'blue', false)
+    INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, theme, hue, notifications_enabled, last_active)
+    VALUES (${username}, ${hashedPassword}, ${signupCode || null}, ${nameColor}, ${hasGoldAnimation}, 'light', 'blue', false, NOW())
     RETURNING *
   `
 
-  return users[0]
+  const user = users[0]
+  const token = await encrypt({ userId: user.id })
+
+  return { user, token }
 }
 
 export async function signIn(username: string, password: string) {
   const users = await query`SELECT * FROM users WHERE username = ${username}`
   const user = users[0]
 
-  if (!user) return null
+  if (!user) {
+    throw new Error("Invalid username or password")
+  }
 
-  const isValid = await bcrypt.compare(password, user.password)
-  return isValid ? user : null
-}
+  const isValid = await bcrypt.compare(password, user.password_hash)
+  if (!isValid) {
+    throw new Error("Invalid username or password")
+  }
 
-export const auth = {
-  encrypt,
-  decrypt,
-  verifyToken,
-  getCurrentUser,
-  hashPassword,
-  signUp,
-  signIn,
+  const token = await encrypt({ userId: user.id })
+  return { user, token }
 }
