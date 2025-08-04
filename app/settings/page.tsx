@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Trash2, Bell, BellOff } from "lucide-react"
+import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 
 interface User {
@@ -18,34 +19,24 @@ interface User {
   has_gold_animation?: boolean
   notifications_enabled: boolean
   theme: string
+  hue: string
   signup_code?: string
 }
 
-const themes = [
-  {
-    id: "monochrome",
-    name: "Monochrome",
-    description: "Clean black and white",
-    colors: ["#000000", "#ffffff", "#6b7280"],
-  },
-  {
-    id: "sunset",
-    name: "Sunset",
-    description: "Warm orange and pink tones",
-    colors: ["#f97316", "#ec4899", "#fbbf24"],
-  },
-  {
-    id: "sunrise",
-    name: "Sunrise",
-    description: "Soft yellow and blue hues",
-    colors: ["#fbbf24", "#60a5fa", "#f472b6"],
-  },
-  { id: "forest", name: "Forest", description: "Natural green palette", colors: ["#16a34a", "#65a30d", "#84cc16"] },
-  { id: "ocean", name: "Ocean", description: "Cool blue tones", colors: ["#0ea5e9", "#3b82f6", "#06b6d4"] },
+const hues = [
+  { id: "blue", name: "Blue", color: "hsl(220, 70%, 50%)" },
+  { id: "purple", name: "Purple", color: "hsl(270, 70%, 50%)" },
+  { id: "pink", name: "Pink", color: "hsl(320, 70%, 50%)" },
+  { id: "red", name: "Red", color: "hsl(0, 70%, 50%)" },
+  { id: "orange", name: "Orange", color: "hsl(30, 70%, 50%)" },
+  { id: "yellow", name: "Yellow", color: "hsl(60, 70%, 50%)" },
+  { id: "green", name: "Green", color: "hsl(120, 70%, 50%)" },
+  { id: "teal", name: "Teal", color: "hsl(180, 70%, 50%)" },
 ]
 
 export default function SettingsPage() {
   const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
+  const { theme, setTheme } = useTheme()
   const [saving, setSaving] = useState(false)
   const [customTitle, setCustomTitle] = useState("")
   const [nameColor, setNameColor] = useState("#6366f1")
@@ -54,11 +45,17 @@ export default function SettingsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    console.log("[SettingsPage] User data changed:", user)
     if (!userLoading && user) {
       setCustomTitle(user.custom_title || "")
       setNameColor(user.name_color || "#6366f1")
       checkNotificationPermission()
+
+      // Apply user's hue
+      if (user.hue) {
+        document.documentElement.className = document.documentElement.className
+          .replace(/hue-\w+/g, "")
+          .concat(` hue-${user.hue}`)
+      }
     }
   }, [user, userLoading])
 
@@ -74,25 +71,23 @@ export default function SettingsPage() {
       setNotificationPermission(permission)
       if (permission === "granted") {
         await updateSettings({ notifications_enabled: true })
-      } else {
-        // If permission is denied or default, ensure notifications_enabled is false in DB
-        if (user?.notifications_enabled) {
-          await updateSettings({ notifications_enabled: false })
-        }
+        new Notification("Notifications Enabled", {
+          body: "You'll now receive notifications from real.",
+          icon: "/favicon.png",
+        })
       }
     }
   }
 
   const updateSettings = async (updates: Partial<User>) => {
     if (!user) {
-      console.warn("[SettingsPage] Attempted to update settings but user is null.")
       setError("User data not available. Please try again.")
       return
     }
 
     setSaving(true)
     setError(null)
-    console.log("[SettingsPage] Sending update:", updates)
+
     try {
       const response = await fetch("/api/user/settings", {
         method: "PATCH",
@@ -102,16 +97,20 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log("[SettingsPage] Update successful, received:", data.user)
         updateLocalUser(data.user)
+
+        // Apply hue change immediately
+        if (updates.hue) {
+          document.documentElement.className = document.documentElement.className
+            .replace(/hue-\w+/g, "")
+            .concat(` hue-${updates.hue}`)
+        }
       } else {
         const errorData = await response.json()
-        console.error("[SettingsPage] Failed to update settings:", errorData.error || response.statusText)
         setError(`Failed to update settings: ${errorData.error || response.statusText}`)
       }
     } catch (error: any) {
-      console.error("[SettingsPage] Failed to update settings (network/unexpected error):", error)
-      setError(`An unexpected error occurred while saving settings: ${error.message}`)
+      setError(`An unexpected error occurred: ${error.message}`)
     } finally {
       setSaving(false)
     }
@@ -128,11 +127,9 @@ export default function SettingsPage() {
           router.push("/auth")
         } else {
           const errorData = await response.json()
-          console.error("Failed to delete account:", errorData.error || response.statusText)
           alert(`Failed to delete account: ${errorData.error || response.statusText}`)
         }
       } catch (error) {
-        console.error("Failed to delete account:", error)
         alert("An unexpected error occurred while deleting account.")
       }
     }
@@ -142,8 +139,7 @@ export default function SettingsPage() {
     if (notificationPermission === "granted") {
       new Notification("real. Test", {
         body: "Notifications are working! 🎉",
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
+        icon: "/favicon.png",
       })
     }
   }
@@ -151,7 +147,7 @@ export default function SettingsPage() {
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-muted-foreground animate-pulse">Loading...</div>
       </div>
     )
   }
@@ -159,7 +155,7 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">User data not available. Redirecting...</div>
+        <div className="text-muted-foreground">User data not available. Redirecting...</div>
       </div>
     )
   }
@@ -167,10 +163,10 @@ export default function SettingsPage() {
   const canCustomize = user.signup_code === "asdf" || user.signup_code === "qwea"
 
   return (
-    <div className="min-h-screen bg-background p-4 transition-colors duration-300">
+    <div className="min-h-screen p-4 relative z-10">
       <div className="max-w-2xl mx-auto pt-20">
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => router.push("/dashboard")}>
+          <Button variant="ghost" onClick={() => router.push("/dashboard")} className="hover-lift">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -178,30 +174,87 @@ export default function SettingsPage() {
         </div>
 
         {error && (
-          <div className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md mb-4 animate-fadeIn">
+          <div className="text-sm text-destructive text-center p-3 bg-destructive/10 rounded-lg mb-4 animate-fadeIn border border-destructive/20">
             {error}
           </div>
         )}
 
         <div className="space-y-6">
           {/* Profile Settings */}
-          <Card>
+          <Card className="glass-effect hover-lift animate-fadeIn">
             <CardHeader>
               <CardTitle>Profile</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Username</label>
-                <Input value={user.username} disabled />
+                <Input value={user.username} disabled className="mt-1" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Theme & Appearance */}
+          <Card className="glass-effect hover-lift animate-fadeIn">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Appearance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Dark Mode Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                  <div>
+                    <p className="font-medium">Dark Mode</p>
+                    <p className="text-sm text-muted-foreground">Toggle between light and dark themes</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) => {
+                    setTheme(checked ? "dark" : "light")
+                    updateSettings({ theme: checked ? "dark" : "light" })
+                  }}
+                />
+              </div>
+
+              {/* Hue Selection */}
+              <div>
+                <label className="text-sm font-medium mb-3 block">Color Hue</label>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Choose a color that affects shadows, borders, and accents
+                </p>
+                <div className="grid grid-cols-4 gap-3">
+                  {hues.map((hue) => (
+                    <button
+                      key={hue.id}
+                      onClick={() => updateSettings({ hue: hue.id })}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 hover-lift ${
+                        user.hue === hue.id
+                          ? "border-current hue-shadow"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                      style={{
+                        borderColor: user.hue === hue.id ? hue.color : undefined,
+                        boxShadow: user.hue === hue.id ? `0 4px 20px ${hue.color}30` : undefined,
+                      }}
+                    >
+                      <div className="w-8 h-8 rounded-full mx-auto mb-2" style={{ backgroundColor: hue.color }} />
+                      <p className="text-xs font-medium">{hue.name}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Customization (for special users) */}
           {canCustomize && (
-            <Card>
+            <Card className="glass-effect hover-lift animate-fadeIn hue-bg border-2 hue-border">
               <CardHeader>
-                <CardTitle>Customization</CardTitle>
+                <CardTitle>✨ Premium Customization</CardTitle>
                 <p className="text-sm text-muted-foreground">Special features unlocked with your signup code</p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -211,10 +264,11 @@ export default function SettingsPage() {
                     value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
                     placeholder="Your custom title"
+                    className="mt-1"
                   />
                   <Button
                     size="sm"
-                    className="mt-2"
+                    className="mt-2 hover-glow"
                     onClick={() => updateSettings({ custom_title: customTitle })}
                     disabled={saving}
                   >
@@ -230,9 +284,14 @@ export default function SettingsPage() {
                         type="color"
                         value={nameColor}
                         onChange={(e) => setNameColor(e.target.value)}
-                        className="w-10 h-10 rounded border"
+                        className="w-12 h-12 rounded-lg border-2 border-gray-200 dark:border-gray-700"
                       />
-                      <Button size="sm" onClick={() => updateSettings({ name_color: nameColor })} disabled={saving}>
+                      <Button
+                        size="sm"
+                        onClick={() => updateSettings({ name_color: nameColor })}
+                        disabled={saving}
+                        className="hover-glow"
+                      >
                         {saving ? "Saving..." : "Save Color"}
                       </Button>
                     </div>
@@ -240,71 +299,38 @@ export default function SettingsPage() {
                 )}
 
                 {user.signup_code === "qwea" && (
-                  <div className="p-3 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg">
-                    <p className="text-sm font-medium text-yellow-800">✨ Gold Animation Enabled</p>
-                    <p className="text-xs text-yellow-700">Your name appears with a shiny gold animation in chats</p>
+                  <div className="p-4 bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                      ✨ Gold Animation Enabled
+                    </p>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                      Your name appears with a shiny gold animation in chats
+                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
           )}
 
-          {/* Theme Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Theme</CardTitle>
-              <p className="text-sm text-muted-foreground">Current theme: {user.theme}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                {themes.map((theme) => (
-                  <div
-                    key={theme.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:scale-102 ${
-                      user.theme === theme.id
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                    onClick={() => updateSettings({ theme: theme.id })}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium">{theme.name}</p>
-                        <p className="text-sm text-muted-foreground">{theme.description}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          {theme.colors.map((color, index) => (
-                            <div
-                              key={index}
-                              className="w-4 h-4 rounded-full border border-gray-300"
-                              style={{ backgroundColor: color }}
-                            />
-                          ))}
-                        </div>
-                        {user.theme === theme.id && <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Notification Settings */}
-          <Card>
+          <Card className="glass-effect hover-lift animate-fadeIn">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {user.notifications_enabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+                {user.notifications_enabled ? <Bell className="h-5 w-5 hue-accent" /> : <BellOff className="h-5 w-5" />}
                 Notifications
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">System Notifications</p>
-                  <p className="text-sm text-muted-foreground">Receive notifications for new messages</p>
-                  <p className="text-xs text-muted-foreground mt-1">Permission: {notificationPermission}</p>
+                  <p className="font-medium">Desktop Notifications</p>
+                  <p className="text-sm text-muted-foreground">Get notified about new messages</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Status:{" "}
+                    <span className={notificationPermission === "granted" ? "text-green-600" : "text-orange-600"}>
+                      {notificationPermission}
+                    </span>
+                  </p>
                 </div>
                 <Switch
                   checked={user.notifications_enabled}
@@ -328,7 +354,7 @@ export default function SettingsPage() {
               )}
 
               {notificationPermission === "granted" && user.notifications_enabled && (
-                <Button size="sm" onClick={testNotification} variant="outline">
+                <Button size="sm" onClick={testNotification} variant="outline" className="hover-glow bg-transparent">
                   Test Notification
                 </Button>
               )}
@@ -336,9 +362,12 @@ export default function SettingsPage() {
           </Card>
 
           {/* Danger Zone */}
-          <Card className="border-destructive/20">
+          <Card className="glass-effect hover-lift animate-fadeIn border-destructive/20">
             <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Button variant="destructive" onClick={handleDeleteAccount} className="w-full">

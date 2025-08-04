@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { BarChart3, Plus, X, Users, Globe, Clock, Trash2 } from "lucide-react"
+import { BarChart3, Plus, X, Users, Globe, Clock, Trash2, Vote } from "lucide-react"
 
 interface Poll {
   id: string
@@ -40,6 +40,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
   const [friends, setFriends] = useState<Friend[]>([])
   const [showCreatePoll, setShowCreatePoll] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [votingPollId, setVotingPollId] = useState<string | null>(null)
 
   // Create poll form state
   const [title, setTitle] = useState("")
@@ -54,7 +55,10 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
       const response = await fetch("/api/polls")
       if (response.ok) {
         const data = await response.json()
+        console.log("[polls-page] Fetched polls:", data.polls)
         setPolls(data.polls)
+      } else {
+        console.error("[polls-page] Failed to fetch polls:", response.status)
       }
     } catch (error) {
       console.error("Failed to fetch polls:", error)
@@ -101,9 +105,14 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
         setShowCreatePoll(false)
         resetForm()
         fetchPolls()
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to create poll:", errorData.error)
+        alert(`Failed to create poll: ${errorData.error}`)
       }
     } catch (error) {
       console.error("Failed to create poll:", error)
+      alert("An unexpected error occurred while creating the poll.")
     }
   }
 
@@ -118,7 +127,6 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
           fetchPolls()
         } else {
           const errorData = await response.json()
-          console.error("Failed to delete poll:", errorData.error || response.statusText)
           alert(`Failed to delete poll: ${errorData.error || response.statusText}`)
         }
       } catch (error) {
@@ -129,6 +137,9 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
   }
 
   const handleVote = async (pollId: string, optionIndex: number) => {
+    console.log(`[polls-page] Voting on poll ${pollId} with option ${optionIndex}`)
+    setVotingPollId(pollId)
+
     try {
       const response = await fetch(`/api/polls/${pollId}/vote`, {
         method: "POST",
@@ -137,10 +148,18 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
       })
 
       if (response.ok) {
-        fetchPolls()
+        console.log("[polls-page] Vote successful, refreshing polls")
+        await fetchPolls() // Refresh to get updated results
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to vote:", errorData.error)
+        alert(`Failed to vote: ${errorData.error || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Failed to vote:", error)
+      alert("An unexpected error occurred while voting.")
+    } finally {
+      setVotingPollId(null)
     }
   }
 
@@ -192,6 +211,11 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
     return new Date(expiresAt) < new Date()
   }
 
+  const getPercentage = (count: number, total: number) => {
+    if (total === 0) return 0
+    return Math.round((count / total) * 100)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -201,10 +225,10 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative z-10">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Polls</h2>
-        <Button onClick={() => setShowCreatePoll(true)}>
+        <Button onClick={() => setShowCreatePoll(true)} className="hover-lift hover-glow">
           <Plus className="h-4 w-4 mr-2" />
           Create Poll
         </Button>
@@ -212,7 +236,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
 
       <div className="grid gap-4">
         {polls.length === 0 ? (
-          <Card>
+          <Card className="glass-effect animate-fadeIn">
             <CardContent className="text-center py-8">
               <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No polls yet</p>
@@ -220,96 +244,125 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
             </CardContent>
           </Card>
         ) : (
-          polls.map((poll) => (
-            <Card key={poll.id} className={`${isExpired(poll.expires_at) ? "opacity-75" : ""}`}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{poll.title}</CardTitle>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {poll.is_public ? <Globe className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-                          {poll.expires_at && (
-                            <>
-                              <Clock className="h-3 w-3" />
-                              <span className={isExpired(poll.expires_at) ? "text-red-500" : ""}>
-                                {isExpired(poll.expires_at) ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
-                              </span>
-                            </>
+          polls.map((poll, index) => {
+            const hasVoted = poll.user_response !== undefined
+            return (
+              <Card
+                key={poll.id}
+                className={`glass-effect hover-lift animate-fadeIn ${isExpired(poll.expires_at) ? "opacity-75" : ""}`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{poll.title}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {poll.is_public ? <Globe className="h-3 w-3 hue-accent" /> : <Users className="h-3 w-3" />}
+                            <Vote className="h-3 w-3" />
+                            <span>{poll.total_responses} votes</span>
+                            {poll.expires_at && (
+                              <>
+                                <Clock className="h-3 w-3" />
+                                <span className={isExpired(poll.expires_at) ? "text-red-500" : ""}>
+                                  {isExpired(poll.expires_at) ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {poll.creator_id === currentUserId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeletePoll(poll.id)}
+                              className="text-red-500 hover:bg-red-500/10 h-6 w-6 p-0"
+                              title="Delete Poll"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           )}
                         </div>
-                        {poll.creator_id === currentUserId && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeletePoll(poll.id)}
-                            className="text-red-500 hover:bg-red-500/10 h-6 w-6 p-0"
-                            title="Delete Poll"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
                       </div>
+                      {poll.description && <p className="text-sm text-muted-foreground mt-1">{poll.description}</p>}
                     </div>
-                    {poll.description && <p className="text-sm text-muted-foreground mt-1">{poll.description}</p>}
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span className={poll.creator_username ? getUsernameStyle(undefined, false) : ""}>
-                    by @{poll.creator_username}
-                  </span>
-                  <span>{poll.total_responses} responses</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {poll.options.map((option, index) => {
-                  const result = poll.results.find((r) => r.option_index === index)
-                  const count = result?.count || 0
-                  const percentage = poll.total_responses > 0 ? (count / poll.total_responses) * 100 : 0
-                  const hasVoted = poll.user_response !== undefined
-                  const isSelected = poll.user_response === index
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span className={poll.creator_username ? getUsernameStyle(undefined, false) : ""}>
+                      by @{poll.creator_username}
+                    </span>
+                    <span>
+                      {poll.user_response !== undefined ? "You voted" : "Click to vote"} • {poll.total_responses} total
+                      votes
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {poll.options.map((option, optionIndex) => {
+                    const result = poll.results.find((r) => r.option_index === optionIndex)
+                    const count = result?.count || 0
+                    const percentage = getPercentage(count, poll.total_responses)
+                    const isSelected = poll.user_response === optionIndex
+                    const isVoting = votingPollId === poll.id
 
-                  return (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Button
-                          variant={isSelected ? "default" : "outline"}
-                          className="flex-1 justify-start"
-                          onClick={() => !hasVoted && !isExpired(poll.expires_at) && handleVote(poll.id, index)}
-                          disabled={hasVoted || isExpired(poll.expires_at)}
-                        >
-                          {option}
-                        </Button>
+                    return (
+                      <div key={optionIndex} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Button
+                            variant={isSelected ? "default" : "outline"}
+                            className={`flex-1 justify-start hover-lift transition-all duration-200 ${
+                              isSelected ? "hue-shadow" : ""
+                            } ${!hasVoted && !isExpired(poll.expires_at) ? "cursor-pointer" : ""}`}
+                            onClick={() =>
+                              !hasVoted && !isExpired(poll.expires_at) && !isVoting && handleVote(poll.id, optionIndex)
+                            }
+                            disabled={hasVoted || isExpired(poll.expires_at) || isVoting}
+                          >
+                            <span className="flex-1 text-left">{option}</span>
+                            {isVoting && (
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin ml-2" />
+                            )}
+                          </Button>
+                          {hasVoted && (
+                            <span className="text-sm text-muted-foreground ml-3 min-w-[60px] text-right">
+                              {count} ({percentage}%)
+                            </span>
+                          )}
+                        </div>
                         {hasVoted && (
-                          <span className="text-sm text-muted-foreground ml-2">
-                            {count} ({percentage.toFixed(1)}%)
-                          </span>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-700 ease-out ${
+                                isSelected
+                                  ? "bg-gradient-to-r from-blue-500 to-purple-500 hue-shadow"
+                                  : "bg-gray-400 dark:bg-gray-600"
+                              }`}
+                              style={{
+                                width: `${percentage}%`,
+                                backgroundColor: isSelected ? `hsl(var(--hue) 60% 50%)` : undefined,
+                              }}
+                            />
+                          </div>
                         )}
                       </div>
-                      {hasVoted && (
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              isSelected ? "bg-primary" : "bg-gray-400"
-                            }`}
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-          ))
+                    )
+                  })}
+                  {!hasVoted && !isExpired(poll.expires_at) && (
+                    <p className="text-xs text-muted-foreground text-center mt-4 opacity-70">
+                      Click on an option to cast your vote
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
         )}
       </div>
 
       {/* Create Poll Modal */}
       {showCreatePoll && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto glass-effect animate-fadeIn">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Create Poll</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setShowCreatePoll(false)}>
@@ -318,7 +371,12 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Poll title" />
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Poll title"
+                  className="focus:hue-shadow"
+                />
               </div>
 
               <div>
@@ -327,6 +385,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Description (optional)"
                   rows={2}
+                  className="focus:hue-shadow"
                 />
               </div>
 
@@ -338,6 +397,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                       value={option}
                       onChange={(e) => updateOption(index, e.target.value)}
                       placeholder={`Option ${index + 1}`}
+                      className="focus:hue-shadow"
                     />
                     {options.length > 2 && (
                       <Button variant="ghost" size="sm" onClick={() => removeOption(index)}>
@@ -347,7 +407,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                   </div>
                 ))}
                 {options.length < 6 && (
-                  <Button variant="outline" size="sm" onClick={addOption}>
+                  <Button variant="outline" size="sm" onClick={addOption} className="hover-lift bg-transparent">
                     <Plus className="h-4 w-4 mr-1" />
                     Add Option
                   </Button>
@@ -359,14 +419,15 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                   type="datetime-local"
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
-                  placeholder="Expires at (optional)"
+                  className="focus:hue-shadow"
                 />
+                <p className="text-xs text-muted-foreground mt-1">Optional expiration date</p>
               </div>
 
               {userSignupCode === "qwea" && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 p-3 hue-bg rounded-lg">
                   <Checkbox id="public" checked={isPublic} onCheckedChange={setIsPublic} />
-                  <label htmlFor="public" className="text-sm">
+                  <label htmlFor="public" className="text-sm font-medium">
                     Share with all users (public poll)
                   </label>
                 </div>
@@ -408,7 +469,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                 <Button
                   onClick={handleCreatePoll}
                   disabled={!title.trim() || options.filter((o) => o.trim()).length < 2}
-                  className="flex-1"
+                  className="flex-1 hover-glow"
                 >
                   Create Poll
                 </Button>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BarChart3, Users, Globe, Clock } from "lucide-react"
+import { BarChart3, Users, Globe, Clock, Vote } from "lucide-react"
 
 interface Poll {
   id: string
@@ -26,6 +26,7 @@ interface RecentPollProps {
 export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
   const [poll, setPoll] = useState<Poll | null>(null)
   const [loading, setLoading] = useState(true)
+  const [voting, setVoting] = useState(false)
 
   const fetchRecentPoll = useCallback(async () => {
     try {
@@ -46,8 +47,9 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
   }, [fetchRecentPoll])
 
   const handleVote = async (optionIndex: number) => {
-    if (!poll) return
+    if (!poll || voting) return
 
+    setVoting(true)
     try {
       const response = await fetch(`/api/polls/${poll.id}/vote`, {
         method: "POST",
@@ -56,10 +58,15 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
       })
 
       if (response.ok) {
-        fetchRecentPoll()
+        await fetchRecentPoll() // Refresh to get updated results
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to vote:", errorData.error)
       }
     } catch (error) {
       console.error("Failed to vote:", error)
+    } finally {
+      setVoting(false)
     }
   }
 
@@ -77,13 +84,18 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
     })
   }
 
+  const getPercentage = (count: number, total: number) => {
+    if (total === 0) return 0
+    return Math.round((count / total) * 100)
+  }
+
   if (loading) {
     return (
-      <Card className="animate-fadeIn">
+      <Card className="glass-effect animate-fadeIn">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Your Latest Poll
+            Latest Poll
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -95,19 +107,19 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
 
   if (!poll) {
     return (
-      <Card className="animate-fadeIn">
+      <Card className="glass-effect animate-fadeIn">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Your Latest Poll
+            Latest Poll
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
             <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">No polls created yet</p>
-            <Button variant="outline" size="sm" className="mt-2 bg-transparent" onClick={onViewAllPolls}>
-              Create Your First Poll
+            <p className="text-muted-foreground text-sm">No polls available</p>
+            <Button variant="outline" size="sm" className="mt-2 bg-transparent hover-lift" onClick={onViewAllPolls}>
+              View All Polls
             </Button>
           </div>
         </CardContent>
@@ -119,14 +131,14 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
   const expired = isExpired(poll.expires_at)
 
   return (
-    <Card className={`animate-fadeIn ${expired ? "opacity-75" : ""}`}>
+    <Card className={`glass-effect animate-fadeIn hover-lift ${expired ? "opacity-75" : ""}`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Your Latest Poll
+            Latest Poll
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onViewAllPolls} className="text-xs">
+          <Button variant="ghost" size="sm" onClick={onViewAllPolls} className="text-xs hover-lift">
             View All
           </Button>
         </div>
@@ -138,8 +150,9 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
         </div>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {poll.is_public ? <Globe className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-          <span>{poll.total_responses} responses</span>
+          {poll.is_public ? <Globe className="h-3 w-3 hue-accent" /> : <Users className="h-3 w-3" />}
+          <Vote className="h-3 w-3" />
+          <span>{poll.total_responses} votes</span>
           {poll.expires_at && (
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -154,7 +167,7 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
           {poll.options.slice(0, 2).map((option, index) => {
             const result = poll.results.find((r) => r.option_index === index)
             const count = result?.count || 0
-            const percentage = poll.total_responses > 0 ? (count / poll.total_responses) * 100 : 0
+            const percentage = getPercentage(count, poll.total_responses)
             const isSelected = poll.user_response === index
 
             return (
@@ -163,25 +176,33 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
                   <Button
                     variant={isSelected ? "default" : "outline"}
                     size="sm"
-                    className="flex-1 justify-start text-xs h-7"
-                    onClick={() => !hasVoted && !expired && handleVote(index)}
-                    disabled={hasVoted || expired}
+                    className={`flex-1 justify-start text-xs h-7 hover-lift transition-all duration-200 ${
+                      isSelected ? "hue-shadow" : ""
+                    }`}
+                    onClick={() => !hasVoted && !expired && !voting && handleVote(index)}
+                    disabled={hasVoted || expired || voting}
                   >
-                    {option}
+                    <span className="flex-1 text-left">{option}</span>
+                    {voting && (
+                      <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin ml-1" />
+                    )}
                   </Button>
                   {hasVoted && (
-                    <span className="text-xs text-muted-foreground ml-2">
-                      {count} ({percentage.toFixed(0)}%)
+                    <span className="text-xs text-muted-foreground ml-2 min-w-[45px] text-right">
+                      {count} ({percentage}%)
                     </span>
                   )}
                 </div>
                 {hasVoted && (
-                  <div className="w-full bg-gray-200 rounded-full h-1">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                     <div
-                      className={`h-1 rounded-full transition-all duration-300 ${
-                        isSelected ? "bg-primary" : "bg-gray-400"
+                      className={`h-1 rounded-full transition-all duration-500 ${
+                        isSelected ? "hue-bg" : "bg-gray-400 dark:bg-gray-600"
                       }`}
-                      style={{ width: `${percentage}%` }}
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: isSelected ? `hsl(var(--hue) 50% 50%)` : undefined,
+                      }}
                     />
                   </div>
                 )}
@@ -192,6 +213,10 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
             <p className="text-xs text-muted-foreground text-center">+{poll.options.length - 2} more options</p>
           )}
         </div>
+
+        {!hasVoted && !expired && (
+          <p className="text-xs text-muted-foreground text-center opacity-70">Click an option to vote</p>
+        )}
       </CardContent>
     </Card>
   )

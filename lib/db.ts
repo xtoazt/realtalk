@@ -2,8 +2,13 @@
  * lib/db.ts  –  robust Neon initialiser with SSL & WebSocket fallbacks
  * ----------------------------------------------------------------*/
 import "server-only"
-import { neon, neonConfig, type NeonQueryFunction } from "@neondatabase/serverless"
+import { neon, neonConfig } from "@neondatabase/serverless"
 import { AI_USER_ID } from "@/lib/constants" // Import AI_USER_ID
+
+const sql = neon(process.env.DATABASE_URL!)
+
+export const query = sql
+export const db = sql
 
 /*------------------------------------------------------------------
  * 0 • Pretty log helpers
@@ -60,48 +65,7 @@ if (process.env.NEON_WS_PROXY) {
 neonConfig.fetchConnectionCache = false
 
 /*------------------------------------------------------------------
- * 3 • Initialise client (lives in a global to survive Next.js HMR)
- * ----------------------------------------------------------------*/
-const g = globalThis as unknown as { __sql?: NeonQueryFunction<any[]> }
-if (!g.__sql) {
-  info("Initialising Neon client …")
-  g.__sql = neon(pickUrl())
-}
-export const sql = g.__sql!
-
-/*------------------------------------------------------------------
- * 4 • Resilient query() helper
- * ----------------------------------------------------------------*/
-export async function query<T = any>(strings: TemplateStringsArray | string, ...params: any[]): Promise<T[]> {
-  const MAX_RETRIES = 3
-  let delay = 500 /* ms */
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      // @ts-ignore – same tagged-template signature
-      return await (sql as any)(strings, ...params)
-    } catch (e: any) {
-      const fetchFail = e instanceof TypeError && /fetch/i.test(e.message || "")
-      const networkError =
-        e.message?.includes("network") || e.message?.includes("ENOTFOUND") || e.message?.includes("timeout")
-
-      if ((fetchFail || networkError) && attempt < MAX_RETRIES) {
-        warn(`Database connection failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}) – retrying in ${delay} ms …`)
-        await new Promise((r) => setTimeout(r, delay))
-        delay *= 1.5
-        /* fresh client each time (sidesteps stale DNS / keep-alive sockets) */
-        g.__sql = neon(pickUrl())
-        continue
-      }
-      err("Query failed →", e.message || e)
-      throw new Error("Database connection failed: " + (e.message || "Unknown error"))
-    }
-  }
-  throw new Error("Database unreachable after multiple retries.")
-}
-
-/*------------------------------------------------------------------
- * 5 • Conditional startup check (skip in build/static generation)
+ * 3 • Conditional startup check (skip in build/static generation)
  * ----------------------------------------------------------------*/
 if (process.env.NODE_ENV !== "production" || process.env.VERCEL_ENV === "development") {
   // Only run startup check in development or when explicitly needed
@@ -132,7 +96,7 @@ export async function createUser(username: string, passwordHash: string, signupC
       hasGoldAnimation = true
     }
 
-    const result = await query`
+    const result = await sql`
     INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active)
     VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW())
     RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
@@ -146,7 +110,7 @@ export async function createUser(username: string, passwordHash: string, signupC
 
 export async function getUserByUsername(username: string) {
   try {
-    const rows = await query`
+    const rows = await sql`
     SELECT *
     FROM users
     WHERE username = ${username}
@@ -161,7 +125,7 @@ export async function getUserByUsername(username: string) {
 
 export async function getUserById(id: string) {
   try {
-    const result = await query`
+    const result = await sql`
     SELECT id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme
     FROM users WHERE id = ${id}
   `
@@ -174,7 +138,7 @@ export async function getUserById(id: string) {
 
 export async function updateUserActivity(userId: string) {
   try {
-    await query`
+    await sql`
     UPDATE users 
     SET last_active = NOW()
     WHERE id = ${userId}
@@ -190,7 +154,7 @@ export async function getOnlineUsers(currentUserId: string) {
   try {
     // Consider users online if they were active in the last 10 minutes
     // Filter to only include accepted friends of the current user
-    const result = await query`
+    const result = await sql`
     SELECT DISTINCT u.id, u.username, u.name_color, u.has_gold_animation, u.last_active
     FROM users u
     JOIN friendships f ON (
@@ -213,7 +177,7 @@ export async function getOnlineUsers(currentUserId: string) {
 export async function searchUsers(searchQuery: string, currentUserId: string) {
   try {
     console.log("[db] Searching users with query:", searchQuery, "excluding:", currentUserId)
-    const result = await query`
+    const result = await sql`
     SELECT id, username, name_color, custom_title, has_gold_animation
     FROM users 
     WHERE username ILIKE ${`%${searchQuery}%`} 
@@ -235,7 +199,7 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
 
     if (chatType === "global") {
       console.log("[db/getMessages] Executing global chat query")
-      const result = await query`
+      const result = await sql`
       SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
              COALESCE(
                json_agg(
@@ -271,7 +235,7 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
       return result.reverse()
     } else if (chatType === "dm") {
       console.log(`[db/getMessages] Executing DM query for userId: ${userId}, chatId: ${chatId}`)
-      const result = await query`
+      const result = await sql`
       SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
              COALESCE(
                json_agg(
@@ -310,7 +274,7 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
     } else {
       // group chat
       console.log(`[db/getMessages] Executing group chat query for chatType: ${chatType}, chatId: ${chatId}`)
-      const result = await query`
+      const result = await sql`
       SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
              COALESCE(
                json_agg(
@@ -362,7 +326,7 @@ export async function createMessage(
   messageType = "text", // Added messageType
 ) {
   try {
-    const result = await query`
+    const result = await sql`
     INSERT INTO messages (sender_id, content, chat_type, chat_id, mentions, is_ai_response, parent_message_id, message_type)
     VALUES (${senderId}, ${content}, ${chatType}, ${chatId}, ${mentions}, ${isAiResponse}, ${parentMessageId}, ${messageType})
     RETURNING *
@@ -376,14 +340,14 @@ export async function createMessage(
 
 export async function createGroupChat(name: string, creatorId: string, memberIds: string[] = []) {
   try {
-    const result = await query`
+    const result = await sql`
     INSERT INTO group_chats (name, creator_id)
     VALUES (${name}, ${creatorId})
     RETURNING *
   `
 
     // Add creator as member
-    await query`
+    await sql`
     INSERT INTO group_chat_members (group_chat_id, user_id)
     VALUES (${result[0].id}, ${creatorId})
   `
@@ -391,7 +355,7 @@ export async function createGroupChat(name: string, creatorId: string, memberIds
     // Add selected members
     for (const memberId of memberIds) {
       if (memberId !== creatorId) {
-        await query`
+        await sql`
      INSERT INTO group_chat_members (group_chat_id, user_id)
      VALUES (${result[0].id}, ${memberId})
      ON CONFLICT (group_chat_id, user_id) DO NOTHING
@@ -408,7 +372,7 @@ export async function createGroupChat(name: string, creatorId: string, memberIds
 
 export async function getUserGroupChats(userId: string) {
   try {
-    const result = await query`
+    const result = await sql`
     SELECT gc.*, u.username as creator_username
     FROM group_chats gc
     JOIN group_chat_members gcm ON gc.id = gcm.group_chat_id
@@ -427,31 +391,31 @@ export async function deleteGroupChat(groupId: string, creatorId: string) {
   try {
     console.log(`[db] Attempting to delete group chat ${groupId} by creator ${creatorId}`)
     // Verify creator
-    const chat = await query`SELECT creator_id FROM group_chats WHERE id = ${groupId}`
+    const chat = await sql`SELECT creator_id FROM group_chats WHERE id = ${groupId}`
     if (!chat[0] || chat[0].creator_id !== creatorId) {
       throw new Error("Unauthorized to delete this group chat.")
     }
 
     // Start transaction
-    await query`BEGIN`
+    await sql`BEGIN`
 
     // Delete messages in the group chat
-    await query`DELETE FROM messages WHERE chat_type = 'group' AND chat_id = ${groupId}`
+    await sql`DELETE FROM messages WHERE chat_type = 'group' AND chat_id = ${groupId}`
     console.log(`[db] Deleted messages for group chat ${groupId}`)
 
     // Delete members of the group chat
-    await query`DELETE FROM group_chat_members WHERE group_chat_id = ${groupId}`
+    await sql`DELETE FROM group_chat_members WHERE group_chat_id = ${groupId}`
     console.log(`[db] Deleted members for group chat ${groupId}`)
 
     // Delete the group chat itself
-    await query`DELETE FROM group_chats WHERE id = ${groupId}`
+    await sql`DELETE FROM group_chats WHERE id = ${groupId}`
     console.log(`[db] Deleted group chat ${groupId}`)
 
-    await query`COMMIT`
+    await sql`COMMIT`
     console.log(`[db] Group chat ${groupId} deleted successfully.`)
     return true
   } catch (err) {
-    await query`ROLLBACK`
+    await sql`ROLLBACK`
     console.error("[db] deleteGroupChat error:", err)
     throw new Error("Database error: " + (err as Error).message)
   }
@@ -465,7 +429,7 @@ export async function createFriendship(requesterId: string, addresseeId: string)
     }
 
     // Check for existing pending/accepted request in either direction
-    const existing = await query`
+    const existing = await sql`
    SELECT * FROM friendships
    WHERE (requester_id = ${requesterId} AND addressee_id = ${addresseeId})
       OR (requester_id = ${addresseeId} AND addressee_id = ${requesterId})
@@ -481,7 +445,7 @@ export async function createFriendship(requesterId: string, addresseeId: string)
       }
     }
 
-    const result = await query`
+    const result = await sql`
    INSERT INTO friendships (requester_id, addressee_id, status)
    VALUES (${requesterId}, ${addresseeId}, 'pending')
    RETURNING *
@@ -495,7 +459,7 @@ export async function createFriendship(requesterId: string, addresseeId: string)
 
 export async function updateFriendshipStatus(friendshipId: string, status: string) {
   try {
-    const result = await query`
+    const result = await sql`
    UPDATE friendships 
    SET status = ${status}, updated_at = NOW()
    WHERE id = ${friendshipId}
@@ -510,7 +474,7 @@ export async function updateFriendshipStatus(friendshipId: string, status: strin
 
 export async function getFriendships(userId: string) {
   try {
-    const result = await query`
+    const result = await sql`
    SELECT f.*, 
           u1.username as requester_username,
           u2.username as addressee_username,
@@ -533,7 +497,7 @@ export async function getFriendships(userId: string) {
 
 export async function getAcceptedFriends(userId: string) {
   try {
-    const result = await query`
+    const result = await sql`
    SELECT DISTINCT
      CASE 
        WHEN f.requester_id = ${userId} THEN u2.id
@@ -567,7 +531,7 @@ export async function getAcceptedFriends(userId: string) {
 
 export async function getUserDMs(userId: string) {
   try {
-    const result = await query`
+    const result = await sql`
    SELECT DISTINCT
      CASE
        WHEN m.sender_id = ${userId} THEN m.chat_id
@@ -606,7 +570,7 @@ export async function createNotification(
   senderUsername?: string,
 ) {
   try {
-    const result = await query`
+    const result = await sql`
    INSERT INTO notifications (user_id, title, message, chat_type, chat_id, sender_username)
    VALUES (${userId}, ${title}, ${message}, ${chatType}, ${chatId}, ${senderUsername})
    RETURNING *
@@ -620,7 +584,7 @@ export async function createNotification(
 
 export async function getUnreadNotifications(userId: string) {
   try {
-    const result = await query`
+    const result = await sql`
    SELECT * FROM notifications
    WHERE user_id = ${userId} AND is_read = FALSE
    ORDER BY created_at DESC
@@ -634,7 +598,7 @@ export async function getUnreadNotifications(userId: string) {
 
 export async function markNotificationAsRead(notificationId: string, userId: string) {
   try {
-    const result = await query`
+    const result = await sql`
    UPDATE notifications
    SET is_read = TRUE, created_at = NOW() -- Using created_at for updated_at-like functionality for simplicity
    WHERE id = ${notificationId} AND user_id = ${userId}
@@ -652,7 +616,7 @@ export async function markNotificationAsRead(notificationId: string, userId: str
 └───────────────────────────────────────────────────────────────*/
 export async function addMessageReaction(messageId: string, userId: string, emoji: string) {
   try {
-    const result = await query`
+    const result = await sql`
    INSERT INTO message_reactions (message_id, user_id, emoji)
    VALUES (${messageId}, ${userId}, ${emoji})
    ON CONFLICT (message_id, user_id, emoji) DO NOTHING
@@ -667,7 +631,7 @@ export async function addMessageReaction(messageId: string, userId: string, emoj
 
 export async function removeMessageReaction(messageId: string, userId: string, emoji: string) {
   try {
-    await query`
+    await sql`
    DELETE FROM message_reactions
    WHERE message_id = ${messageId}
      AND user_id   = ${userId}

@@ -11,36 +11,48 @@ export async function GET() {
 
     // Get polls that user can see (created by them, shared with them, or public)
     const polls = await query`
-    SELECT DISTINCT p.*, u.username as creator_username,
-           pr.selected_option as user_response,
-           COALESCE(response_counts.total_responses, 0) as total_responses
-    FROM polls p
-    JOIN users u ON p.creator_id = u.id
-    LEFT JOIN poll_responses pr ON p.id = pr.poll_id AND pr.user_id = ${user.id}
-    LEFT JOIN (
-      SELECT poll_id, COUNT(*) as total_responses
-      FROM poll_responses
-      GROUP BY poll_id
-    ) response_counts ON p.id = response_counts.poll_id
-    WHERE p.is_public = true
-       OR p.creator_id = ${user.id}
-       OR p.id IN (
-         SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
-       )
-    ORDER BY p.created_at DESC
-  `
+      SELECT DISTINCT p.*, u.username as creator_username,
+             pr.selected_option as user_response
+      FROM polls p
+      JOIN users u ON p.creator_id = u.id
+      LEFT JOIN poll_responses pr ON p.id = pr.poll_id AND pr.user_id = ${user.id}
+      WHERE p.is_public = true
+         OR p.creator_id = ${user.id}
+         OR p.id IN (
+           SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
+         )
+      ORDER BY p.created_at DESC
+    `
 
-    // Get results for each poll
+    // Get results and total responses for each poll
     const pollsWithResults = await Promise.all(
       polls.map(async (poll) => {
+        // Get vote counts for each option
         const results = await query`
-        SELECT selected_option as option_index, COUNT(*) as count
-        FROM poll_responses
-        WHERE poll_id = ${poll.id}
-        GROUP BY selected_option
-        ORDER BY selected_option
-      `
-        return { ...poll, results }
+          SELECT selected_option as option_index, COUNT(*) as count
+          FROM poll_responses
+          WHERE poll_id = ${poll.id}
+          GROUP BY selected_option
+          ORDER BY selected_option
+        `
+
+        // Get total response count
+        const totalResult = await query`
+          SELECT COUNT(*) as total
+          FROM poll_responses
+          WHERE poll_id = ${poll.id}
+        `
+
+        const total_responses = Number.parseInt(totalResult[0].total)
+
+        return {
+          ...poll,
+          results: results.map((r) => ({
+            option_index: r.option_index,
+            count: Number.parseInt(r.count),
+          })),
+          total_responses,
+        }
       }),
     )
 
@@ -64,17 +76,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Title and at least 2 options are required" }, { status: 400 })
     }
 
-    // Only qwer users can create public polls
+    // Only qwea users can create public polls
     if (is_public && user.signup_code !== "qwea") {
       return NextResponse.json({ error: "Only special users can create public polls" }, { status: 403 })
     }
 
     // Create poll
     const pollResult = await query`
-    INSERT INTO polls (creator_id, title, description, options, is_public, expires_at)
-    VALUES (${user.id}, ${title}, ${description}, ${options}, ${is_public || false}, ${expires_at || null})
-    RETURNING *
-  `
+      INSERT INTO polls (creator_id, title, description, options, is_public, expires_at)
+      VALUES (${user.id}, ${title}, ${description}, ${options}, ${is_public || false}, ${expires_at || null})
+      RETURNING *
+    `
 
     const poll = pollResult[0]
 
@@ -82,10 +94,10 @@ export async function POST(request: NextRequest) {
     if (!is_public && shared_with && shared_with.length > 0) {
       for (const userId of shared_with) {
         await query`
-        INSERT INTO poll_shares (poll_id, user_id)
-        VALUES (${poll.id}, ${userId})
-        ON CONFLICT (poll_id, user_id) DO NOTHING
-      `
+          INSERT INTO poll_shares (poll_id, user_id)
+          VALUES (${poll.id}, ${userId})
+          ON CONFLICT (poll_id, user_id) DO NOTHING
+        `
       }
     }
 

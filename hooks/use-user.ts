@@ -1,42 +1,51 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 
 interface User {
   id: string
   username: string
-  email: string
+  email?: string
   name_color?: string
   custom_title?: string
   has_gold_animation?: boolean
   notifications_enabled: boolean
   theme: string
+  hue: string
   signup_code?: string
 }
 
-export function useUser() {
+interface UserContextType {
+  user: User | null
+  loading: boolean
+  setUser: (user: User | null) => void
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined)
+
+export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUser = async () => {
       try {
         console.log("[useUser] Fetching user data...")
         const response = await fetch("/api/auth/me")
         console.log("[useUser] Response status:", response.status)
 
         if (response.ok) {
-          const data = await response.json()
-          console.log("[useUser] User data received:", data.user?.username)
-          setUser(data.user) // This calls updateUser
+          const userData = await response.json()
+          console.log("[useUser] User data received:", userData.user?.username)
+          setUser(userData.user)
 
-          // Apply theme to document element directly on initial load if user data is valid
-          if (data.user && typeof data.user.theme === "string") {
-            console.log("[useUser] Applying theme from initial fetch:", data.user.theme)
-            document.documentElement.setAttribute("data-theme", data.user.theme)
-            document.documentElement.className = `theme-${data.user.theme}`
+          // Apply user's hue if available
+          if (userData.user?.hue) {
+            document.documentElement.className = document.documentElement.className
+              .replace(/hue-\w+/g, "")
+              .concat(` hue-${userData.user.hue}`)
           }
         } else {
           console.log("[useUser] Auth failed, redirecting to /auth")
@@ -50,23 +59,28 @@ export function useUser() {
       }
     }
 
-    fetchUserData()
+    fetchUser()
   }, [router])
 
   const updateUser = (updatedUser: User | null) => {
     console.log("[useUser] updateUser called with:", updatedUser)
-    setUser(updatedUser) // Always update the state first
+    setUser(updatedUser)
 
-    if (updatedUser && typeof updatedUser.theme === "string") {
-      // More robust check for theme
-      console.log("[useUser] Applying theme from updatedUser:", updatedUser.theme)
-      document.documentElement.setAttribute("data-theme", updatedUser.theme)
-      document.documentElement.className = `theme-${updatedUser.theme}`
-      // Removed the force repaint hack
-    } else {
-      console.warn("[useUser] updatedUser is null/undefined or updatedUser.theme is not a string, cannot apply theme.")
+    if (updatedUser?.hue) {
+      console.log("[useUser] Applying hue:", updatedUser.hue)
+      document.documentElement.className = document.documentElement.className
+        .replace(/hue-\w+/g, "")
+        .concat(` hue-${updatedUser.hue}`)
     }
   }
 
-  return { user, loading, setUser: updateUser }
+  return <UserContext.Provider value={{ user, loading, setUser: updateUser }}>{children}</UserContext.Provider>
+}
+
+export function useUser() {
+  const context = useContext(UserContext)
+  if (context === undefined) {
+    throw new Error("useUser must be used within a UserProvider")
+  }
+  return context
 }

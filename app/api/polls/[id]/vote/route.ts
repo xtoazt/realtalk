@@ -12,13 +12,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { option_index } = await request.json()
     const pollId = params.id
 
+    console.log(`[vote] User ${user.username} voting on poll ${pollId} with option ${option_index}`)
+
     if (typeof option_index !== "number" || option_index < 0) {
       return NextResponse.json({ error: "Valid option index is required" }, { status: 400 })
     }
 
     // Check if poll exists and user has access
     const pollCheck = await query`
-      SELECT p.*, p.expires_at
+      SELECT p.*, p.expires_at, p.options
       FROM polls p
       WHERE p.id = ${pollId}
         AND (p.is_public = true
@@ -44,15 +46,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Invalid option index" }, { status: 400 })
     }
 
-    // Insert or update vote
-    await query`
+    // Insert or update vote (upsert)
+    const voteResult = await query`
       INSERT INTO poll_responses (poll_id, user_id, selected_option)
       VALUES (${pollId}, ${user.id}, ${option_index})
       ON CONFLICT (poll_id, user_id)
-      DO UPDATE SET selected_option = ${option_index}
+      DO UPDATE SET selected_option = ${option_index}, created_at = NOW()
+      RETURNING *
     `
 
-    return NextResponse.json({ success: true })
+    console.log(`[vote] Vote recorded:`, voteResult[0])
+
+    return NextResponse.json({ success: true, vote: voteResult[0] })
   } catch (error: any) {
     console.error("Vote API error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })

@@ -9,31 +9,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
-
-    if (!userId || userId !== user.id) {
-      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
-    }
-
-    // Get the most recent poll that was either created by the user, is public,
-    // or was shared with the user.
+    // Get the most recent poll that the user can access (created by them, public, or shared with them)
     const polls = await query`
-      SELECT p.*, 
-             pr.selected_option as user_response,
-             COALESCE(response_counts.total_responses, 0) as total_responses
+      SELECT DISTINCT p.*, u.username as creator_username,
+        pr.selected_option as user_response
       FROM polls p
+      JOIN users u ON p.creator_id = u.id
       LEFT JOIN poll_responses pr ON p.id = pr.poll_id AND pr.user_id = ${user.id}
-      LEFT JOIN (
-        SELECT poll_id, COUNT(*) as total_responses
-        FROM poll_responses
-        GROUP BY poll_id
-      ) response_counts ON p.id = response_counts.poll_id
-      WHERE p.creator_id = ${user.id}
-         OR p.is_public = true
-         OR p.id IN (
-           SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
-         )
+      WHERE p.is_public = true 
+        OR p.creator_id = ${user.id}
+        OR p.id IN (
+          SELECT poll_id FROM poll_shares WHERE user_id = ${user.id}
+        )
       ORDER BY p.created_at DESC
       LIMIT 1
     `
@@ -44,20 +31,29 @@ export async function GET(request: NextRequest) {
 
     const poll = polls[0]
 
-    // Get results for the poll
+    // Get poll results
     const results = await query`
       SELECT selected_option as option_index, COUNT(*) as count
       FROM poll_responses
       WHERE poll_id = ${poll.id}
       GROUP BY selected_option
-      ORDER BY selected_option
     `
 
-    const pollWithResults = { ...poll, results }
+    const totalResponses = await query`
+      SELECT COUNT(*) as total
+      FROM poll_responses
+      WHERE poll_id = ${poll.id}
+    `
 
-    return NextResponse.json({ poll: pollWithResults })
+    return NextResponse.json({
+      poll: {
+        ...poll,
+        results: results.map((r) => ({ option_index: r.option_index, count: Number.parseInt(r.count) })),
+        total_responses: Number.parseInt(totalResponses[0].total),
+      },
+    })
   } catch (error: any) {
-    console.error("GET recent poll API error:", error.message)
+    console.error("Recent poll API error:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
