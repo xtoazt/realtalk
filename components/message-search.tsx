@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, X, MessageCircle } from "lucide-react"
+import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
 
 interface SearchResult {
   id: string
@@ -53,13 +54,6 @@ export function MessageSearch({ onClose, onMessageClick }: MessageSearchProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
-    if (hasGold) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    return nameColor ? { color: nameColor } : {}
   }
 
   const formatTime = (timestamp: string) => {
@@ -128,8 +122,8 @@ export function MessageSearch({ onClose, onMessageClick }: MessageSearchProps) {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span
-                      className={result.has_gold_animation ? getUsernameStyle(undefined, true) : "text-sm font-medium"}
-                      style={!result.has_gold_animation ? getUsernameStyle(result.name_color) : {}}
+                      className={cn("text-sm font-medium", getUsernameGoldClass(result.has_gold_animation))}
+                      style={getUsernameColorStyle(result.name_color)}
                     >
                       @{result.username}
                     </span>

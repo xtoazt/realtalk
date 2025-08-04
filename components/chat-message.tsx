@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
 import Image from "next/image"
+import { cn, getUsernameColorStyle, getUsernameGoldClass, getAIUsernameClass } from "@/lib/utils"
 
 interface Message {
   id: string
@@ -47,17 +48,6 @@ export function ChatMessage({
   const isOwnMessage = message.sender_id === currentUserId
   const isAI = message.is_ai_response
   const canDelete = isOwnMessage || currentUserHasGold
-
-  const getUsernameStyle = () => {
-    if (isAI) return "text-blue-500 font-medium"
-    if (message.has_gold_animation) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    if (message.name_color) {
-      return `font-medium`
-    }
-    return "font-medium"
-  }
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -103,8 +93,13 @@ export function ChatMessage({
       <div className={`max-w-[70%] ${isOwnMessage ? "order-2" : "order-1"}`}>
         <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
           <span
-            className={getUsernameStyle()}
-            style={message.name_color && !message.has_gold_animation ? { color: message.name_color } : {}}
+            className={cn(
+              message.is_ai_response ? getAIUsernameClass() : getUsernameGoldClass(message.has_gold_animation),
+              !message.is_ai_response && !message.has_gold_animation && message.name_color ? "font-medium" : "",
+            )}
+            style={
+              !message.is_ai_response && !message.has_gold_animation ? getUsernameColorStyle(message.name_color) : {}
+            }
           >
             {isAI ? "AI Assistant" : message.username}
           </span>

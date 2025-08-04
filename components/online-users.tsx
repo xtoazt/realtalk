@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Wifi } from "lucide-react"
+import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
 
 interface OnlineUser {
   id: string
@@ -59,13 +60,6 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
     }
   }, [fetchOnlineUsers, updateActivity])
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
-    if (hasGold) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    return nameColor ? { color: nameColor } : {}
-  }
-
   if (loading) {
     return (
       <Card className="animate-fadeIn">
@@ -106,8 +100,8 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
               >
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span
-                  className={user.has_gold_animation ? getUsernameStyle(undefined, true) : "text-sm"}
-                  style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
+                  className={cn("text-sm", getUsernameGoldClass(user.has_gold_animation))}
+                  style={getUsernameColorStyle(user.name_color)}
                 >
                   @{user.username}
                 </span>

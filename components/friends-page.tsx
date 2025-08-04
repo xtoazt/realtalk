@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { UserPlus, Check, X, Search, MessageCircle, RefreshCw } from "lucide-react"
+import { getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
 
 interface User {
   id: string
@@ -156,13 +157,6 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
     }
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
-    if (hasGold) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    return nameColor ? { color: nameColor } : {}
-  }
-
   const getButtonState = (user: User) => {
     const isAlreadyFriend = acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id)
     const hasPendingFromThem = pendingRequests.some((f) => f.requester_id === user.id)
@@ -228,8 +222,8 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200"
                   >
                     <span
-                      className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
-                      style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
+                      className={getUsernameGoldClass(user.has_gold_animation)}
+                      style={getUsernameColorStyle(user.name_color)}
                     >
                       @{user.username}
                     </span>
@@ -269,8 +263,8 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
                   className="flex items-center justify-between p-3 border rounded-lg bg-primary/5"
                 >
                   <span
-                    className={friendship.requester_has_gold ? getUsernameStyle(undefined, true) : ""}
-                    style={!friendship.requester_has_gold ? getUsernameStyle(friendship.requester_name_color) : {}}
+                    className={getUsernameGoldClass(friendship.requester_has_gold)}
+                    style={getUsernameColorStyle(friendship.requester_name_color)}
                   >
                     @{friendship.requester_username}
                   </span>
@@ -309,8 +303,8 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
               {sentRequests.map((friendship) => (
                 <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <span
-                    className={friendship.addressee_has_gold ? getUsernameStyle(undefined, true) : ""}
-                    style={!friendship.addressee_has_gold ? getUsernameStyle(friendship.addressee_name_color) : {}}
+                    className={getUsernameGoldClass(friendship.addressee_has_gold)}
+                    style={getUsernameColorStyle(friendship.addressee_name_color)}
                   >
                     @{friendship.addressee_username}
                   </span>
@@ -358,8 +352,8 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors duration-200"
                   >
                     <span
-                      className={friend.has_gold ? getUsernameStyle(undefined, true) : ""}
-                      style={!friend.has_gold ? getUsernameStyle(friend.name_color) : {}}
+                      className={getUsernameGoldClass(friend.has_gold)}
+                      style={getUsernameColorStyle(friend.name_color)}
                     >
                       @{friend.username}
                     </span>

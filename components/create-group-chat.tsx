@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { X } from "lucide-react"
+import { cn, getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
 
 interface Friend {
   friend_id: string
@@ -53,13 +54,6 @@ export function CreateGroupChat({ onClose, onCreate }: CreateGroupChatProps) {
     }
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
-    if (hasGold) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    return nameColor ? { color: nameColor } : {}
-  }
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <Card className="w-full max-w-md mx-4">
@@ -91,10 +85,13 @@ export function CreateGroupChat({ onClose, onCreate }: CreateGroupChatProps) {
                     />
                     <label
                       htmlFor={friend.friend_id}
-                      className="text-sm cursor-pointer"
-                      style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
+                      className={cn("text-sm cursor-pointer", getUsernameGoldClass(friend.friend_has_gold))}
+                      style={getUsernameColorStyle(friend.friend_name_color)}
                     >
-                      <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
+                      <span
+                        className={getUsernameGoldClass(friend.friend_has_gold)}
+                        style={getUsernameColorStyle(friend.friend_name_color)}
+                      >
                         @{friend.friend_username}
                       </span>
                     </label>

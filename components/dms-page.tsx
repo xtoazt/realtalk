@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageCircle, RefreshCw } from "lucide-react"
+import { getUsernameColorStyle, getUsernameGoldClass } from "@/lib/utils"
 
 interface DM {
   friend_id: string
@@ -43,13 +44,6 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
     const interval = setInterval(fetchDMs, 2000)
     return () => clearInterval(interval)
   }, [fetchDMs])
-
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
-    if (hasGold) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
-    }
-    return nameColor ? { color: nameColor } : {}
-  }
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -114,8 +108,8 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
                     </div>
                     <div>
                       <span
-                        className={dm.friend_has_gold ? getUsernameStyle(undefined, true) : ""}
-                        style={!dm.friend_has_gold ? getUsernameStyle(dm.friend_name_color) : {}}
+                        className={getUsernameGoldClass(dm.friend_has_gold)}
+                        style={getUsernameColorStyle(dm.friend_name_color)}
                       >
                         @{dm.friend_username}
                       </span>
