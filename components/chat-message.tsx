@@ -1,18 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import { formatTime } from "@/lib/utils"
+import { getUsernameClassName, getUsernameColorStyle } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Trash2, Reply, Smile } from "lucide-react"
-import { getUsernameClassName, getUsernameColorStyle, formatTime } from "@/lib/utils"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Trash2, Reply } from "lucide-react"
 
 interface User {
   id: string
   username: string
   name_color?: string
-  custom_title?: string
   has_gold_animation?: boolean
   profile_picture?: string
 }
@@ -20,18 +17,14 @@ interface User {
 interface Message {
   id: string
   content: string
-  user_id: string
-  group_chat_id?: string
-  dm_id?: string
   created_at: string
+  user: User
   parent_message_id?: string
-  reactions?: Array<{
+  parent_message?: {
     id: string
-    emoji: string
-    user_id: string
-    username: string
-  }>
-  user?: User
+    content: string
+    user: User
+  }
 }
 
 interface ChatMessageProps {
@@ -39,23 +32,21 @@ interface ChatMessageProps {
   currentUserId?: string
   onDelete?: (messageId: string) => void
   onReply?: (message: Message) => void
-  onReact?: (messageId: string, emoji: string) => void
 }
 
-export function ChatMessage({ message, currentUserId, onDelete, onReply, onReact }: ChatMessageProps) {
-  const [showActions, setShowActions] = useState(false)
-  const isOwnMessage = currentUserId === message.user_id
-  const messageTime = new Date(message.created_at)
+export function ChatMessage({ message, currentUserId, onDelete, onReply }: ChatMessageProps) {
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleReaction = (emoji: string) => {
-    if (onReact) {
-      onReact(message.id, emoji)
-    }
-  }
+  const handleDelete = async () => {
+    if (!onDelete || isDeleting) return
 
-  const handleDelete = () => {
-    if (onDelete && isOwnMessage) {
-      onDelete(message.id)
+    setIsDeleting(true)
+    try {
+      await onDelete(message.id)
+    } catch (error) {
+      console.error("Failed to delete message:", error)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -65,100 +56,75 @@ export function ChatMessage({ message, currentUserId, onDelete, onReply, onReact
     }
   }
 
-  // Group reactions by emoji
-  const groupedReactions = message.reactions?.reduce(
-    (acc, reaction) => {
-      if (!acc[reaction.emoji]) {
-        acc[reaction.emoji] = []
-      }
-      acc[reaction.emoji].push(reaction)
-      return acc
-    },
-    {} as Record<string, typeof message.reactions>,
-  )
+  const canDelete = currentUserId === message.user.id
 
   return (
-    <Card
-      className={`p-4 transition-all duration-200 ${
-        isOwnMessage ? "bg-blue-600/20 border-blue-500/30 ml-8" : "bg-gray-800/50 border-gray-700/50 mr-8"
-      }`}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={getUsernameClassName(message.user)} style={getUsernameColorStyle(message.user)}>
-              {message.user?.username || "Unknown User"}
+    <div className="group flex flex-col space-y-1 p-3 hover:bg-muted/50 rounded-lg transition-colors">
+      {/* Parent message (if replying) */}
+      {message.parent_message && (
+        <div className="ml-4 pl-3 border-l-2 border-muted-foreground/30 text-sm text-muted-foreground">
+          <div className="flex items-center space-x-2">
+            <span
+              className={getUsernameClassName(message.parent_message.user)}
+              style={getUsernameColorStyle(message.parent_message.user)}
+            >
+              {message.parent_message.user.username}
             </span>
-            {message.user?.custom_title && (
-              <Badge variant="secondary" className="text-xs">
-                {message.user.custom_title}
-              </Badge>
-            )}
-            <span className="text-xs text-gray-400">{formatTime(messageTime)}</span>
           </div>
+          <p className="truncate max-w-md">{message.parent_message.content}</p>
+        </div>
+      )}
 
-          <div className="text-gray-100 whitespace-pre-wrap break-words">{message.content}</div>
-
-          {/* Reactions */}
-          {groupedReactions && Object.keys(groupedReactions).length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {Object.entries(groupedReactions).map(([emoji, reactions]) => (
-                <Button
-                  key={emoji}
-                  variant="outline"
-                  size="sm"
-                  className="h-6 px-2 text-xs bg-gray-700/50 border-gray-600 hover:bg-gray-600/50"
-                  onClick={() => handleReaction(emoji)}
-                >
-                  {emoji} {reactions.length}
-                </Button>
-              ))}
+      {/* Main message */}
+      <div className="flex items-start space-x-3">
+        {/* Avatar */}
+        <div className="flex-shrink-0">
+          {message.user.profile_picture ? (
+            <img
+              src={message.user.profile_picture || "/placeholder.svg"}
+              alt={message.user.username}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-medium text-primary">{message.user.username.charAt(0).toUpperCase()}</span>
             </div>
           )}
         </div>
 
-        {/* Message Actions */}
-        {showActions && (
-          <div className="flex items-center gap-1 ml-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Smile className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                <DropdownMenuItem onClick={() => handleReaction("❤️")}>❤️ Heart</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReaction("👍")}>👍 Thumbs Up</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReaction("😂")}>😂 Laugh</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReaction("😮")}>😮 Wow</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReaction("😢")}>😢 Sad</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {/* Message content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2">
+            <span className={getUsernameClassName(message.user)} style={getUsernameColorStyle(message.user)}>
+              {message.user.username}
+            </span>
+            <span className="text-xs text-muted-foreground">{formatTime(message.created_at)}</span>
+          </div>
+          <p className="text-foreground mt-1 break-words">{message.content}</p>
+        </div>
 
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleReply}>
+        {/* Actions */}
+        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" size="sm" onClick={handleReply} className="h-8 w-8 p-0">
               <Reply className="h-4 w-4" />
             </Button>
-
-            {isOwnMessage && (
+            {canDelete && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
                 onClick={handleDelete}
+                disabled={isDeleting}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
-        )}
+        </div>
       </div>
-    </Card>
+    </div>
   )
 }
 
-// Named export for compatibility
-
-// Default export
 export default ChatMessage
