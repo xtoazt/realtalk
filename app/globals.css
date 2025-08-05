@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222.2 84% 4.9%;
@@ -22,14 +22,13 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --hue: 220;
   }
 
   .dark {
@@ -39,8 +38,8 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
@@ -51,12 +50,38 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --ring: 212.7 26.8% 83.9%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+  }
+
+  /* Hue variations */
+  .hue-red {
+    --hue: 0;
+  }
+  .hue-orange {
+    --hue: 25;
+  }
+  .hue-yellow {
+    --hue: 45;
+  }
+  .hue-green {
+    --hue: 120;
+  }
+  .hue-blue {
+    --hue: 220;
+  }
+  .hue-purple {
+    --hue: 270;
+  }
+  .hue-pink {
+    --hue: 320;
+  }
+  .hue-gray {
+    --hue: 0;
   }
 }
 
@@ -69,49 +94,8 @@
   }
 }
 
-/* Hue variations */
-.hue-red {
-  --hue: 0;
-  --primary: 0 84.2% 60.2%;
-}
-
-.hue-orange {
-  --hue: 25;
-  --primary: 25 95% 53%;
-}
-
-.hue-yellow {
-  --hue: 45;
-  --primary: 45 93% 47%;
-}
-
-.hue-green {
-  --hue: 120;
-  --primary: 120 61% 50%;
-}
-
-.hue-blue {
-  --hue: 220;
-  --primary: 221.2 83.2% 53.3%;
-}
-
-.hue-purple {
-  --hue: 270;
-  --primary: 270 91% 65%;
-}
-
-.hue-pink {
-  --hue: 320;
-  --primary: 320 91% 65%;
-}
-
-.hue-gray {
-  --hue: 0;
-  --primary: 0 0% 45%;
-}
-
-/* Gold animation styles */
-@keyframes goldShimmer {
+/* Gold username animation */
+@keyframes gold-shimmer {
   0% {
     background-position: -200% center;
   }
@@ -121,17 +105,41 @@
 }
 
 .gold-username {
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 25%, #fbbf24 50%, #f59e0b 75%, #fbbf24 100%);
+  background: linear-gradient(90deg, #ffd700 0%, #ffed4e 25%, #fff59d 50%, #ffed4e 75%, #ffd700 100%);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: goldShimmer 2s linear infinite;
+  animation: gold-shimmer 2s linear infinite;
   font-weight: 600;
 }
 
-/* Particle background */
-.particle-bg {
+/* Ensure gold animation works in dark mode */
+.dark .gold-username {
+  background: linear-gradient(90deg, #ffd700 0%, #ffed4e 25%, #fff59d 50%, #ffed4e 75%, #ffd700 100%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gold-shimmer 2s linear infinite;
+}
+
+/* AI username styling */
+.ai-username {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #3b82f6 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+}
+
+/* Custom color usernames */
+.custom-color-username {
+  font-weight: 600;
+}
+
+/* Particle background styles */
+.particles-container {
   position: fixed;
   top: 0;
   left: 0;
@@ -141,90 +149,70 @@
   z-index: -1;
 }
 
-/* Glass effect */
-.glass-effect {
-  backdrop-filter: blur(10px);
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
 }
 
-.dark .glass-effect {
-  background: rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.1;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+    opacity: 0.3;
   }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.hover-lift {
-  transition: transform 0.2s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
 }
 
 /* Custom scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Message animations */
-@keyframes messageSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.message-enter {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
-.message-slide-in {
-  animation: messageSlideIn 0.3s ease-out;
+.message-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms, transform 200ms;
 }
 
 /* Typing indicator */
-@keyframes typingDots {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(-10px);
-  }
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .typing-dot {
-  animation: typingDots 1.4s infinite ease-in-out;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  animation: typing 1.4s infinite ease-in-out;
 }
 
 .typing-dot:nth-child(1) {
@@ -235,91 +223,62 @@
   animation-delay: -0.16s;
 }
 
-/* Pulse animation for notifications */
-@keyframes pulse {
+@keyframes typing {
   0%,
+  80%,
   100% {
-    opacity: 1;
-  }
-  50% {
+    transform: scale(0);
     opacity: 0.5;
   }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.animate-pulse-slow {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Dynamic island styles */
-.dynamic-island {
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dark .dynamic-island {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* Chat input focus styles */
-.chat-input:focus {
-  box-shadow: 0 0 0 2px hsl(var(--primary));
-  border-color: hsl(var(--primary));
-}
-
-/* Message reactions */
-.reaction-button {
+/* Poll styles */
+.poll-option {
   transition: all 0.2s ease;
 }
 
-.reaction-button:hover {
-  transform: scale(1.1);
+.poll-option:hover {
+  background: hsl(var(--accent));
 }
 
-/* Loading spinner */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.poll-progress {
+  transition: width 0.5s ease;
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+/* Dynamic Island styles */
+.dynamic-island {
+  backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Gradient text for special users */
-.gradient-text {
-  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Chat message styles */
+.chat-message {
+  transition: all 0.2s ease-in-out;
 }
 
-/* Status indicators */
-.status-online {
-  background: #10b981;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #10b981;
+.chat-message:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
-.status-away {
-  background: #f59e0b;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #f59e0b;
+.dark .chat-message:hover {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
-.status-offline {
-  background: #6b7280;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #6b7280;
+/* Username color styles */
+.username-custom-color {
+  font-weight: 500;
 }
 
-.dark .status-online {
-  box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #10b981;
+/* Ensure proper contrast for custom colors */
+.dark .username-custom-color {
+  filter: brightness(1.2);
 }
 
-.dark .status-away {
-  box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #f59e0b;
-}
-
-.dark .status-offline {
-  box-shadow: 0 0 0 2px #1f2937, 0 0 0 4px #6b7280;
+.light .username-custom-color {
+  filter: brightness(0.8);
 }

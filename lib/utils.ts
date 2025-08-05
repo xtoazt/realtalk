@@ -1,43 +1,89 @@
+import type React from "react"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { CSSProperties } from "react"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/**
- * Returns a CSSProperties object for inline color styling.
- * @param nameColor The hex color string (e.g., "#RRGGBB").
- * @returns A React.CSSProperties object or an empty object if no color is provided.
- */
-export function getUsernameColorStyle(nameColor?: string): CSSProperties {
-  return nameColor ? { color: nameColor } : {}
-}
+export function getUsernameClassName(user: any): string {
+  console.log("[getUsernameClassName] User data:", user)
+  console.log("[getUsernameClassName] has_gold_animation:", user?.has_gold_animation)
 
-/**
- * Returns the appropriate className for username styling based on user properties.
- * @param isAI Whether this is an AI user
- * @param hasGold Whether the user has gold animation
- * @param hasCustomColor Whether the user has a custom name color
- * @returns A string of Tailwind classes
- */
-export function getUsernameClassName(isAI?: boolean, hasGold?: boolean, hasCustomColor?: boolean): string {
-  if (isAI) {
-    return "text-blue-500 font-medium"
-  }
-  if (hasGold) {
+  if (user?.has_gold_animation) {
+    console.log("[getUsernameClassName] Applying gold-username class")
     return "gold-username"
   }
+
   return "font-medium"
 }
 
-/**
- * Returns whether to apply custom color styling (for use with style prop).
- * @param hasGold Whether the user has gold animation
- * @param isAI Whether this is an AI user
- * @returns Boolean indicating if custom color should be applied
- */
-export function shouldApplyCustomColor(hasGold?: boolean, isAI?: boolean): boolean {
-  return !hasGold && !isAI
+export function getUsernameColorStyle(user: any): React.CSSProperties {
+  // Only apply custom color if user doesn't have gold animation
+  if (user?.has_gold_animation) {
+    return {}
+  }
+
+  if (user?.name_color) {
+    return { color: user.name_color }
+  }
+
+  return {}
+}
+
+export function shouldApplyCustomColor(user: any): boolean {
+  // Don't apply custom color if user has gold animation
+  return !user?.has_gold_animation && !!user?.name_color
+}
+
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+}
+
+export function formatDate(date: Date): string {
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) {
+    return "Today"
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday"
+  } else {
+    return date.toLocaleDateString()
+  }
+}
+
+export function formatDateTime(date: Date): string {
+  return `${formatDate(date)} at ${formatTime(date)}`
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + "..."
+}
+
+export function generateId(): string {
+  return Math.random().toString(36).substring(2, 15)
+}
+
+export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
+
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+}
+
+export function throttle<T extends (...args: any[]) => any>(func: T, limit: number): (...args: Parameters<T>) => void {
+  let inThrottle: boolean
+
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args)
+      inThrottle = true
+      setTimeout(() => (inThrottle = false), limit)
+    }
+  }
 }

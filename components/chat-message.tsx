@@ -2,214 +2,163 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
-import Image from "next/image"
-import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Trash2, Reply, Smile } from "lucide-react"
+import { getUsernameClassName, getUsernameColorStyle, formatTime } from "@/lib/utils"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-interface Message {
+interface User {
   id: string
-  content: string
-  sender_id: string
   username: string
   name_color?: string
   custom_title?: string
   has_gold_animation?: boolean
-  is_ai_response?: boolean
+  profile_picture?: string
+}
+
+interface Message {
+  id: string
+  content: string
+  user_id: string
+  group_chat_id?: string
+  dm_id?: string
   created_at: string
-  mentions?: string[]
-  message_type?: string
-  reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
   parent_message_id?: string
-  parent_message_content?: string
-  parent_message_username?: string
+  reactions?: Array<{
+    id: string
+    emoji: string
+    user_id: string
+    username: string
+  }>
+  user?: User
 }
 
 interface ChatMessageProps {
   message: Message
-  currentUserId: string
-  currentUserHasGold?: boolean
-  onAddReaction?: (messageId: string, emoji: string) => void
-  onRemoveReaction?: (messageId: string, emoji: string) => void
-  onReply?: (message: Message) => void
+  currentUserId?: string
   onDelete?: (messageId: string) => void
+  onReply?: (message: Message) => void
+  onReact?: (messageId: string, emoji: string) => void
 }
 
-export function ChatMessage({
-  message,
-  currentUserId,
-  currentUserHasGold = false,
-  onAddReaction,
-  onRemoveReaction,
-  onReply,
-  onDelete,
-}: ChatMessageProps) {
-  const [showReactions, setShowReactions] = useState(false)
-  const [imageError, setImageError] = useState(false)
-  const isOwnMessage = message.sender_id === currentUserId
-  const isAI = message.is_ai_response
-  const canDelete = isOwnMessage || currentUserHasGold
+export function ChatMessage({ message, currentUserId, onDelete, onReply, onReact }: ChatMessageProps) {
+  const [showActions, setShowActions] = useState(false)
+  const isOwnMessage = currentUserId === message.user_id
+  const messageTime = new Date(message.created_at)
 
-  console.log(
-    "[ChatMessage] Rendering message from:",
-    message.username,
-    "has_gold_animation:",
-    message.has_gold_animation,
-  )
-
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
-
-  const handleReactionClick = (emoji: string) => {
-    const existingReaction = message.reactions?.find((r) => r.emoji === emoji && r.reacted_by_me)
-    if (existingReaction) {
-      onRemoveReaction?.(message.id, emoji)
-    } else {
-      onAddReaction?.(message.id, emoji)
+  const handleReaction = (emoji: string) => {
+    if (onReact) {
+      onReact(message.id, emoji)
     }
-    setShowReactions(false)
   }
 
   const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this message?")) {
-      onDelete?.(message.id)
+    if (onDelete && isOwnMessage) {
+      onDelete(message.id)
     }
   }
 
-  const availableEmojis = [
-    "😀",
-    "😂",
-    "😊",
-    "😍",
-    "🤩",
-    "🥳",
-    "👍",
-    "👎",
-    "❤️",
-    "💔",
-    "🔥",
-    "💯",
-    "🤔",
-    "🤯",
-    "😢",
-    "😡",
-  ]
+  const handleReply = () => {
+    if (onReply) {
+      onReply(message)
+    }
+  }
+
+  // Group reactions by emoji
+  const groupedReactions = message.reactions?.reduce(
+    (acc, reaction) => {
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = []
+      }
+      acc[reaction.emoji].push(reaction)
+      return acc
+    },
+    {} as Record<string, typeof message.reactions>,
+  )
 
   return (
-    <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-4 group`}>
-      <div className={`max-w-[70%] ${isOwnMessage ? "order-2" : "order-1"}`}>
-        <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
-          <span
-            className={getUsernameClassName(isAI, message.has_gold_animation, !!message.name_color)}
-            style={
-              shouldApplyCustomColor(message.has_gold_animation, isAI) ? getUsernameColorStyle(message.name_color) : {}
-            }
-          >
-            {isAI ? "AI Assistant" : message.username}
-          </span>
-          {message.custom_title && <span className="text-xs italic text-gray-500">{message.custom_title}</span>}
-          <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
-        </div>
-
-        {message.parent_message_id && message.parent_message_content && message.parent_message_username && (
-          <div className="mb-1 p-2 bg-gray-100 dark:bg-gray-800 border-l-4 border-blue-400 rounded-r-md text-xs text-gray-600 dark:text-gray-300 italic">
-            Replying to @{message.parent_message_username}: "{message.parent_message_content}"
+    <Card
+      className={`p-4 transition-all duration-200 ${
+        isOwnMessage ? "bg-blue-600/20 border-blue-500/30 ml-8" : "bg-gray-800/50 border-gray-700/50 mr-8"
+      }`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={getUsernameClassName(message.user)} style={getUsernameColorStyle(message.user)}>
+              {message.user?.username || "Unknown User"}
+            </span>
+            {message.user?.custom_title && (
+              <Badge variant="secondary" className="text-xs">
+                {message.user.custom_title}
+              </Badge>
+            )}
+            <span className="text-xs text-gray-400">{formatTime(messageTime)}</span>
           </div>
-        )}
 
-        <div
-          className={`px-4 py-2 rounded-2xl ${
-            isOwnMessage
-              ? "bg-black dark:bg-gray-700 text-white"
-              : isAI
-                ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
-                : "bg-gray-100 dark:bg-gray-800"
-          }`}
-        >
-          {message.message_type === "image" ? (
-            <div className="relative max-w-sm">
-              {!imageError ? (
-                <Image
-                  src={message.content || "/placeholder.svg"}
-                  alt="Shared image"
-                  width={400}
-                  height={300}
-                  className="rounded-lg object-cover max-h-80 w-auto"
-                  onError={() => setImageError(true)}
-                  priority={false}
-                  quality={85}
-                />
-              ) : (
-                <div className="w-64 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">Failed to load image</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-          )}
-        </div>
+          <div className="text-gray-100 whitespace-pre-wrap break-words">{message.content}</div>
 
-        {message.reactions && message.reactions.length > 0 && (
-          <div className="flex gap-1 mt-1">
-            {message.reactions.map((reaction) => (
-              <Button
-                key={reaction.emoji}
-                variant="outline"
-                size="sm"
-                className={`h-6 px-2 rounded-full text-xs ${
-                  reaction.reacted_by_me
-                    ? "bg-blue-100 dark:bg-blue-900/50 border-blue-400"
-                    : "bg-gray-50 dark:bg-gray-800"
-                }`}
-                onClick={() => handleReactionClick(reaction.emoji)}
-              >
-                {reaction.emoji} {reaction.count}
-              </Button>
-            ))}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity relative">
-          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setShowReactions(!showReactions)}>
-            <Heart className="h-3 w-3" />
-          </Button>
-          {onReply && (
-            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => onReply(message)}>
-              <MessageCircle className="h-3 w-3" />
-            </Button>
-          )}
-          {canDelete && onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-red-500 hover:bg-red-500/10"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" className="h-6 px-2">
-            <MoreHorizontal className="h-3 w-3" />
-          </Button>
-
-          {showReactions && (
-            <div className="absolute bottom-full left-0 mb-2 flex gap-1 p-2 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-10">
-              {availableEmojis.map((emoji) => (
+          {/* Reactions */}
+          {groupedReactions && Object.keys(groupedReactions).length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {Object.entries(groupedReactions).map(([emoji, reactions]) => (
                 <Button
                   key={emoji}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-8 w-8 p-0 text-lg"
-                  onClick={() => handleReactionClick(emoji)}
+                  className="h-6 px-2 text-xs bg-gray-700/50 border-gray-600 hover:bg-gray-600/50"
+                  onClick={() => handleReaction(emoji)}
                 >
-                  {emoji}
+                  {emoji} {reactions.length}
                 </Button>
               ))}
             </div>
           )}
         </div>
+
+        {/* Message Actions */}
+        {showActions && (
+          <div className="flex items-center gap-1 ml-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Smile className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                <DropdownMenuItem onClick={() => handleReaction("❤️")}>❤️ Heart</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleReaction("👍")}>👍 Thumbs Up</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleReaction("😂")}>😂 Laugh</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleReaction("😮")}>😮 Wow</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleReaction("😢")}>😢 Sad</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleReply}>
+              <Reply className="h-4 w-4" />
+            </Button>
+
+            {isOwnMessage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+    </Card>
   )
 }
+
+// Named export for compatibility
+
+// Default export
+export default ChatMessage

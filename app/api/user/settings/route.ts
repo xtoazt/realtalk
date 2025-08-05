@@ -1,80 +1,94 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { query } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 
-export async function PATCH(request: NextRequest) {
+const sql = neon(process.env.DATABASE_URL!)
+
+export async function GET() {
   try {
+    console.log("[/api/user/settings] GET request received")
     const user = await getCurrentUser()
+
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      console.log("[/api/user/settings] No user found")
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const updates = await request.json()
-    console.log("[settings-api] Updating user settings for user:", user.id, "updates:", updates)
+    console.log("[/api/user/settings] Returning user settings for:", user.username)
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name_color: user.name_color,
+        custom_title: user.custom_title,
+        has_gold_animation: user.has_gold_animation,
+        profile_picture: user.profile_picture,
+        theme: user.theme || "dark",
+        hue: user.hue || "gray",
+        notifications_enabled: user.notifications_enabled || false,
+      },
+    })
+  } catch (error) {
+    console.error("[/api/user/settings] GET Error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
 
-    const allowedFields = ["custom_title", "name_color", "notifications_enabled", "theme", "hue"]
-    const validUpdates: any = {}
+export async function POST(request: NextRequest) {
+  try {
+    console.log("[/api/user/settings] POST request received")
+    const user = await getCurrentUser()
 
-    for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key)) {
-        validUpdates[key] = value
-      }
+    if (!user) {
+      console.log("[/api/user/settings] No user found")
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    console.log("[settings-api] Valid updates:", validUpdates)
+    const body = await request.json()
+    console.log("[/api/user/settings] Update data:", body)
 
-    if (Object.keys(validUpdates).length === 0) {
-      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
+    const { theme, hue, notifications_enabled, name_color, custom_title } = body
+
+    // Validate theme and hue
+    const validThemes = ["light", "dark"]
+    const validHues = ["gray", "red", "orange", "yellow", "green", "blue", "indigo", "purple", "pink"]
+
+    if (theme && !validThemes.includes(theme)) {
+      return NextResponse.json({ error: "Invalid theme" }, { status: 400 })
     }
 
-    // Validate hue if provided
-    if (validUpdates.hue) {
-      const validHues = ["red", "orange", "yellow", "green", "blue", "purple", "pink", "gray"]
-      if (!validHues.includes(validUpdates.hue)) {
-        return NextResponse.json({ error: "Invalid hue selected" }, { status: 400 })
-      }
+    if (hue && !validHues.includes(hue)) {
+      return NextResponse.json({ error: "Invalid hue" }, { status: 400 })
     }
 
-    // Validate theme if provided
-    if (validUpdates.theme) {
-      const validThemes = ["light", "dark"]
-      if (!validUpdates.theme.includes(validUpdates.theme)) {
-        return NextResponse.json({ error: "Invalid theme selected" }, { status: 400 })
-      }
-    }
-
-    // Build dynamic update query
-    const setClause = Object.keys(validUpdates)
-      .map((key, index) => `${key} = $${index + 2}`)
-      .join(", ")
-
-    const queryString = `
+    // Update user settings
+    const updatedUsers = await sql`
       UPDATE users 
-      SET ${setClause}, updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio, created_at
+      SET 
+        theme = COALESCE(${theme}, theme),
+        hue = COALESCE(${hue}, hue),
+        notifications_enabled = COALESCE(${notifications_enabled}, notifications_enabled),
+        name_color = COALESCE(${name_color}, name_color),
+        custom_title = COALESCE(${custom_title}, custom_title)
+      WHERE id = ${user.id}
+      RETURNING id, username, email, name_color, custom_title, has_gold_animation, 
+                profile_picture, theme, hue, notifications_enabled, last_active, created_at
     `
 
-    const params = [user.id, ...Object.values(validUpdates)]
-
-    console.log("[settings-api] Executing query:", queryString, "with params:", params)
-
-    const result = await query.unsafe(queryString, params)
-
-    if (result.length === 0) {
-      console.error("[settings-api] No user found or updated for ID:", user.id)
-      return NextResponse.json({ error: "User not found or no settings updated." }, { status: 404 })
+    if (updatedUsers.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const updatedUser = result[0]
-    console.log("[settings-api] Update successful:", updatedUser)
+    const updatedUser = updatedUsers[0]
+    console.log("[/api/user/settings] User updated successfully:", updatedUser.username)
 
     return NextResponse.json({
-      user: updatedUser,
       message: "Settings updated successfully",
+      user: updatedUser,
     })
-  } catch (error: any) {
-    console.error("[settings-api] Error:", error.message, error.stack)
+  } catch (error) {
+    console.error("[/api/user/settings] POST Error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
