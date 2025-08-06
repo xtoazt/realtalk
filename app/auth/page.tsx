@@ -24,7 +24,6 @@ export default function AuthPage() {
     const formData = new FormData(e.currentTarget)
     const username = formData.get("username") as string
     const password = formData.get("password") as string
-    const email = formData.get("email") as string
     const signupCode = formData.get("signupCode") as string
 
     console.log("[auth-page] Signup attempt:", { username, signupCode: signupCode ? "provided" : "none" })
@@ -33,13 +32,7 @@ export default function AuthPage() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ 
-          username, 
-          password, 
-          email: email || undefined,
-          signupCode: signupCode || undefined 
-        }),
+        body: JSON.stringify({ username, password, signupCode: signupCode || undefined }),
       })
 
       console.log("[auth-page] Signup response status:", response.status)
@@ -48,7 +41,6 @@ export default function AuthPage() {
       if (response.ok) {
         console.log("[auth-page] Signup successful, redirecting...")
         router.push("/dashboard")
-        router.refresh()
       } else {
         console.log("[auth-page] Signup failed:", data.error)
         setError(data.error)
@@ -76,7 +68,6 @@ export default function AuthPage() {
       const response = await fetch("/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ username, password }),
       })
 
@@ -86,7 +77,6 @@ export default function AuthPage() {
       if (response.ok) {
         console.log("[auth-page] Signin successful, redirecting...")
         router.push("/dashboard")
-        router.refresh()
       } else {
         console.log("[auth-page] Signin failed:", data.error)
         setError(data.error)
@@ -102,29 +92,25 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Card className="backdrop-blur-md bg-card/80 border-border/50 shadow-2xl">
+        <Card className="backdrop-blur-md bg-card/90 border-border/50 shadow-2xl">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
               <MessageCircle className="w-8 h-8 text-white" />
             </div>
             <div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Real Chat
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                real.
               </CardTitle>
               <CardDescription className="text-muted-foreground mt-2">
-                Connect with friends in real-time
+                connect fr
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Sign Up
-                </TabsTrigger>
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
 
               {error && (
@@ -160,7 +146,7 @@ export default function AuthPage() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium"
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -190,15 +176,6 @@ export default function AuthPage() {
                   </div>
                   <div className="space-y-2">
                     <Input
-                      name="email"
-                      type="email"
-                      placeholder="Email (optional)"
-                      disabled={isLoading}
-                      className="bg-background/50 border-border/50 backdrop-blur-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Input
                       name="password"
                       type="password"
                       placeholder="Password (min 6 characters)"
@@ -222,7 +199,7 @@ export default function AuthPage() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium"
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium"
                     disabled={isLoading}
                   >
                     {isLoading ? (

@@ -30,18 +30,18 @@ export function AnimatedBackground() {
     }
 
     const createParticles = () => {
-      const particleCount = Math.min(50, Math.floor((canvas.width * canvas.height) / 15000))
+      const particleCount = Math.min(30, Math.floor((canvas.width * canvas.height) / 20000))
       particlesRef.current = []
 
       for (let i = 0; i < particleCount; i++) {
         particlesRef.current.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          size: Math.random() * 3 + 1,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 1,
           opacity: Math.random() * 0.3 + 0.1,
-          hue: Math.random() * 60 + 240, // Blue to purple range
+          hue: Math.random() * 60 + 220, // Blue to purple range
         })
       }
     }
@@ -49,42 +49,41 @@ export function AnimatedBackground() {
     const drawGradientBackground = () => {
       // Create the main gradient background
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-      gradient.addColorStop(0, "rgba(168, 85, 247, 0.4)") // Purple
-      gradient.addColorStop(0.3, "rgba(139, 92, 246, 0.3)") // Violet
-      gradient.addColorStop(0.7, "rgba(59, 130, 246, 0.3)") // Blue
-      gradient.addColorStop(1, "rgba(37, 99, 235, 0.4)") // Darker blue
+      gradient.addColorStop(0, "rgba(139, 92, 246, 0.1)") // Purple
+      gradient.addColorStop(0.5, "rgba(99, 102, 241, 0.08)") // Indigo
+      gradient.addColorStop(1, "rgba(59, 130, 246, 0.1)") // Blue
 
       ctx.fillStyle = gradient
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       // Add some animated gradient overlays
-      const time = Date.now() * 0.001
+      const time = Date.now() * 0.0005
       
       // Moving gradient overlay 1
       const overlay1 = ctx.createRadialGradient(
-        canvas.width * 0.3 + Math.sin(time * 0.5) * 100,
-        canvas.height * 0.3 + Math.cos(time * 0.3) * 100,
+        canvas.width * 0.2 + Math.sin(time) * 50,
+        canvas.height * 0.2 + Math.cos(time * 0.7) * 50,
         0,
-        canvas.width * 0.3 + Math.sin(time * 0.5) * 100,
-        canvas.height * 0.3 + Math.cos(time * 0.3) * 100,
-        canvas.width * 0.4
+        canvas.width * 0.2 + Math.sin(time) * 50,
+        canvas.height * 0.2 + Math.cos(time * 0.7) * 50,
+        canvas.width * 0.3
       )
-      overlay1.addColorStop(0, "rgba(168, 85, 247, 0.1)")
-      overlay1.addColorStop(1, "rgba(168, 85, 247, 0)")
+      overlay1.addColorStop(0, "rgba(139, 92, 246, 0.05)")
+      overlay1.addColorStop(1, "rgba(139, 92, 246, 0)")
 
       ctx.fillStyle = overlay1
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       // Moving gradient overlay 2
       const overlay2 = ctx.createRadialGradient(
-        canvas.width * 0.7 + Math.sin(time * 0.7) * 80,
-        canvas.height * 0.7 + Math.cos(time * 0.4) * 80,
+        canvas.width * 0.8 + Math.sin(time * 1.2) * 40,
+        canvas.height * 0.8 + Math.cos(time * 0.9) * 40,
         0,
-        canvas.width * 0.7 + Math.sin(time * 0.7) * 80,
-        canvas.height * 0.7 + Math.cos(time * 0.4) * 80,
-        canvas.width * 0.3
+        canvas.width * 0.8 + Math.sin(time * 1.2) * 40,
+        canvas.height * 0.8 + Math.cos(time * 0.9) * 40,
+        canvas.width * 0.25
       )
-      overlay2.addColorStop(0, "rgba(59, 130, 246, 0.1)")
+      overlay2.addColorStop(0, "rgba(59, 130, 246, 0.05)")
       overlay2.addColorStop(1, "rgba(59, 130, 246, 0)")
 
       ctx.fillStyle = overlay2
@@ -105,8 +104,8 @@ export function AnimatedBackground() {
         particle.y = Math.max(0, Math.min(canvas.height, particle.y))
 
         // Subtle opacity animation
-        particle.opacity += (Math.random() - 0.5) * 0.01
-        particle.opacity = Math.max(0.05, Math.min(0.4, particle.opacity))
+        particle.opacity += (Math.random() - 0.5) * 0.005
+        particle.opacity = Math.max(0.05, Math.min(0.3, particle.opacity))
       })
     }
 
@@ -118,18 +117,18 @@ export function AnimatedBackground() {
         // Create a subtle glow effect
         const gradient = ctx.createRadialGradient(
           particle.x, particle.y, 0,
-          particle.x, particle.y, particle.size * 2
+          particle.x, particle.y, particle.size * 3
         )
-        gradient.addColorStop(0, `hsla(${particle.hue}, 70%, 70%, 0.8)`)
-        gradient.addColorStop(1, `hsla(${particle.hue}, 70%, 70%, 0)`)
+        gradient.addColorStop(0, `hsla(${particle.hue}, 60%, 70%, 0.4)`)
+        gradient.addColorStop(1, `hsla(${particle.hue}, 60%, 70%, 0)`)
         
         ctx.fillStyle = gradient
         ctx.beginPath()
-        ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2)
+        ctx.arc(particle.x, particle.y, particle.size * 3, 0, Math.PI * 2)
         ctx.fill()
         
         // Draw the core particle
-        ctx.fillStyle = `hsla(${particle.hue}, 80%, 80%, 0.6)`
+        ctx.fillStyle = `hsla(${particle.hue}, 70%, 80%, 0.6)`
         ctx.beginPath()
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
         ctx.fill()
@@ -138,41 +137,11 @@ export function AnimatedBackground() {
       })
     }
 
-    const drawConnections = () => {
-      const maxDistance = 150
-      
-      for (let i = 0; i < particlesRef.current.length; i++) {
-        for (let j = i + 1; j < particlesRef.current.length; j++) {
-          const p1 = particlesRef.current[i]
-          const p2 = particlesRef.current[j]
-          
-          const dx = p1.x - p2.x
-          const dy = p1.y - p2.y
-          const distance = Math.sqrt(dx * dx + dy * dy)
-          
-          if (distance < maxDistance) {
-            const opacity = (1 - distance / maxDistance) * 0.1
-            
-            ctx.save()
-            ctx.globalAlpha = opacity
-            ctx.strokeStyle = `hsla(250, 60%, 70%, ${opacity})`
-            ctx.lineWidth = 1
-            ctx.beginPath()
-            ctx.moveTo(p1.x, p1.y)
-            ctx.lineTo(p2.x, p2.y)
-            ctx.stroke()
-            ctx.restore()
-          }
-        }
-      }
-    }
-
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       
       drawGradientBackground()
       updateParticles()
-      drawConnections()
       drawParticles()
       
       animationRef.current = requestAnimationFrame(animate)
@@ -202,7 +171,7 @@ export function AnimatedBackground() {
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
       style={{
-        background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)",
+        background: "linear-gradient(135deg, rgba(139, 92, 246, 0.03) 0%, rgba(59, 130, 246, 0.03) 100%)",
       }}
     />
   )

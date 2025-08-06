@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { username, password, email, signupCode } = body
+    const { username, password, signupCode } = body
     console.log("[signup-api] Request data:", { username, signupCode: signupCode ? "provided" : "none" })
 
     if (!username || !password) {
@@ -25,17 +25,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
     }
 
-    const result = await signUp(username, password, email, signupCode)
-    
-    if (!result) {
-      console.error("[signup-api] Failed to create user")
-      return NextResponse.json({ error: "Username already exists or signup failed" }, { status: 400 })
-    }
-
-    const { user, token } = result
+    const { user, token } = await signUp(username, password, signupCode)
 
     const cookieStore = await cookies()
-    cookieStore.set("session_token", token, {
+    cookieStore.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -43,7 +36,7 @@ export async function POST(request: NextRequest) {
       path: "/",
     })
 
-    console.log("[signup-api] Signup successful, cookie set for:", user.username)
+    console.log("[signup-api] Signup successful, cookie set")
     return NextResponse.json({
       user: {
         id: user.id,

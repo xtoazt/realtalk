@@ -76,21 +76,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         // Apply theme when user is loaded
         if (data.user) {
-          applyTheme(data.user.theme || "dark", data.user.hue || "gray")
+          applyTheme(data.user.theme || "dark", data.user.hue || "blue")
         } else {
-          applyTheme("dark", "gray")
+          applyTheme("dark", "blue")
         }
       } else {
         console.log("[UserProvider] No user authenticated")
         setUser(null)
         // Apply default theme
-        applyTheme("dark", "gray")
+        applyTheme("dark", "blue")
       }
     } catch (err) {
       console.error("[UserProvider] Error fetching user:", err)
       setError("Failed to load user data")
       setUser(null)
-      applyTheme("dark", "gray")
+      applyTheme("dark", "blue")
     } finally {
       setLoading(false)
     }
@@ -107,7 +107,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // Apply theme when user is updated
       if (userData.theme || userData.hue) {
-        applyTheme(updated.theme || "dark", updated.hue || "gray")
+        applyTheme(updated.theme || "dark", updated.hue || "blue")
       }
 
       return updated
@@ -121,7 +121,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         credentials: "include",
       })
       setUser(null)
-      applyTheme("dark", "gray")
+      applyTheme("dark", "blue")
       window.location.href = "/auth"
     } catch (error) {
       console.error("[UserProvider] Sign out error:", error)

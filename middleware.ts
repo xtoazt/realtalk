@@ -7,8 +7,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   console.log("[middleware] Pathname:", pathname)
 
-  const token = request.cookies.get("session_token")?.value
-  console.log("[middleware] Session token found:", !!token)
+  const token = request.cookies.get("auth-token")?.value
+  console.log("[middleware] Auth token found:", !!token)
 
   // Public routes that don't require authentication
   const publicRoutes = ["/auth", "/"]
@@ -20,13 +20,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth", request.url))
   }
 
-  // If token exists and trying to access auth page, redirect to dashboard
-  if (token && pathname === "/auth") {
-    console.log("[middleware] Token exists, on /auth page, redirecting to /dashboard")
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+  // If token exists, verify it
+  if (token) {
+    const decoded = verifyToken(token)
+    console.log("[middleware] Token decoded:", !!decoded)
+
+    // If token is invalid and trying to access protected route
+    if (!decoded && !isPublicRoute) {
+      console.log("[middleware] Invalid token, redirecting to /auth and deleting cookie.")
+      const response = NextResponse.redirect(new URL("/auth", request.url))
+      response.cookies.delete("auth-token")
+      return response
+    }
+
+    // If token is valid and trying to access auth page, redirect to dashboard
+    if (decoded && pathname === "/auth") {
+      console.log("[middleware] Token valid, on /auth page, redirecting to /dashboard.")
+      return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
   }
 
-  console.log("[middleware] Proceeding to next response")
+  console.log("[middleware] Proceeding to next response.")
   return NextResponse.next()
 }
 

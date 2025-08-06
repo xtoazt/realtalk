@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark hue-blue">
       <body className={inter.className}>
         <AnimatedBackground />
         <UserProvider>

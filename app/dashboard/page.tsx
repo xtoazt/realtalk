@@ -1,38 +1,53 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useUser } from "@/hooks/use-user"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Settings, MessageCircle, Users, Calendar, Search, Bell } from 'lucide-react'
-import { useRouter } from "next/navigation"
-import { getUsernameClassName, getUsernameColorStyle } from "@/lib/utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MessageCircle, Users, Settings, Calendar, Search, UserPlus, BarChart3, Loader2, AlertCircle, LogOut, User } from 'lucide-react'
+import { ChatWindow } from "@/components/chat-window"
+import { FriendsPage } from "@/components/friends-page"
+import { DMsPage } from "@/components/dms-page"
+import { CalendarPage } from "@/components/calendar-page"
+import { PollsPage } from "@/components/polls-page"
+import { MessageSearch } from "@/components/message-search"
+import { ProfilePage } from "@/components/profile-page"
+import { OnlineUsers } from "@/components/online-users"
+import { TimeDateDisplay } from "@/components/time-date-display"
 
 export default function DashboardPage() {
-  const { user, loading, error } = useUser()
-  const router = useRouter()
+  const { user, loading, error, signOut } = useUser()
+  const [activeTab, setActiveTab] = useState("chat")
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
+  const [selectedChatType, setSelectedChatType] = useState<"group" | "dm">("group")
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center space-x-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-xl text-foreground">Loading dashboard...</span>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md backdrop-blur-md bg-card/90">
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Loading your dashboard...</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   if (error || !user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-destructive">Authentication Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-foreground mb-4">{error || "Please log in to continue"}</p>
-            <Button onClick={() => router.push("/auth")} className="w-full">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md backdrop-blur-md bg-card/90">
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <AlertCircle className="h-8 w-8 text-destructive mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Authentication Error</h2>
+            <p className="text-muted-foreground text-center mb-4">
+              Please log in to continue
+            </p>
+            <Button onClick={() => window.location.href = "/auth"}>
               Go to Login
             </Button>
           </CardContent>
@@ -41,193 +56,134 @@ export default function DashboardPage() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-foreground">Real Chat</h1>
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                Beta
-              </Badge>
-            </div>
+  const handleChatSelect = (chatId: string, type: "group" | "dm") => {
+    setSelectedChatId(chatId)
+    setSelectedChatType(type)
+    setActiveTab("chat")
+  }
 
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => router.push("/settings")}>
-                <Settings className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary">
-                    {user.username.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span
-                  className={getUsernameClassName(user)}
-                  style={getUsernameColorStyle(user)}
-                >
-                  {user.username}
-                </span>
-              </div>
+  return (
+    <div className="min-h-screen bg-background/50">
+      <div className="container mx-auto p-4 max-w-7xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                real.
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Welcome back, {user.has_gold_animation ? (
+                  <span className="gold-username">{user.username}</span>
+                ) : (
+                  <span style={{ color: user.name_color || "#ffffff" }}>{user.username}</span>
+                )}
+              </p>
             </div>
           </div>
+          
+          <div className="flex items-center space-x-4">
+            <TimeDateDisplay />
+            <OnlineUsers />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab("profile")}
+              className="backdrop-blur-sm bg-background/50"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab("settings")}
+              className="backdrop-blur-sm bg-background/50"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOut}
+              className="backdrop-blur-sm bg-background/50 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Welcome Card */}
-          <Card className="md:col-span-2 lg:col-span-3">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageCircle className="h-6 w-6 text-primary" />
-                <span>Welcome back, {user.username}!</span>
-              </CardTitle>
-              <CardDescription>
-                Ready to connect with your friends and colleagues? Choose an option below to get started.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+        {/* Main Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-7 mb-6 backdrop-blur-sm bg-background/50">
+            <TabsTrigger value="chat" className="flex items-center space-x-2">
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Chat</span>
+            </TabsTrigger>
+            <TabsTrigger value="friends" className="flex items-center space-x-2">
+              <UserPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Friends</span>
+            </TabsTrigger>
+            <TabsTrigger value="dms" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">DMs</span>
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Calendar</span>
+            </TabsTrigger>
+            <TabsTrigger value="polls" className="flex items-center space-x-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Polls</span>
+            </TabsTrigger>
+            <TabsTrigger value="search" className="flex items-center space-x-2">
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">Search</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center space-x-2">
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Chat Features */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageCircle className="h-5 w-5 text-blue-500" />
-                <span>Direct Messages</span>
-              </CardTitle>
-              <CardDescription>
-                Start private conversations with your contacts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full">
-                Open DMs
-              </Button>
-            </CardContent>
-          </Card>
+          <TabsContent value="chat" className="space-y-4">
+            <ChatWindow 
+              chatId={selectedChatId} 
+              chatType={selectedChatType}
+              onChatSelect={handleChatSelect}
+            />
+          </TabsContent>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-green-500" />
-                <span>Group Chats</span>
-              </CardTitle>
-              <CardDescription>
-                Join or create group conversations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" variant="outline">
-                Browse Groups
-              </Button>
-            </CardContent>
-          </Card>
+          <TabsContent value="friends" className="space-y-4">
+            <FriendsPage onChatSelect={handleChatSelect} />
+          </TabsContent>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Search className="h-5 w-5 text-purple-500" />
-                <span>Search Messages</span>
-              </CardTitle>
-              <CardDescription>
-                Find messages across all your conversations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" variant="outline">
-                Search
-              </Button>
-            </CardContent>
-          </Card>
+          <TabsContent value="dms" className="space-y-4">
+            <DMsPage onChatSelect={handleChatSelect} />
+          </TabsContent>
 
-          {/* User Info Card */}
-          <Card className="md:col-span-2 lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Your Profile</CardTitle>
-              <CardDescription>Manage your account settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg font-medium text-primary">
-                    {user.username.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <p className={getUsernameClassName(user)} style={getUsernameColorStyle(user)}>
-                    {user.username}
-                  </p>
-                  {user.custom_title && (
-                    <p className="text-sm text-muted-foreground">{user.custom_title}</p>
-                  )}
-                </div>
-              </div>
+          <TabsContent value="calendar" className="space-y-4">
+            <CalendarPage />
+          </TabsContent>
 
-              {user.bio && (
-                <div>
-                  <p className="text-sm font-medium text-foreground">Bio</p>
-                  <p className="text-sm text-muted-foreground">{user.bio}</p>
-                </div>
-              )}
+          <TabsContent value="polls" className="space-y-4">
+            <PollsPage />
+          </TabsContent>
 
-              <div className="flex items-center space-x-2">
-                <Badge variant={user.theme === "dark" ? "default" : "secondary"}>
-                  {user.theme === "dark" ? "Dark Mode" : "Light Mode"}
-                </Badge>
-                {user.has_gold_animation && (
-                  <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black">
-                    Gold Member
-                  </Badge>
-                )}
-              </div>
+          <TabsContent value="search" className="space-y-4">
+            <MessageSearch />
+          </TabsContent>
 
-              <Button 
-                onClick={() => router.push("/settings")} 
-                className="w-full"
-                variant="outline"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="h-20 flex-col">
-                  <Calendar className="h-6 w-6 mb-2" />
-                  <span>Calendar</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <Users className="h-6 w-6 mb-2" />
-                  <span>Friends</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <MessageCircle className="h-6 w-6 mb-2" />
-                  <span>New Chat</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <Settings className="h-6 w-6 mb-2" />
-                  <span>Settings</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+          <TabsContent value="profile" className="space-y-4">
+            <ProfilePage />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

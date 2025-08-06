@@ -15,17 +15,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username and password are required" }, { status: 400 })
     }
 
-    const result = await signIn(username, password)
-    
-    if (!result) {
-      console.error("[signin-api] Invalid credentials")
-      return NextResponse.json({ error: "Invalid username or password" }, { status: 401 })
-    }
-
-    const { user, token } = result
+    const { user, token } = await signIn(username, password)
 
     const cookieStore = await cookies()
-    cookieStore.set("session_token", token, {
+    cookieStore.set("auth-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -33,7 +26,7 @@ export async function POST(request: NextRequest) {
       path: "/",
     })
 
-    console.log("[signin-api] Signin successful, cookie set for:", user.username)
+    console.log("[signin-api] Signin successful, cookie set")
     return NextResponse.json({
       user: {
         id: user.id,
@@ -52,6 +45,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error("[signin-api] Error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 400 })
   }
 }
