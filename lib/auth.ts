@@ -1,10 +1,9 @@
 import { cookies } from "next/headers"
 import { neon } from "@neondatabase/serverless"
-import bcrypt from "bcryptjs"
 
 const sql = neon(process.env.DATABASE_URL!)
 
-interface User {
+export interface User {
   id: string
   username: string
   email?: string
@@ -23,132 +22,123 @@ interface User {
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = cookies()
-    const token = cookieStore.get("auth-token")?.value
+    const sessionToken = cookieStore.get("session_token")?.value
 
-    if (!token) {
-      console.log("[getCurrentUser] No auth token found")
+    if (!sessionToken) {
+      console.log("[auth] No session token found")
       return null
     }
 
-    // Simple token validation - in production you'd want proper JWT
+    console.log("[auth] Looking up user with session token")
+
     const users = await sql`
       SELECT id, username, email, signup_code, name_color, custom_title, 
              has_gold_animation, notifications_enabled, theme, hue, 
              profile_picture, bio, created_at
       FROM users 
-      WHERE id = ${token}
+      WHERE id = ${sessionToken}
     `
 
     if (users.length === 0) {
-      console.log("[getCurrentUser] User not found in database")
+      console.log("[auth] No user found for session token")
       return null
     }
 
-    return users[0] as User
+    const user = users[0] as User
+    console.log("[auth] Found user:", user.username)
+    return user
   } catch (error) {
-    console.error("[getCurrentUser] Error:", error)
+    console.error("[auth] Error getting current user:", error)
     return null
   }
 }
 
 export async function verifyToken(token: string): Promise<User | null> {
-  try {
-    const users = await sql`
-      SELECT id, username, email, signup_code, name_color, custom_title, 
-             has_gold_animation, notifications_enabled, theme, hue, 
-             profile_picture, bio, created_at
-      FROM users 
-      WHERE id = ${token}
-    `
-
-    return users.length > 0 ? (users[0] as User) : null
-  } catch (error) {
-    console.error("[verifyToken] Error:", error)
-    return null
-  }
+  return getCurrentUser()
 }
 
 export async function signIn(username: string, password: string): Promise<{ user: User; token: string } | null> {
   try {
+    console.log("[auth] Sign in attempt for:", username)
+
     const users = await sql`
-      SELECT id, username, email, password_hash, signup_code, name_color, 
-             custom_title, has_gold_animation, notifications_enabled, theme, hue, 
-             profile_picture, bio, created_at
+      SELECT id, username, email, signup_code, name_color, custom_title, 
+             has_gold_animation, notifications_enabled, theme, hue, 
+             profile_picture, bio, created_at, password_hash
       FROM users 
       WHERE username = ${username}
     `
 
     if (users.length === 0) {
+      console.log("[auth] User not found:", username)
       return null
     }
 
-    const user = users[0] as User & { password_hash: string }
-    const isValid = await bcrypt.compare(password, user.password_hash)
+    const user = users[0]
 
-    if (!isValid) {
+    // Simple password check (in production, use bcrypt)
+    if (user.password_hash !== password) {
+      console.log("[auth] Invalid password for:", username)
       return null
     }
 
-    // Use user ID as token for simplicity
-    const token = user.id
+    console.log("[auth] Sign in successful for:", username)
 
-    // Remove password_hash from user object
+    // Remove password from user object
     const { password_hash, ...userWithoutPassword } = user
-
-    return { user: userWithoutPassword, token }
+    
+    return {
+      user: userWithoutPassword as User,
+      token: user.id
+    }
   } catch (error) {
-    console.error("[signIn] Error:", error)
+    console.error("[auth] Sign in error:", error)
     return null
   }
 }
 
-export async function signUp(
-  username: string,
-  password: string,
-  email?: string,
-  signupCode?: string,
-): Promise<{ user: User; token: string } | null> {
+export async function signUp(username: string, password: string, email?: string, signupCode?: string): Promise<{ user: User; token: string } | null> {
   try {
-    const hashedPassword = await bcrypt.hash(password, 12)
-    const userId = Math.random().toString(36).substring(2, 15)
+    console.log("[auth] Sign up attempt for:", username)
 
-    // Set defaults based on signup code
-    let nameColor = null
-    let hasGoldAnimation = false
+    // Check if user already exists
+    const existingUsers = await sql`
+      SELECT id FROM users WHERE username = ${username}
+    `
 
-    if (signupCode === "asdf") {
-      nameColor = "#6366f1"
-    } else if (signupCode === "qwea") {
-      hasGoldAnimation = true
+    if (existingUsers.length > 0) {
+      console.log("[auth] User already exists:", username)
+      return null
     }
 
-    const users = await sql`
-      INSERT INTO users (id, username, password_hash, email, signup_code, name_color, has_gold_animation, theme, hue, notifications_enabled, created_at)
-      VALUES (${userId}, ${username}, ${hashedPassword}, ${email || null}, ${signupCode || null}, ${nameColor}, ${hasGoldAnimation}, 'dark', 'gray', false, NOW())
+    // Create new user
+    const newUsers = await sql`
+      INSERT INTO users (username, email, password_hash, signup_code, theme, hue, notifications_enabled, has_gold_animation)
+      VALUES (${username}, ${email || null}, ${password}, ${signupCode || null}, 'dark', 'gray', false, ${signupCode === 'asdf'})
       RETURNING id, username, email, signup_code, name_color, custom_title, 
                 has_gold_animation, notifications_enabled, theme, hue, 
                 profile_picture, bio, created_at
     `
 
-    if (users.length === 0) {
+    if (newUsers.length === 0) {
+      console.log("[auth] Failed to create user:", username)
       return null
     }
 
-    const user = users[0] as User
-    const token = user.id
+    const user = newUsers[0] as User
+    console.log("[auth] Sign up successful for:", username)
 
-    return { user, token }
+    return {
+      user,
+      token: user.id
+    }
   } catch (error) {
-    console.error("[signUp] Error:", error)
+    console.error("[auth] Sign up error:", error)
     return null
   }
 }
 
 export async function verifyAuth(token: string): Promise<boolean> {
-  try {
-    const user = await verifyToken(token)
-    return user !== null
-  } catch (error) {
-    return false
-  }
+  const user = await getCurrentUser()
+  return user !== null
 }

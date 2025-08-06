@@ -65,6 +65,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
@@ -92,73 +93,88 @@
 .hue-red {
   --primary: 0 72.2% 50.6%;
   --primary-foreground: 0 85.7% 97.3%;
+  --accent: 0 84.2% 60.2%;
+  --accent-foreground: 0 85.7% 97.3%;
 }
 
 .hue-orange {
   --primary: 24.6 95% 53.1%;
   --primary-foreground: 60 9.1% 97.8%;
+  --accent: 24.6 95% 53.1%;
+  --accent-foreground: 60 9.1% 97.8%;
 }
 
 .hue-yellow {
   --primary: 47.9 95.8% 53.1%;
   --primary-foreground: 26 83.3% 14.1%;
+  --accent: 47.9 95.8% 53.1%;
+  --accent-foreground: 26 83.3% 14.1%;
 }
 
 .hue-green {
   --primary: 142.1 76.2% 36.3%;
   --primary-foreground: 355.7 100% 97.3%;
+  --accent: 142.1 76.2% 36.3%;
+  --accent-foreground: 355.7 100% 97.3%;
 }
 
 .hue-blue {
   --primary: 221.2 83.2% 53.3%;
   --primary-foreground: 210 40% 98%;
+  --accent: 221.2 83.2% 53.3%;
+  --accent-foreground: 210 40% 98%;
 }
 
 .hue-purple {
   --primary: 262.1 83.3% 57.8%;
   --primary-foreground: 210 40% 98%;
+  --accent: 262.1 83.3% 57.8%;
+  --accent-foreground: 210 40% 98%;
 }
 
 .hue-pink {
   --primary: 322.2 78.8% 60.4%;
   --primary-foreground: 210 40% 98%;
+  --accent: 322.2 78.8% 60.4%;
+  --accent-foreground: 210 40% 98%;
 }
 
 .hue-gray {
   --primary: 0 0% 45%;
   --primary-foreground: 0 0% 98%;
+  --accent: 0 0% 45%;
+  --accent-foreground: 0 0% 98%;
 }
 
-/* Particle background */
-.particles-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.particle {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 0.1;
+/* Enhanced animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  50% {
-    transform: translateY(-20px) rotate(180deg);
-    opacity: 0.3;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
 }
 
 /* Custom scrollbar */
@@ -177,4 +193,59 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--foreground));
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .hover-lift:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.1) 50%, hsl(var(--muted)) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Focus styles */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Typography improvements */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Card enhancements */
+.card-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }

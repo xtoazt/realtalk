@@ -13,6 +13,7 @@ interface User {
   theme?: string
   hue?: string
   notifications_enabled?: boolean
+  bio?: string
   created_at: string
 }
 
@@ -76,6 +77,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Apply theme when user is loaded
         if (data.user) {
           applyTheme(data.user.theme || "dark", data.user.hue || "gray")
+        } else {
+          applyTheme("dark", "gray")
         }
       } else {
         console.log("[UserProvider] No user authenticated")

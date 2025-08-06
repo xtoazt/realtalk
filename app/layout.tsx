@@ -1,14 +1,13 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import ClientLayout from "./ClientLayout"
+import { Inter } from 'next/font/google'
+import { UserProvider } from "@/hooks/use-user"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "real.",
-  description: "A real-time chat application.",
+  title: "Real Chat - Modern Communication",
+  description: "A modern real-time chat application with advanced features",
   icons: {
     icon: "/favicon.png",
   },
@@ -20,5 +19,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <ClientLayout>{children}</ClientLayout>
+  return (
+    <html lang="en" className="dark">
+      <body className={inter.className}>
+        <UserProvider>
+          {children}
+        </UserProvider>
+      </body>
+    </html>
+  )
 }

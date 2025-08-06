@@ -1,435 +1,233 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { DynamicIsland } from "@/components/dynamic-island"
-import { ChatWindow } from "@/components/chat-window"
-import { FriendsPage } from "@/components/friends-page"
-import { DMsPage } from "@/components/dms-page"
-import { PollsPage } from "@/components/polls-page"
-import { CalendarPage } from "@/components/calendar-page"
-import { ProfilePage } from "@/components/profile-page"
-import { CreateGroupChat } from "@/components/create-group-chat"
-import { OnlineUsers } from "@/components/online-users"
-import { RecentPoll } from "@/components/recent-poll"
-import { MessageSearch } from "@/components/message-search"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe, Trash2, Search } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
-import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
-
-interface GroupChat {
-  id: string
-  name: string
-  creator_username: string
-  creator_id: string
-}
-
-const themes = [
-  { id: "light", name: "Light" },
-  { id: "dark", name: "Dark" },
-]
-
-const hues = [
-  { id: "blue", name: "Blue" },
-  { id: "purple", name: "Purple" },
-  { id: "pink", name: "Pink" },
-  { id: "red", name: "Red" },
-  { id: "orange", name: "Orange" },
-  { id: "yellow", name: "Yellow" },
-  { id: "green", name: "Green" },
-  { id: "teal", name: "Teal" },
-]
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Settings, MessageCircle, Users, Calendar, Search, Bell } from 'lucide-react'
+import { useRouter } from "next/navigation"
+import { getUsernameClassName, getUsernameColorStyle } from "@/lib/utils"
 
 export default function DashboardPage() {
-  const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
-  const [currentPage, setCurrentPage] = useState("dashboard")
-  const [groupChats, setGroupChats] = useState<GroupChat[]>([])
-  const [activeChat, setActiveChat] = useState<{
-    type: "global" | "group" | "dm" | null
-    id?: string
-    name: string
-  }>({ type: null, name: "" })
-  const [showCreateGC, setShowCreateGC] = useState(false)
-  const [showMessageSearch, setShowMessageSearch] = useState(false)
+  const { user, loading, error } = useUser()
   const router = useRouter()
 
-  const fetchGroupChats = useCallback(async () => {
-    if (!user) return
-    try {
-      const response = await fetch("/api/group-chats")
-      if (response.ok) {
-        const data = await response.json()
-        setGroupChats(data.groupChats)
-      } else {
-        console.error("Failed to fetch group chats:", response.status, await response.text())
-      }
-    } catch (error) {
-      console.error("Failed to fetch group chats:", error)
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (!userLoading && user) {
-      fetchGroupChats()
-    }
-  }, [userLoading, user, fetchGroupChats])
-
-  const handleCreateGC = async (name: string, memberIds: string[]) => {
-    try {
-      const response = await fetch("/api/group-chats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, memberIds }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setGroupChats((prev) => [data.groupChat, ...prev])
-        setShowCreateGC(false)
-        setActiveChat({
-          type: "group",
-          id: data.groupChat.id,
-          name: data.groupChat.name,
-        })
-        setCurrentPage("dashboard")
-      } else {
-        console.error("Failed to create group chat:", response.status, await response.text())
-      }
-    } catch (error) {
-      console.error("Failed to create group chat:", error)
-    }
-  }
-
-  const handleDeleteGroupChat = async (groupId: string) => {
-    if (!user) return
-    if (confirm("Are you sure you want to delete this group chat? This action cannot be undone.")) {
-      try {
-        const response = await fetch(`/api/group-chats/${groupId}`, {
-          method: "DELETE",
-        })
-
-        if (response.ok) {
-          console.log(`Group chat ${groupId} deleted successfully.`)
-          fetchGroupChats()
-          if (activeChat.type === "group" && activeChat.id === groupId) {
-            setActiveChat({ type: null, name: "" })
-          }
-        } else {
-          const errorData = await response.json()
-          console.error("Failed to delete group chat:", errorData.error || response.statusText)
-          alert(`Failed to delete group chat: ${errorData.error || response.statusText}`)
-        }
-      } catch (error) {
-        console.error("Failed to delete group chat:", error)
-        alert("An unexpected error occurred while deleting the group chat.")
-      }
-    }
-  }
-
-  const handleSignOut = async () => {
-    try {
-      const response = await fetch("/api/auth/signout", {
-        method: "POST",
-        credentials: "include",
-      })
-
-      if (response.ok) {
-        updateLocalUser(null)
-        window.location.href = "/auth"
-      } else {
-        console.error("Sign out failed:", response.status)
-        window.location.href = "/auth"
-      }
-    } catch (error) {
-      console.error("Failed to sign out:", error)
-      window.location.href = "/auth"
-    }
-  }
-
-  const handleStartDM = (friendId: string, friendUsername: string) => {
-    setActiveChat({
-      type: "dm",
-      id: friendId,
-      name: `@${friendUsername}`,
-    })
-    setCurrentPage("dashboard")
-  }
-
-  const handlePageChange = (page: string) => {
-    if (page === "settings") {
-      router.push("/settings")
-    } else if (page === "about") {
-      router.push("/about")
-    } else {
-      setCurrentPage(page)
-      if (page !== "dashboard") {
-        setActiveChat({ type: null, name: "" })
-      }
-    }
-  }
-
-  const handleGlobalChatClick = () => {
-    setActiveChat({ type: "global", name: "Global Chat" })
-    setCurrentPage("dashboard")
-  }
-
-  const handleAIChatClick = () => {
-    setActiveChat({ type: "dm", id: AI_USER_ID, name: AI_USERNAME })
-    setCurrentPage("dashboard")
-  }
-
-  const handleThemeCycle = async () => {
-    if (!user) return
-
-    const currentThemeIndex = themes.findIndex((t) => t.id === user.theme)
-    const nextThemeIndex = (currentThemeIndex + 1) % themes.length
-    const nextTheme = themes[nextThemeIndex].id
-
-    console.log("[dashboard] Cycling theme from", user.theme, "to", nextTheme)
-
-    try {
-      const response = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: nextTheme }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[dashboard] Theme update successful:", data.user.theme)
-        updateLocalUser(data.user)
-      } else {
-        const errorData = await response.json()
-        console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
-        alert(`Failed to change theme: ${errorData.error || response.statusText}`)
-      }
-    } catch (error: any) {
-      console.error("[dashboard] Failed to update theme:", error)
-      alert(`An unexpected error occurred while changing theme: ${error.message}`)
-    }
-  }
-
-  const handleHueCycle = async () => {
-    if (!user) return
-
-    const currentHueIndex = hues.findIndex((h) => h.id === user.hue)
-    const nextHueIndex = (currentHueIndex + 1) % hues.length
-    const nextHue = hues[nextHueIndex].id
-
-    console.log("[dashboard] Cycling hue from", user.hue, "to", nextHue)
-
-    try {
-      const response = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hue: nextHue }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[dashboard] Hue update successful:", data.user.hue)
-        updateLocalUser(data.user)
-      } else {
-        const errorData = await response.json()
-        console.error("[dashboard] Failed to update hue:", errorData.error || response.statusText)
-        alert(`Failed to change hue: ${errorData.error || response.statusText}`)
-      }
-    } catch (error: any) {
-      console.error("[dashboard] Failed to update hue:", error)
-      alert(`An unexpected error occurred while changing hue: ${error.message}`)
-    }
-  }
-
-  const handleMessageSearchClick = (chatType: string, chatId?: string) => {
-    if (chatType === "global") {
-      setActiveChat({ type: "global", name: "Global Chat" })
-    } else if (chatType === "dm") {
-      setActiveChat({ type: "dm", id: chatId, name: "Direct Message" })
-    } else if (chatType === "group") {
-      const groupChat = groupChats.find((gc) => gc.id === chatId)
-      setActiveChat({ type: "group", id: chatId, name: groupChat?.name || "Group Chat" })
-    }
-    setCurrentPage("dashboard")
-  }
-
-  const handleViewAllPolls = () => {
-    setCurrentPage("polls")
-  }
-
-  const handleSendFriendRequest = async (userId: string) => {
-    try {
-      const response = await fetch("/api/friends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addresseeId: userId }),
-      })
-
-      if (response.ok) {
-        alert("Friend request sent!")
-      } else {
-        const errorData = await response.json()
-        alert(`Failed to send friend request: ${errorData.error}`)
-      }
-    } catch (error) {
-      console.error("Failed to send friend request:", error)
-      alert("An error occurred while sending friend request")
-    }
-  }
-
-  if (userLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground animate-pulse">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center space-x-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-xl text-foreground">Loading dashboard...</span>
+        </div>
       </div>
     )
   }
 
-  if (!user) {
-    return null
+  if (error || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-destructive">Authentication Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-foreground mb-4">{error || "Please log in to continue"}</p>
+            <Button onClick={() => router.push("/auth")} className="w-full">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
-      <DynamicIsland
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-        onSignOut={handleSignOut}
-        onGlobalChatClick={handleGlobalChatClick}
-        onAIChatClick={handleAIChatClick}
-        username={user.username}
-        onThemeCycle={handleThemeCycle}
-        onHueCycle={handleHueCycle}
-      />
-
-      <div className="pt-20 px-4 pb-4">
-        {currentPage === "dashboard" && (
-          <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
-            <div className="w-full md:w-80 space-y-4 flex-shrink-0">
-              <Card className="animate-fadeIn">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Group Chats</span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowMessageSearch(true)}
-                        title="Search Messages"
-                      >
-                        <Search className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setShowCreateGC(true)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {groupChats.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No group chats yet</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {groupChats.map((gc) => (
-                        <div key={gc.id} className="flex items-center justify-between">
-                          <Button
-                            variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
-                            className="flex-1 justify-start text-left transition-all duration-200 hover:scale-102"
-                            onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
-                          >
-                            <Users className="h-4 w-4 mr-2 shrink-0" />
-                            <span className="truncate">{gc.name}</span>
-                          </Button>
-                          {user.id === gc.creator_id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteGroupChat(gc.id)}
-                              className="ml-2 text-red-500 hover:bg-red-500/10"
-                              title="Delete Group Chat"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <OnlineUsers currentUserId={user.id} />
-              <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-2xl font-bold text-foreground">Real Chat</h1>
+              <Badge variant="secondary" className="hidden sm:inline-flex">
+                Beta
+              </Badge>
             </div>
 
-            <div className="flex-1 h-full">
-              {activeChat.type ? (
-                <div className="animate-fadeIn">
-                  <ChatWindow
-                    chatType={activeChat.type}
-                    chatId={activeChat.id}
-                    chatName={activeChat.name}
-                    currentUserId={user.id}
-                  />
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push("/settings")}>
+                <Settings className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary">
+                    {user.username.charAt(0).toUpperCase()}
+                  </span>
                 </div>
-              ) : (
-                <Card className="flex items-center justify-center h-full animate-fadeIn">
-                  <CardContent className="text-center py-12">
-                    <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
-                    <h3 className="text-xl font-semibold text-foreground">Welcome to real.</h3>
-                    <p className="text-muted-foreground mt-2 mb-4">
-                      Click on "Global" or "AI Chat" in the dynamic island above to start chatting,
-                      <br />
-                      or select a group chat from the sidebar.
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span>Ready to connect</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                <span
+                  className={getUsernameClassName(user)}
+                  style={getUsernameColorStyle(user)}
+                >
+                  {user.username}
+                </span>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      </header>
 
-        {currentPage === "friends" && (
-          <div className="max-w-4xl mx-auto animate-slideIn">
-            <FriendsPage currentUserId={user.id} onStartDM={handleStartDM} />
-          </div>
-        )}
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Welcome Card */}
+          <Card className="md:col-span-2 lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MessageCircle className="h-6 w-6 text-primary" />
+                <span>Welcome back, {user.username}!</span>
+              </CardTitle>
+              <CardDescription>
+                Ready to connect with your friends and colleagues? Choose an option below to get started.
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-        {currentPage === "dms" && (
-          <div className="max-w-4xl mx-auto animate-slideIn">
-            <DMsPage currentUserId={user.id} onSelectDM={handleStartDM} />
-          </div>
-        )}
+          {/* Chat Features */}
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MessageCircle className="h-5 w-5 text-blue-500" />
+                <span>Direct Messages</span>
+              </CardTitle>
+              <CardDescription>
+                Start private conversations with your contacts
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full">
+                Open DMs
+              </Button>
+            </CardContent>
+          </Card>
 
-        {currentPage === "polls" && (
-          <div className="max-w-4xl mx-auto animate-slideIn">
-            <PollsPage currentUserId={user.id} userSignupCode={user.signup_code} />
-          </div>
-        )}
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-green-500" />
+                <span>Group Chats</span>
+              </CardTitle>
+              <CardDescription>
+                Join or create group conversations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                Browse Groups
+              </Button>
+            </CardContent>
+          </Card>
 
-        {currentPage === "calendar" && (
-          <div className="max-w-4xl mx-auto animate-slideIn">
-            <CalendarPage currentUserId={user.id} />
-          </div>
-        )}
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Search className="h-5 w-5 text-purple-500" />
+                <span>Search Messages</span>
+              </CardTitle>
+              <CardDescription>
+                Find messages across all your conversations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                Search
+              </Button>
+            </CardContent>
+          </Card>
 
-        {currentPage === "profile" && (
-          <div className="max-w-4xl mx-auto animate-slideIn">
-            <ProfilePage onStartDM={handleStartDM} onSendFriendRequest={handleSendFriendRequest} />
-          </div>
-        )}
-      </div>
+          {/* User Info Card */}
+          <Card className="md:col-span-2 lg:col-span-1">
+            <CardHeader>
+              <CardTitle>Your Profile</CardTitle>
+              <CardDescription>Manage your account settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-lg font-medium text-primary">
+                    {user.username.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className={getUsernameClassName(user)} style={getUsernameColorStyle(user)}>
+                    {user.username}
+                  </p>
+                  {user.custom_title && (
+                    <p className="text-sm text-muted-foreground">{user.custom_title}</p>
+                  )}
+                </div>
+              </div>
 
-      {showCreateGC && user && <CreateGroupChat onClose={() => setShowCreateGC(false)} onCreate={handleCreateGC} />}
+              {user.bio && (
+                <div>
+                  <p className="text-sm font-medium text-foreground">Bio</p>
+                  <p className="text-sm text-muted-foreground">{user.bio}</p>
+                </div>
+              )}
 
-      {showMessageSearch && (
-        <MessageSearch onClose={() => setShowMessageSearch(false)} onMessageClick={handleMessageSearchClick} />
-      )}
+              <div className="flex items-center space-x-2">
+                <Badge variant={user.theme === "dark" ? "default" : "secondary"}>
+                  {user.theme === "dark" ? "Dark Mode" : "Light Mode"}
+                </Badge>
+                {user.has_gold_animation && (
+                  <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black">
+                    Gold Member
+                  </Badge>
+                )}
+              </div>
+
+              <Button 
+                onClick={() => router.push("/settings")} 
+                className="w-full"
+                variant="outline"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks and shortcuts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <Button variant="outline" className="h-20 flex-col">
+                  <Calendar className="h-6 w-6 mb-2" />
+                  <span>Calendar</span>
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <Users className="h-6 w-6 mb-2" />
+                  <span>Friends</span>
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <MessageCircle className="h-6 w-6 mb-2" />
+                  <span>New Chat</span>
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <Settings className="h-6 w-6 mb-2" />
+                  <span>Settings</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   )
 }
