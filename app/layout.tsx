@@ -1,15 +1,16 @@
 import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { UserProvider } from "@/hooks/use-user"
 import { AnimatedBackground } from "@/components/animated-background"
+import { ThemeProvider } from "@/components/theme-provider" // Import ThemeProvider
+import { Toaster } from "@/components/ui/toaster" // Import Toaster
+import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "real. - Real-time Chat",
-  description: "A modern real-time chat application",
+  title: "Real Chat - Modern Communication",
+  description: "A modern real-time chat application with advanced features",
   icons: {
     icon: "/favicon.png",
   },
@@ -26,15 +27,17 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
+          defaultTheme="dark" // Default theme
+          enableSystem // Enable system theme detection
+          disableTransitionOnChange // Prevent flash of unstyled content
         >
           <AnimatedBackground />
-          <div className="relative z-10">
-            {children}
-          </div>
-          <Toaster />
+          <UserProvider>
+            <div className="relative z-10">
+              {children}
+            </div>
+          </UserProvider>
+          <Toaster /> {/* Add Toaster for notifications */}
         </ThemeProvider>
       </body>
     </html>

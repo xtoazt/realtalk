@@ -1,185 +1,183 @@
-'use client'
+"use client"
 
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from "react"
 
 interface Particle {
   x: number
   y: number
   vx: number
   vy: number
-  size: number
-  opacity: number
-  hue: number
+  radius: number
+  color: string
+  alpha: number
+}
+
+interface RadialGradient {
+  x: number
+  y: number
+  radius: number
+  color: string
+  alpha: number
+  vx: number
+  vy: number
 }
 
 export function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const particlesRef = useRef<Particle[]>([])
-  const animationRef = useRef<number>()
+  const animationFrameId = useRef<number | null>(null)
+  const [particles, setParticles] = useState<Particle[]>([])
+  const [gradients, setGradients] = useState<RadialGradient[]>([])
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
-  useEffect(() => {
+  const createParticle = useCallback((width: number, height: number): Particle => {
+    const hue = Math.random() * 360 // Random hue for varied colors
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.5, // Slower movement
+      vy: (Math.random() - 0.5) * 0.5,
+      radius: Math.random() * 1.5 + 0.5, // Smaller particles
+      color: `hsl(${hue}, 70%, 70%)`,
+      alpha: Math.random() * 0.5 + 0.2, // More transparent
+    }
+  }, [])
+
+  const createGradient = useCallback((width: number, height: number): RadialGradient => {
+    const hue = Math.random() * 360
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      radius: Math.random() * 300 + 100, // Larger, more subtle gradients
+      color: `hsl(${hue}, 80%, 60%)`,
+      alpha: Math.random() * 0.1 + 0.05, // Very transparent
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
+    }
+  }, [])
+
+  const initCanvas = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const ctx = canvas.getContext('2d')
+    const dpr = window.devicePixelRatio || 1
+    const rect = canvas.getBoundingClientRect()
+    const width = rect.width
+    const height = rect.height
+
+    canvas.width = width * dpr
+    canvas.height = height * dpr
+    const ctx = canvas.getContext("2d")
+    if (ctx) {
+      ctx.scale(dpr, dpr)
+    }
+
+    setDimensions({ width, height })
+
+    const numParticles = Math.floor((width * height) / 10000) // Scale particle count
+    setParticles(Array.from({ length: numParticles }, () => createParticle(width, height)))
+    setGradients(Array.from({ length: 3 }, () => createGradient(width, height))) // Few large gradients
+  }, [createParticle, createGradient])
+
+  const animate = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
+    const { width, height } = dimensions
 
-    const createParticles = () => {
-      const particleCount = Math.min(50, Math.floor((canvas.width * canvas.height) / 15000))
-      particlesRef.current = []
+    ctx.clearRect(0, 0, width, height)
 
-      for (let i = 0; i < particleCount; i++) {
-        particlesRef.current.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          size: Math.random() * 3 + 1,
-          opacity: Math.random() * 0.5 + 0.2,
-          hue: Math.random() * 60 + 240, // Blue to purple range
-        })
-      }
-    }
-
-    const drawGradientBackground = () => {
-      // Create the main gradient background
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-      gradient.addColorStop(0, '#8B5CF6') // Purple
-      gradient.addColorStop(0.5, '#3B82F6') // Blue
-      gradient.addColorStop(1, '#06B6D4') // Cyan
-
-      ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Add some moving radial gradients for depth
-      const time = Date.now() * 0.001
-      
-      // First moving gradient
-      const radialGradient1 = ctx.createRadialGradient(
-        canvas.width * 0.3 + Math.sin(time * 0.5) * 100,
-        canvas.height * 0.3 + Math.cos(time * 0.3) * 100,
-        0,
-        canvas.width * 0.3 + Math.sin(time * 0.5) * 100,
-        canvas.height * 0.3 + Math.cos(time * 0.3) * 100,
-        300
-      )
-      radialGradient1.addColorStop(0, 'rgba(139, 92, 246, 0.3)')
-      radialGradient1.addColorStop(1, 'rgba(139, 92, 246, 0)')
-
-      ctx.fillStyle = radialGradient1
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Second moving gradient
-      const radialGradient2 = ctx.createRadialGradient(
-        canvas.width * 0.7 + Math.sin(time * 0.7) * 80,
-        canvas.height * 0.7 + Math.cos(time * 0.4) * 80,
-        0,
-        canvas.width * 0.7 + Math.sin(time * 0.7) * 80,
-        canvas.height * 0.7 + Math.cos(time * 0.4) * 80,
-        250
-      )
-      radialGradient2.addColorStop(0, 'rgba(59, 130, 246, 0.3)')
-      radialGradient2.addColorStop(1, 'rgba(59, 130, 246, 0)')
-
-      ctx.fillStyle = radialGradient2
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-    }
-
-    const updateParticles = () => {
-      particlesRef.current.forEach(particle => {
-        particle.x += particle.vx
-        particle.y += particle.vy
+    // Update and draw gradients
+    setGradients((prevGradients) =>
+      prevGradients.map((g) => {
+        g.x += g.vx
+        g.y += g.vy
 
         // Bounce off edges
-        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1
-        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1
+        if (g.x + g.radius > width || g.x - g.radius < 0) g.vx *= -1
+        if (g.y + g.radius > height || g.y - g.radius < 0) g.vy *= -1
 
-        // Keep particles in bounds
-        particle.x = Math.max(0, Math.min(canvas.width, particle.x))
-        particle.y = Math.max(0, Math.min(canvas.height, particle.y))
+        const gradient = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.radius)
+        gradient.addColorStop(0, `rgba(${parseInt(g.color.slice(4, 7))}, ${parseInt(g.color.slice(8, 11))}, ${parseInt(g.color.slice(12, 15))}, ${g.alpha})`)
+        gradient.addColorStop(1, `rgba(${parseInt(g.color.slice(4, 7))}, ${parseInt(g.color.slice(8, 11))}, ${parseInt(g.color.slice(12, 15))}, 0)`)
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, width, height)
+        return g
+      }),
+    )
 
-        // Subtle opacity animation
-        particle.opacity += (Math.random() - 0.5) * 0.02
-        particle.opacity = Math.max(0.1, Math.min(0.7, particle.opacity))
-      })
-    }
+    // Update and draw particles
+    setParticles((prevParticles) =>
+      prevParticles.map((p) => {
+        p.x += p.vx
+        p.y += p.vy
 
-    const drawParticles = () => {
-      particlesRef.current.forEach(particle => {
+        // Wrap around edges
+        if (p.x < 0) p.x = width
+        if (p.x > width) p.x = 0
+        if (p.y < 0) p.y = height
+        if (p.y > height) p.y = 0
+
         ctx.beginPath()
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${particle.hue}, 70%, 70%, ${particle.opacity})`
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${parseInt(p.color.slice(4, 7))}, ${parseInt(p.color.slice(8, 11))}, ${parseInt(p.color.slice(12, 15))}, ${p.alpha})`
         ctx.fill()
+        return p
+      }),
+    )
 
-        // Add a subtle glow
-        ctx.beginPath()
-        ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${particle.hue}, 70%, 70%, ${particle.opacity * 0.2})`
-        ctx.fill()
-      })
-    }
+    // Draw lines between nearby particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const p1 = particles[i]
+        const p2 = particles[j]
+        const distance = Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
 
-    const drawConnections = () => {
-      const maxDistance = 150
-      particlesRef.current.forEach((particle, i) => {
-        particlesRef.current.slice(i + 1).forEach(otherParticle => {
-          const dx = particle.x - otherParticle.x
-          const dy = particle.y - otherParticle.y
-          const distance = Math.sqrt(dx * dx + dy * dy)
-
-          if (distance < maxDistance) {
-            const opacity = (1 - distance / maxDistance) * 0.3
-            ctx.beginPath()
-            ctx.moveTo(particle.x, particle.y)
-            ctx.lineTo(otherParticle.x, otherParticle.y)
-            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`
-            ctx.lineWidth = 1
-            ctx.stroke()
-          }
-        })
-      })
-    }
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      
-      drawGradientBackground()
-      updateParticles()
-      drawConnections()
-      drawParticles()
-
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    resizeCanvas()
-    createParticles()
-    animate()
-
-    const handleResize = () => {
-      resizeCanvas()
-      createParticles()
-    }
-
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+        if (distance < 100) {
+          ctx.beginPath()
+          ctx.moveTo(p1.x, p1.y)
+          ctx.lineTo(p2.x, p2.y)
+          ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 - distance / 1000})` // Faint lines
+          ctx.lineWidth = 0.5
+          ctx.stroke()
+        }
       }
     }
-  }, [])
+
+    animationFrameId.current = requestAnimationFrame(animate)
+  }, [dimensions, particles, gradients])
+
+  useEffect(() => {
+    initCanvas()
+    window.addEventListener("resize", initCanvas)
+
+    return () => {
+      window.removeEventListener("resize", initCanvas)
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current)
+      }
+    }
+  }, [initCanvas])
+
+  useEffect(() => {
+    if (dimensions.width > 0 && dimensions.height > 0) {
+      animationFrameId.current = requestAnimationFrame(animate)
+    }
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current)
+      }
+    }
+  }, [animate, dimensions])
 
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 -z-10"
-      style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 50%, #06B6D4 100%)' }}
+      className="absolute inset-0 w-full h-full z-0"
+      style={{
+        background: "linear-gradient(to right, #8a2be2, #4169e1, #00bfff)", // Purple to Royal Blue to Deep Sky Blue
+      }}
     />
   )
 }
