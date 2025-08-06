@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
 import { UserProvider } from "@/hooks/use-user"
+import { AnimatedBackground } from "@/components/animated-background"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -22,8 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
+        <AnimatedBackground />
         <UserProvider>
-          {children}
+          <div className="relative z-10">
+            {children}
+          </div>
         </UserProvider>
       </body>
     </html>

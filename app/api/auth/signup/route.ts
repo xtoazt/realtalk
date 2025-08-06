@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { username, password, signupCode } = body
+    const { username, password, email, signupCode } = body
     console.log("[signup-api] Request data:", { username, signupCode: signupCode ? "provided" : "none" })
 
     if (!username || !password) {
@@ -25,10 +25,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
     }
 
-    const { user, token } = await signUp(username, password, signupCode)
+    const result = await signUp(username, password, email, signupCode)
+    
+    if (!result) {
+      console.error("[signup-api] Failed to create user")
+      return NextResponse.json({ error: "Username already exists or signup failed" }, { status: 400 })
+    }
+
+    const { user, token } = result
 
     const cookieStore = await cookies()
-    cookieStore.set("auth-token", token, {
+    cookieStore.set("session_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -36,7 +43,7 @@ export async function POST(request: NextRequest) {
       path: "/",
     })
 
-    console.log("[signup-api] Signup successful, cookie set")
+    console.log("[signup-api] Signup successful, cookie set for:", user.username)
     return NextResponse.json({
       user: {
         id: user.id,
@@ -47,7 +54,10 @@ export async function POST(request: NextRequest) {
         has_gold_animation: user.has_gold_animation,
         notifications_enabled: user.notifications_enabled,
         theme: user.theme,
-        signup_code: user.signup_code,
+        hue: user.hue,
+        profile_picture: user.profile_picture,
+        bio: user.bio,
+        created_at: user.created_at,
       },
     })
   } catch (error: any) {
