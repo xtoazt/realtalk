@@ -1,6 +1,6 @@
-import { createGroq } from "@ai-sdk/groq"
+import Groq from "groq-sdk"
 
-const groq = createGroq({
+const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
