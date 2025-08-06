@@ -1,229 +1,216 @@
 "use client"
 
 import { useState } from "react"
-import { formatTime } from "@/lib/utils"
-import { getUsernameClassName, getUsernameColorStyle } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Trash2, Reply, Heart, MoreHorizontal } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-interface User {
-  id: string
-  username: string
-  name_color?: string
-  custom_title?: string
-  has_gold_animation?: boolean
-  profile_picture?: string
-}
+import { Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
+import Image from "next/image"
 
 interface Message {
   id: string
   content: string
+  sender_id: string
+  username: string
+  name_color?: string
+  custom_title?: string
+  has_gold_animation?: boolean
+  is_ai_response?: boolean
   created_at: string
-  user: User
+  mentions?: string[]
+  message_type?: string
+  reactions?: { emoji: string; count: number; reacted_by_me: boolean }[]
   parent_message_id?: string
-  parent_message?: {
-    id: string
-    content: string
-    user: User
-  }
-  reactions?: Array<{
-    emoji: string
-    count: number
-    users: string[]
-  }>
+  parent_message_content?: string
+  parent_message_username?: string
 }
 
 interface ChatMessageProps {
   message: Message
-  currentUserId?: string
-  onDelete?: (messageId: string) => void
+  currentUserId: string
+  currentUserHasGold?: boolean
+  onAddReaction?: (messageId: string, emoji: string) => void
+  onRemoveReaction?: (messageId: string, emoji: string) => void
   onReply?: (message: Message) => void
-  onReact?: (messageId: string, emoji: string) => void
+  onDelete?: (messageId: string) => void
 }
 
-export function ChatMessage({ message, currentUserId, onDelete, onReply, onReact }: ChatMessageProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [showActions, setShowActions] = useState(false)
+export function ChatMessage({
+  message,
+  currentUserId,
+  currentUserHasGold = false,
+  onAddReaction,
+  onRemoveReaction,
+  onReply,
+  onDelete,
+}: ChatMessageProps) {
+  const [showReactions, setShowReactions] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const isOwnMessage = message.sender_id === currentUserId
+  const isAI = message.is_ai_response
+  const canDelete = isOwnMessage || currentUserHasGold
 
-  const handleDelete = async () => {
-    if (!onDelete || isDeleting) return
+  const getUsernameStyle = () => {
+    if (isAI) return "text-blue-500 font-medium"
+    if (message.has_gold_animation) {
+      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+    }
+    if (message.name_color) {
+      return `font-medium`
+    }
+    return "font-medium"
+  }
 
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
+
+  const handleReactionClick = (emoji: string) => {
+    const existingReaction = message.reactions?.find((r) => r.emoji === emoji && r.reacted_by_me)
+    if (existingReaction) {
+      onRemoveReaction?.(message.id, emoji)
+    } else {
+      onAddReaction?.(message.id, emoji)
+    }
+    setShowReactions(false)
+  }
+
+  const handleDelete = () => {
     if (confirm("Are you sure you want to delete this message?")) {
-      setIsDeleting(true)
-      try {
-        await onDelete(message.id)
-      } catch (error) {
-        console.error("Failed to delete message:", error)
-      } finally {
-        setIsDeleting(false)
-      }
+      onDelete?.(message.id)
     }
   }
 
-  const handleReply = () => {
-    if (onReply) {
-      onReply(message)
-    }
-  }
-
-  const handleReact = (emoji: string) => {
-    if (onReact) {
-      onReact(message.id, emoji)
-    }
-  }
-
-  const canDelete = currentUserId === message.user.id
+  const availableEmojis = [
+    "😀",
+    "😂",
+    "😊",
+    "😍",
+    "🤩",
+    "🥳",
+    "👍",
+    "👎",
+    "❤️",
+    "💔",
+    "🔥",
+    "💯",
+    "🤔",
+    "🤯",
+    "😢",
+    "😡",
+  ]
 
   return (
-    <div 
-      className="group flex flex-col space-y-1 p-4 hover:bg-muted/50 rounded-lg transition-all duration-200 animate-fadeIn"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      {/* Parent message (if replying) */}
-      {message.parent_message && (
-        <div className="ml-12 pl-4 border-l-2 border-muted-foreground/30 text-sm text-muted-foreground bg-muted/30 rounded-r-lg p-2">
-          <div className="flex items-center space-x-2 mb-1">
-            <Reply className="h-3 w-3" />
-            <span
-              className={getUsernameClassName(message.parent_message.user)}
-              style={getUsernameColorStyle(message.parent_message.user)}
-            >
-              {message.parent_message.user.username}
-            </span>
-          </div>
-          <p className="truncate max-w-md">{message.parent_message.content}</p>
+    <div className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-4 group`}>
+      <div className={`max-w-[70%] ${isOwnMessage ? "order-2" : "order-1"}`}>
+        <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+          <span
+            className={getUsernameStyle()}
+            style={message.name_color && !message.has_gold_animation ? { color: message.name_color } : {}}
+          >
+            {isAI ? "AI Assistant" : message.username}
+          </span>
+          {message.custom_title && <span className="text-xs italic text-gray-500">{message.custom_title}</span>}
+          <span className="text-xs text-gray-400">{formatTime(message.created_at)}</span>
         </div>
-      )}
 
-      {/* Main message */}
-      <div className="flex items-start space-x-3">
-        {/* Avatar */}
-        <div className="flex-shrink-0">
-          {message.user.profile_picture ? (
-            <img
-              src={message.user.profile_picture || "/placeholder.svg"}
-              alt={message.user.username}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-border"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-border">
-              <span className="text-sm font-medium text-primary">
-                {message.user.username.charAt(0).toUpperCase()}
-              </span>
+        {message.parent_message_id && message.parent_message_content && message.parent_message_username && (
+          <div className="mb-1 p-2 bg-gray-100 dark:bg-gray-800 border-l-4 border-blue-400 rounded-r-md text-xs text-gray-600 dark:text-gray-300 italic">
+            Replying to @{message.parent_message_username}: "{message.parent_message_content}"
+          </div>
+        )}
+
+        <div
+          className={`px-4 py-2 rounded-2xl ${
+            isOwnMessage
+              ? "bg-black dark:bg-gray-700 text-white"
+              : isAI
+                ? "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
+                : "bg-gray-100 dark:bg-gray-800"
+          }`}
+        >
+          {message.message_type === "image" ? (
+            <div className="relative max-w-sm">
+              {!imageError ? (
+                <Image
+                  src={message.content || "/placeholder.svg"}
+                  alt="Shared image"
+                  width={400}
+                  height={300}
+                  className="rounded-lg object-cover max-h-80 w-auto"
+                  onError={() => setImageError(true)}
+                  priority={false}
+                  quality={85}
+                />
+              ) : (
+                <div className="w-64 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Failed to load image</span>
+                </div>
+              )}
             </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
           )}
         </div>
 
-        {/* Message content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <span className={getUsernameClassName(message.user)} style={getUsernameColorStyle(message.user)}>
-              {message.user.username}
-            </span>
-            
-            {message.user.custom_title && (
-              <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                {message.user.custom_title}
-              </Badge>
-            )}
-            
-            {message.user.has_gold_animation && (
-              <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black text-xs px-2 py-0.5">
-                Gold
-              </Badge>
-            )}
-            
-            <span className="text-xs text-muted-foreground">{formatTime(message.created_at)}</span>
+        {message.reactions && message.reactions.length > 0 && (
+          <div className="flex gap-1 mt-1">
+            {message.reactions.map((reaction) => (
+              <Button
+                key={reaction.emoji}
+                variant="outline"
+                size="sm"
+                className={`h-6 px-2 rounded-full text-xs ${
+                  reaction.reacted_by_me
+                    ? "bg-blue-100 dark:bg-blue-900/50 border-blue-400"
+                    : "bg-gray-50 dark:bg-gray-800"
+                }`}
+                onClick={() => handleReactionClick(reaction.emoji)}
+              >
+                {reaction.emoji} {reaction.count}
+              </Button>
+            ))}
           </div>
-          
-          <div className="text-foreground leading-relaxed break-words">{message.content}</div>
+        )}
 
-          {/* Reactions */}
-          {message.reactions && message.reactions.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {message.reactions.map((reaction, index) => (
+        <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity relative">
+          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setShowReactions(!showReactions)}>
+            <Heart className="h-3 w-3" />
+          </Button>
+          {onReply && (
+            <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => onReply(message)}>
+              <MessageCircle className="h-3 w-3" />
+            </Button>
+          )}
+          {canDelete && onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-red-500 hover:bg-red-500/10"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="h-6 px-2">
+            <MoreHorizontal className="h-3 w-3" />
+          </Button>
+
+          {showReactions && (
+            <div className="absolute bottom-full left-0 mb-2 flex gap-1 p-2 bg-white dark:bg-gray-800 border rounded-lg shadow-lg z-10">
+              {availableEmojis.map((emoji) => (
                 <Button
-                  key={index}
-                  variant="outline"
+                  key={emoji}
+                  variant="ghost"
                   size="sm"
-                  onClick={() => handleReact(reaction.emoji)}
-                  className="h-6 px-2 text-xs hover:bg-accent transition-colors"
+                  className="h-8 w-8 p-0 text-lg"
+                  onClick={() => handleReactionClick(emoji)}
                 >
-                  <span className="mr-1">{reaction.emoji}</span>
-                  <span>{reaction.count}</span>
+                  {emoji}
                 </Button>
               ))}
             </div>
           )}
         </div>
-
-        {/* Actions */}
-        <div className={`flex-shrink-0 transition-opacity duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="flex items-center space-x-1">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleReact("❤️")}
-              className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/20"
-            >
-              <Heart className="h-4 w-4 text-red-500" />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleReply} 
-              className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-            >
-              <Reply className="h-4 w-4 text-blue-500" />
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 hover:bg-accent"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => handleReact("👍")}>
-                  👍 Like
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReact("😂")}>
-                  😂 Laugh
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReact("😮")}>
-                  😮 Wow
-                </DropdownMenuItem>
-                {canDelete && (
-                  <>
-                    <DropdownMenuItem className="border-t">
-                      <Reply className="h-4 w-4 mr-2" />
-                      Reply
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {isDeleting ? "Deleting..." : "Delete"}
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
       </div>
     </div>
   )
 }
-
-export default ChatMessage

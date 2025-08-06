@@ -1,189 +1,435 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useUser } from "@/hooks/use-user"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MessageCircle, Users, Settings, Calendar, Search, UserPlus, BarChart3, Loader2, AlertCircle, LogOut, User } from 'lucide-react'
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { DynamicIsland } from "@/components/dynamic-island"
 import { ChatWindow } from "@/components/chat-window"
 import { FriendsPage } from "@/components/friends-page"
 import { DMsPage } from "@/components/dms-page"
-import { CalendarPage } from "@/components/calendar-page"
 import { PollsPage } from "@/components/polls-page"
-import { MessageSearch } from "@/components/message-search"
+import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
+import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
-import { TimeDateDisplay } from "@/components/time-date-display"
+import { RecentPoll } from "@/components/recent-poll"
+import { MessageSearch } from "@/components/message-search"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus, Users, Globe, Trash2, Search } from "lucide-react"
+import { useUser } from "@/hooks/use-user"
+import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
+
+interface GroupChat {
+  id: string
+  name: string
+  creator_username: string
+  creator_id: string
+}
+
+const themes = [
+  { id: "light", name: "Light" },
+  { id: "dark", name: "Dark" },
+]
+
+const hues = [
+  { id: "blue", name: "Blue" },
+  { id: "purple", name: "Purple" },
+  { id: "pink", name: "Pink" },
+  { id: "red", name: "Red" },
+  { id: "orange", name: "Orange" },
+  { id: "yellow", name: "Yellow" },
+  { id: "green", name: "Green" },
+  { id: "teal", name: "Teal" },
+]
 
 export default function DashboardPage() {
-  const { user, loading, error, signOut } = useUser()
-  const [activeTab, setActiveTab] = useState("chat")
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
-  const [selectedChatType, setSelectedChatType] = useState<"group" | "dm">("group")
+  const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
+  const [currentPage, setCurrentPage] = useState("dashboard")
+  const [groupChats, setGroupChats] = useState<GroupChat[]>([])
+  const [activeChat, setActiveChat] = useState<{
+    type: "global" | "group" | "dm" | null
+    id?: string
+    name: string
+  }>({ type: null, name: "" })
+  const [showCreateGC, setShowCreateGC] = useState(false)
+  const [showMessageSearch, setShowMessageSearch] = useState(false)
+  const router = useRouter()
 
-  if (loading) {
+  const fetchGroupChats = useCallback(async () => {
+    if (!user) return
+    try {
+      const response = await fetch("/api/group-chats")
+      if (response.ok) {
+        const data = await response.json()
+        setGroupChats(data.groupChats)
+      } else {
+        console.error("Failed to fetch group chats:", response.status, await response.text())
+      }
+    } catch (error) {
+      console.error("Failed to fetch group chats:", error)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!userLoading && user) {
+      fetchGroupChats()
+    }
+  }, [userLoading, user, fetchGroupChats])
+
+  const handleCreateGC = async (name: string, memberIds: string[]) => {
+    try {
+      const response = await fetch("/api/group-chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, memberIds }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGroupChats((prev) => [data.groupChat, ...prev])
+        setShowCreateGC(false)
+        setActiveChat({
+          type: "group",
+          id: data.groupChat.id,
+          name: data.groupChat.name,
+        })
+        setCurrentPage("dashboard")
+      } else {
+        console.error("Failed to create group chat:", response.status, await response.text())
+      }
+    } catch (error) {
+      console.error("Failed to create group chat:", error)
+    }
+  }
+
+  const handleDeleteGroupChat = async (groupId: string) => {
+    if (!user) return
+    if (confirm("Are you sure you want to delete this group chat? This action cannot be undone.")) {
+      try {
+        const response = await fetch(`/api/group-chats/${groupId}`, {
+          method: "DELETE",
+        })
+
+        if (response.ok) {
+          console.log(`Group chat ${groupId} deleted successfully.`)
+          fetchGroupChats()
+          if (activeChat.type === "group" && activeChat.id === groupId) {
+            setActiveChat({ type: null, name: "" })
+          }
+        } else {
+          const errorData = await response.json()
+          console.error("Failed to delete group chat:", errorData.error || response.statusText)
+          alert(`Failed to delete group chat: ${errorData.error || response.statusText}`)
+        }
+      } catch (error) {
+        console.error("Failed to delete group chat:", error)
+        alert("An unexpected error occurred while deleting the group chat.")
+      }
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        updateLocalUser(null)
+        window.location.href = "/auth"
+      } else {
+        console.error("Sign out failed:", response.status)
+        window.location.href = "/auth"
+      }
+    } catch (error) {
+      console.error("Failed to sign out:", error)
+      window.location.href = "/auth"
+    }
+  }
+
+  const handleStartDM = (friendId: string, friendUsername: string) => {
+    setActiveChat({
+      type: "dm",
+      id: friendId,
+      name: `@${friendUsername}`,
+    })
+    setCurrentPage("dashboard")
+  }
+
+  const handlePageChange = (page: string) => {
+    if (page === "settings") {
+      router.push("/settings")
+    } else if (page === "about") {
+      router.push("/about")
+    } else {
+      setCurrentPage(page)
+      if (page !== "dashboard") {
+        setActiveChat({ type: null, name: "" })
+      }
+    }
+  }
+
+  const handleGlobalChatClick = () => {
+    setActiveChat({ type: "global", name: "Global Chat" })
+    setCurrentPage("dashboard")
+  }
+
+  const handleAIChatClick = () => {
+    setActiveChat({ type: "dm", id: AI_USER_ID, name: AI_USERNAME })
+    setCurrentPage("dashboard")
+  }
+
+  const handleThemeCycle = async () => {
+    if (!user) return
+
+    const currentThemeIndex = themes.findIndex((t) => t.id === user.theme)
+    const nextThemeIndex = (currentThemeIndex + 1) % themes.length
+    const nextTheme = themes[nextThemeIndex].id
+
+    console.log("[dashboard] Cycling theme from", user.theme, "to", nextTheme)
+
+    try {
+      const response = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: nextTheme }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[dashboard] Theme update successful:", data.user.theme)
+        updateLocalUser(data.user)
+      } else {
+        const errorData = await response.json()
+        console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
+        alert(`Failed to change theme: ${errorData.error || response.statusText}`)
+      }
+    } catch (error: any) {
+      console.error("[dashboard] Failed to update theme:", error)
+      alert(`An unexpected error occurred while changing theme: ${error.message}`)
+    }
+  }
+
+  const handleHueCycle = async () => {
+    if (!user) return
+
+    const currentHueIndex = hues.findIndex((h) => h.id === user.hue)
+    const nextHueIndex = (currentHueIndex + 1) % hues.length
+    const nextHue = hues[nextHueIndex].id
+
+    console.log("[dashboard] Cycling hue from", user.hue, "to", nextHue)
+
+    try {
+      const response = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hue: nextHue }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[dashboard] Hue update successful:", data.user.hue)
+        updateLocalUser(data.user)
+      } else {
+        const errorData = await response.json()
+        console.error("[dashboard] Failed to update hue:", errorData.error || response.statusText)
+        alert(`Failed to change hue: ${errorData.error || response.statusText}`)
+      }
+    } catch (error: any) {
+      console.error("[dashboard] Failed to update hue:", error)
+      alert(`An unexpected error occurred while changing hue: ${error.message}`)
+    }
+  }
+
+  const handleMessageSearchClick = (chatType: string, chatId?: string) => {
+    if (chatType === "global") {
+      setActiveChat({ type: "global", name: "Global Chat" })
+    } else if (chatType === "dm") {
+      setActiveChat({ type: "dm", id: chatId, name: "Direct Message" })
+    } else if (chatType === "group") {
+      const groupChat = groupChats.find((gc) => gc.id === chatId)
+      setActiveChat({ type: "group", id: chatId, name: groupChat?.name || "Group Chat" })
+    }
+    setCurrentPage("dashboard")
+  }
+
+  const handleViewAllPolls = () => {
+    setCurrentPage("polls")
+  }
+
+  const handleSendFriendRequest = async (userId: string) => {
+    try {
+      const response = await fetch("/api/friends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addresseeId: userId }),
+      })
+
+      if (response.ok) {
+        alert("Friend request sent!")
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to send friend request: ${errorData.error}`)
+      }
+    } catch (error) {
+      console.error("Failed to send friend request:", error)
+      alert("An error occurred while sending friend request")
+    }
+  }
+
+  if (userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md backdrop-blur-md bg-card/90">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading your dashboard...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground animate-pulse">Loading...</div>
       </div>
     )
   }
 
-  if (error || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md backdrop-blur-md bg-card/90">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <AlertCircle className="h-8 w-8 text-destructive mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Authentication Error</h2>
-            <p className="text-muted-foreground text-center mb-4">
-              Please log in to continue
-            </p>
-            <Button onClick={() => window.location.href = "/auth"}>
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const handleChatSelect = (chatId: string, type: "group" | "dm") => {
-    setSelectedChatId(chatId)
-    setSelectedChatType(type)
-    setActiveTab("chat")
+  if (!user) {
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-background/50">
-      <div className="container mx-auto p-4 max-w-7xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <MessageCircle className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-background transition-colors duration-300">
+      <DynamicIsland
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
+        onSignOut={handleSignOut}
+        onGlobalChatClick={handleGlobalChatClick}
+        onAIChatClick={handleAIChatClick}
+        username={user.username}
+        onThemeCycle={handleThemeCycle}
+        onHueCycle={handleHueCycle}
+      />
+
+      <div className="pt-20 px-4 pb-4">
+        {currentPage === "dashboard" && (
+          <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
+            <div className="w-full md:w-80 space-y-4 flex-shrink-0">
+              <Card className="animate-fadeIn">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Group Chats</span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowMessageSearch(true)}
+                        title="Search Messages"
+                      >
+                        <Search className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCreateGC(true)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {groupChats.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No group chats yet</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {groupChats.map((gc) => (
+                        <div key={gc.id} className="flex items-center justify-between">
+                          <Button
+                            variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
+                            className="flex-1 justify-start text-left transition-all duration-200 hover:scale-102"
+                            onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
+                          >
+                            <Users className="h-4 w-4 mr-2 shrink-0" />
+                            <span className="truncate">{gc.name}</span>
+                          </Button>
+                          {user.id === gc.creator_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteGroupChat(gc.id)}
+                              className="ml-2 text-red-500 hover:bg-red-500/10"
+                              title="Delete Group Chat"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <OnlineUsers currentUserId={user.id} />
+              <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                real.
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Welcome back, {user.has_gold_animation ? (
-                  <span className="gold-username">{user.username}</span>
-                ) : (
-                  <span style={{ color: user.name_color || "#ffffff" }}>{user.username}</span>
-                )}
-              </p>
+
+            <div className="flex-1 h-full">
+              {activeChat.type ? (
+                <div className="animate-fadeIn">
+                  <ChatWindow
+                    chatType={activeChat.type}
+                    chatId={activeChat.id}
+                    chatName={activeChat.name}
+                    currentUserId={user.id}
+                  />
+                </div>
+              ) : (
+                <Card className="flex items-center justify-center h-full animate-fadeIn">
+                  <CardContent className="text-center py-12">
+                    <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
+                    <h3 className="text-xl font-semibold text-foreground">Welcome to real.</h3>
+                    <p className="text-muted-foreground mt-2 mb-4">
+                      Click on "Global" or "AI Chat" in the dynamic island above to start chatting,
+                      <br />
+                      or select a group chat from the sidebar.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      <span>Ready to connect</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <TimeDateDisplay />
-            <OnlineUsers />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveTab("profile")}
-              className="backdrop-blur-sm bg-background/50"
-            >
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveTab("settings")}
-              className="backdrop-blur-sm bg-background/50"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={signOut}
-              className="backdrop-blur-sm bg-background/50 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+        )}
+
+        {currentPage === "friends" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <FriendsPage currentUserId={user.id} onStartDM={handleStartDM} />
           </div>
-        </div>
+        )}
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-6 backdrop-blur-sm bg-background/50">
-            <TabsTrigger value="chat" className="flex items-center space-x-2">
-              <MessageCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Chat</span>
-            </TabsTrigger>
-            <TabsTrigger value="friends" className="flex items-center space-x-2">
-              <UserPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Friends</span>
-            </TabsTrigger>
-            <TabsTrigger value="dms" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">DMs</span>
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center space-x-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Calendar</span>
-            </TabsTrigger>
-            <TabsTrigger value="polls" className="flex items-center space-x-2">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Polls</span>
-            </TabsTrigger>
-            <TabsTrigger value="search" className="flex items-center space-x-2">
-              <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">Search</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </TabsTrigger>
-          </TabsList>
+        {currentPage === "dms" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <DMsPage currentUserId={user.id} onSelectDM={handleStartDM} />
+          </div>
+        )}
 
-          <TabsContent value="chat" className="space-y-4">
-            <ChatWindow 
-              chatId={selectedChatId} 
-              chatType={selectedChatType}
-              onChatSelect={handleChatSelect}
-            />
-          </TabsContent>
+        {currentPage === "polls" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <PollsPage currentUserId={user.id} userSignupCode={user.signup_code} />
+          </div>
+        )}
 
-          <TabsContent value="friends" className="space-y-4">
-            <FriendsPage onChatSelect={handleChatSelect} />
-          </TabsContent>
+        {currentPage === "calendar" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <CalendarPage currentUserId={user.id} />
+          </div>
+        )}
 
-          <TabsContent value="dms" className="space-y-4">
-            <DMsPage onChatSelect={handleChatSelect} />
-          </TabsContent>
-
-          <TabsContent value="calendar" className="space-y-4">
-            <CalendarPage />
-          </TabsContent>
-
-          <TabsContent value="polls" className="space-y-4">
-            <PollsPage />
-          </TabsContent>
-
-          <TabsContent value="search" className="space-y-4">
-            <MessageSearch />
-          </TabsContent>
-
-          <TabsContent value="profile" className="space-y-4">
-            <ProfilePage />
-          </TabsContent>
-        </Tabs>
+        {currentPage === "profile" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <ProfilePage onStartDM={handleStartDM} onSendFriendRequest={handleSendFriendRequest} />
+          </div>
+        )}
       </div>
+
+      {showCreateGC && user && <CreateGroupChat onClose={() => setShowCreateGC(false)} onCreate={handleCreateGC} />}
+
+      {showMessageSearch && (
+        <MessageSearch onClose={() => setShowMessageSearch(false)} onMessageClick={handleMessageSearchClick} />
+      )}
     </div>
   )
 }

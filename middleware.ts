@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { verifyToken } from "@/lib/auth"
 
 export function middleware(request: NextRequest) {
+  // Add console logs to trace the middleware execution
   console.log("[middleware] Request URL:", request.url)
   const { pathname } = request.nextUrl
   console.log("[middleware] Pathname:", pathname)
@@ -37,6 +38,9 @@ export function middleware(request: NextRequest) {
     if (decoded && pathname === "/auth") {
       console.log("[middleware] Token valid, on /auth page, redirecting to /dashboard.")
       return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
+    if (decoded && !isPublicRoute) {
+      console.log("[middleware] Token valid, accessing protected route.")
     }
   }
 

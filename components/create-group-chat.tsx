@@ -3,213 +3,117 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Users, Plus, Search, X } from "lucide-react"
-import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
+import { X } from "lucide-react"
 
-interface User {
-  id: string
-  username: string
-  name_color?: string
-  has_gold_animation?: boolean
-  custom_title?: string
+interface Friend {
+  friend_id: string
+  friend_username: string
+  friend_name_color?: string
+  friend_has_gold?: boolean
 }
 
 interface CreateGroupChatProps {
-  currentUserId: string
-  onCreateGroup: (name: string, memberIds: string[]) => void
-  onCancel: () => void
+  onClose: () => void
+  onCreate: (name: string, memberIds: string[]) => void
 }
 
-export function CreateGroupChat({ currentUserId, onCreateGroup, onCancel }: CreateGroupChatProps) {
+export function CreateGroupChat({ onClose, onCreate }: CreateGroupChatProps) {
   const [groupName, setGroupName] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [users, setUsers] = useState<User[]>([])
-  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(false)
-  const [searching, setSearching] = useState(false)
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (searchTerm.trim()) {
-      searchUsers()
-    } else {
-      setUsers([])
-    }
-  }, [searchTerm])
+    fetchFriends()
+  }, [])
 
-  const searchUsers = async () => {
-    setSearching(true)
+  const fetchFriends = async () => {
     try {
-      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchTerm)}`)
+      const response = await fetch("/api/friends/accepted")
       if (response.ok) {
         const data = await response.json()
-        setUsers(data.users.filter((user: User) => user.id !== currentUserId))
+        setFriends(data.friends)
       }
     } catch (error) {
-      console.error("Failed to search users:", error)
-    } finally {
-      setSearching(false)
-    }
-  }
-
-  const handleUserToggle = (userId: string) => {
-    const newSelected = new Set(selectedUsers)
-    if (newSelected.has(userId)) {
-      newSelected.delete(userId)
-    } else {
-      newSelected.add(userId)
-    }
-    setSelectedUsers(newSelected)
-  }
-
-  const handleCreateGroup = async () => {
-    if (!groupName.trim() || selectedUsers.size === 0) return
-
-    setLoading(true)
-    try {
-      await onCreateGroup(groupName.trim(), Array.from(selectedUsers))
-    } catch (error) {
-      console.error("Failed to create group:", error)
+      console.error("Failed to fetch friends:", error)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleFriendToggle = (friendId: string) => {
+    setSelectedFriends((prev) => (prev.includes(friendId) ? prev.filter((id) => id !== friendId) : [...prev, friendId]))
+  }
+
+  const handleCreate = () => {
+    if (groupName.trim()) {
+      onCreate(groupName.trim(), selectedFriends)
+    }
+  }
+
+  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+    if (hasGold) {
+      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+    }
+    return nameColor ? { color: nameColor } : {}
+  }
+
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Create Group Chat
-        </CardTitle>
-        <CardDescription>Create a new group chat with your friends</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="groupName">Group Name</Label>
-          <Input
-            id="groupName"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Enter group name"
-            maxLength={50}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="userSearch">Add Members</Label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              id="userSearch"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search users..."
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {selectedUsers.size > 0 && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <Card className="w-full max-w-md mx-4">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Create Group Chat</CardTitle>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
-            <Label>Selected Members ({selectedUsers.size})</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {Array.from(selectedUsers).map((userId) => {
-                const user = users.find((u) => u.id === userId)
-                if (!user) return null
-                return (
-                  <div
-                    key={userId}
-                    className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full text-sm"
-                  >
-                    <span
-                      className={getUsernameClassName(false, user.has_gold_animation, !!user.name_color)}
-                      style={
-                        shouldApplyCustomColor(user.has_gold_animation, false)
-                          ? getUsernameColorStyle(user.name_color)
-                          : {}
-                      }
-                    >
-                      {user.username}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-red-500/20"
-                      onClick={() => handleUserToggle(userId)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )
-              })}
-            </div>
+            <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Group chat name" />
           </div>
-        )}
 
-        {searchTerm && (
-          <div className="max-h-48 overflow-y-auto border rounded-md">
-            {searching ? (
-              <div className="p-4 text-center text-gray-500">Searching...</div>
-            ) : users.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">No users found</div>
+          <div>
+            <h4 className="text-sm font-medium mb-2">Add Friends</h4>
+            {loading ? (
+              <div className="text-center py-4 text-gray-500">Loading friends...</div>
+            ) : friends.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">No friends to add</div>
             ) : (
-              <div className="space-y-1 p-2">
-                {users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
-                  >
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {friends.map((friend) => (
+                  <div key={friend.friend_id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={user.id}
-                      checked={selectedUsers.has(user.id)}
-                      onCheckedChange={() => handleUserToggle(user.id)}
+                      id={friend.friend_id}
+                      checked={selectedFriends.includes(friend.friend_id)}
+                      onCheckedChange={() => handleFriendToggle(friend.friend_id)}
                     />
-                    <div className="flex-1">
-                      <span
-                        className={getUsernameClassName(false, user.has_gold_animation, !!user.name_color)}
-                        style={
-                          shouldApplyCustomColor(user.has_gold_animation, false)
-                            ? getUsernameColorStyle(user.name_color)
-                            : {}
-                        }
-                      >
-                        {user.username}
+                    <label
+                      htmlFor={friend.friend_id}
+                      className="text-sm cursor-pointer"
+                      style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
+                    >
+                      <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
+                        @{friend.friend_username}
                       </span>
-                      {user.custom_title && <span className="text-xs text-gray-500 ml-2">{user.custom_title}</span>}
-                    </div>
+                    </label>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        )}
 
-        <div className="flex gap-2 pt-4">
-          <Button variant="outline" onClick={onCancel} className="flex-1 bg-transparent">
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreateGroup}
-            disabled={!groupName.trim() || selectedUsers.size === 0 || loading}
-            className="flex-1"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Group
-              </>
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex gap-2">
+            <Button onClick={handleCreate} disabled={!groupName.trim()} className="flex-1">
+              Create Group
+            </Button>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

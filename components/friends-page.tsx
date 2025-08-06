@@ -4,337 +4,380 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Users, UserPlus, Search, Check, X, MessageCircle } from "lucide-react"
-import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
+import { UserPlus, Check, X, Search, MessageCircle, RefreshCw } from "lucide-react"
 
-interface Friend {
+interface User {
   id: string
   username: string
   name_color?: string
   has_gold_animation?: boolean
-  custom_title?: string
-  status: "pending_sent" | "pending_received" | "accepted"
-  created_at: string
+}
+
+interface Friendship {
+  id: string
+  requester_id: string
+  addressee_id: string
+  status: string
+  requester_username: string
+  addressee_username: string
+  requester_name_color?: string
+  addressee_name_color?: string
+  requester_has_gold?: boolean
+  addressee_has_gold?: boolean
 }
 
 interface FriendsPageProps {
   currentUserId: string
-  onStartDM: (userId: string, username: string) => void
+  onStartDM: (friendId: string, friendUsername: string) => void
 }
 
 export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
-  const [friends, setFriends] = useState<Friend[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [newFriendUsername, setNewFriendUsername] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [sendingRequest, setSendingRequest] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<User[]>([])
+  const [friendships, setFriendships] = useState<Friendship[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [sendRequestError, setSendRequestError] = useState<string | null>(null)
+  const [lastUpdate, setLastUpdate] = useState(Date.now())
 
-  const fetchFriends = useCallback(async () => {
+  const fetchFriendships = useCallback(async () => {
     try {
+      setLoading(true)
       const response = await fetch("/api/friends")
       if (response.ok) {
         const data = await response.json()
-        setFriends(data.friends)
+        setFriendships(data.friendships)
+        setLastUpdate(Date.now())
+      } else {
+        console.error("Failed to fetch friendships:", response.status, await response.text())
       }
     } catch (error) {
-      console.error("Failed to fetch friends:", error)
+      console.error("Failed to fetch friendships:", error)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchFriends()
-  }, [fetchFriends])
+    fetchFriendships()
+    const interval = setInterval(fetchFriendships, 3000)
+    return () => clearInterval(interval)
+  }, [fetchFriendships])
 
-  const sendFriendRequest = async () => {
-    if (!newFriendUsername.trim() || sendingRequest) return
+  const searchUsers = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      setSendRequestError(null)
+      return
+    }
 
-    setSendingRequest(true)
+    setSearchLoading(true)
+    setSendRequestError(null)
     try {
+      console.log("[friends-page] Searching for:", searchQuery)
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery.trim())}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("[friends-page] Search results:", data.users)
+        setSearchResults(data.users || [])
+      } else {
+        const errorData = await response.json()
+        console.error("Failed to search users:", errorData.error || response.statusText)
+        setSendRequestError(errorData.error || "Failed to search users.")
+        setSearchResults([])
+      }
+    } catch (error: any) {
+      console.error("Failed to search users:", error)
+      setSendRequestError(error.message || "An unexpected error occurred during search.")
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }
+
+  // Auto-search as user types (with debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchUsers()
+      } else {
+        setSearchResults([])
+        setSendRequestError(null)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const sendFriendRequest = async (userId: string) => {
+    setSendRequestError(null)
+    try {
+      console.log("[friends-page] Sending friend request to:", userId)
       const response = await fetch("/api/friends", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: newFriendUsername.trim() }),
+        body: JSON.stringify({ addresseeId: userId }),
       })
 
       if (response.ok) {
-        setNewFriendUsername("")
-        await fetchFriends()
+        console.log("[friends-page] Friend request sent successfully")
+        fetchFriendships()
+        // Don't clear search results immediately, let user see the state change
       } else {
-        const error = await response.json()
-        alert(error.error || "Failed to send friend request")
+        const data = await response.json()
+        console.error("Failed to send friend request:", data.error)
+        setSendRequestError(data.error || "Failed to send friend request.")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send friend request:", error)
-      alert("Failed to send friend request")
-    } finally {
-      setSendingRequest(false)
+      setSendRequestError(error.message || "Something went wrong.")
     }
   }
 
-  const handleFriendRequest = async (friendId: string, action: "accept" | "reject") => {
+  const respondToFriendRequest = async (friendshipId: string, status: string) => {
     try {
-      const response = await fetch(`/api/friends/${friendId}`, {
+      const response = await fetch(`/api/friends/${friendshipId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ status }),
       })
 
       if (response.ok) {
-        await fetchFriends()
+        fetchFriendships()
       } else {
-        const error = await response.json()
-        alert(error.error || `Failed to ${action} friend request`)
+        const errorData = await response.json()
+        console.error("Failed to respond to friend request:", errorData.error || response.statusText)
+        alert(`Failed to respond: ${errorData.error || response.statusText}`)
       }
     } catch (error) {
-      console.error(`Failed to ${action} friend request:`, error)
-      alert(`Failed to ${action} friend request`)
+      console.error("Failed to respond to friend request:", error)
+      alert("An unexpected error occurred while responding to request.")
     }
   }
 
-  const getFilteredFriends = (status: string) => {
-    return friends
-      .filter((friend) => {
-        if (status === "all") return friend.status === "accepted"
-        return friend.status === status
-      })
-      .filter((friend) => (searchTerm ? friend.username.toLowerCase().includes(searchTerm.toLowerCase()) : true))
+  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+    if (hasGold) {
+      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+    }
+    return nameColor ? { color: nameColor } : {}
   }
 
-  const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+  const getButtonState = (user: User) => {
+    const isAlreadyFriend = acceptedFriends.some((f) => f.requester_id === user.id || f.addressee_id === user.id)
+    const hasPendingFromThem = pendingRequests.some((f) => f.requester_id === user.id)
+    const hasPendingToThem = sentRequests.some((f) => f.addressee_id === user.id)
+
+    if (isAlreadyFriend) return { text: "Friends", disabled: true, variant: "secondary" as const }
+    if (hasPendingFromThem) return { text: "Accept?", disabled: false, variant: "default" as const }
+    if (hasPendingToThem) return { text: "Pending", disabled: true, variant: "outline" as const }
+    return { text: "Add Friend", disabled: false, variant: "default" as const }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-          <p className="text-gray-500">Loading friends...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const acceptedFriends = getFilteredFriends("all")
-  const pendingReceived = getFilteredFriends("pending_received")
-  const pendingSent = getFilteredFriends("pending_sent")
+  const pendingRequests = friendships.filter((f) => f.status === "pending" && f.addressee_id === currentUserId)
+  const sentRequests = friendships.filter((f) => f.status === "pending" && f.requester_id === currentUserId)
+  const acceptedFriends = friendships.filter((f) => f.status === "accepted")
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Users className="h-6 w-6" />
-          Friends
-        </h2>
+        <h2 className="text-2xl font-bold">Friends</h2>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <span>Last updated: {new Date(lastUpdate).toLocaleTimeString()}</span>
+        </div>
       </div>
 
+      {/* Search Users */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Add Friend
+            <Search className="h-5 w-5" />
+            Find Friends
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              value={newFriendUsername}
-              onChange={(e) => setNewFriendUsername(e.target.value)}
-              placeholder="Enter username"
-              onKeyPress={(e) => e.key === "Enter" && sendFriendRequest()}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by username..."
+              className="transition-all duration-200 focus:scale-102"
             />
-            <Button onClick={sendFriendRequest} disabled={!newFriendUsername.trim() || sendingRequest}>
-              {sendingRequest ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <UserPlus className="h-4 w-4" />
-              )}
-            </Button>
+            {searchLoading && (
+              <div className="flex items-center px-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              </div>
+            )}
           </div>
+
+          {sendRequestError && (
+            <div className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md animate-fadeIn">
+              {sendRequestError}
+            </div>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Found {searchResults.length} user(s)</p>
+              {searchResults.map((user) => {
+                const buttonState = getButtonState(user)
+                return (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200"
+                  >
+                    <span
+                      className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
+                      style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
+                    >
+                      @{user.username}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant={buttonState.variant}
+                      onClick={() => sendFriendRequest(user.id)}
+                      className="transition-all duration-200 hover:scale-105"
+                      disabled={buttonState.disabled}
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      {buttonState.text}
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {searchQuery.trim() && searchResults.length === 0 && !searchLoading && !sendRequestError && (
+            <div className="text-center py-4 text-gray-500">No users found for "{searchQuery}"</div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search friends..."
-          className="pl-10"
-        />
-      </div>
+      {/* Pending Requests */}
+      {pendingRequests.length > 0 && (
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-primary">Friend Requests ({pendingRequests.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingRequests.map((friendship) => (
+                <div
+                  key={friendship.id}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-primary/5"
+                >
+                  <span
+                    className={friendship.requester_has_gold ? getUsernameStyle(undefined, true) : ""}
+                    style={!friendship.requester_has_gold ? getUsernameStyle(friendship.requester_name_color) : {}}
+                  >
+                    @{friendship.requester_username}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => respondToFriendRequest(friendship.id, "accepted")}
+                      className="bg-green-600 hover:bg-green-700 transition-all duration-200 hover:scale-105"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => respondToFriendRequest(friendship.id, "blocked")}
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <Tabs defaultValue="friends" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="friends" className="flex items-center gap-2">
-            Friends
-            {acceptedFriends.length > 0 && <Badge variant="secondary">{acceptedFriends.length}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="flex items-center gap-2">
-            Pending
-            {pendingReceived.length > 0 && <Badge variant="destructive">{pendingReceived.length}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="sent" className="flex items-center gap-2">
-            Sent
-            {pendingSent.length > 0 && <Badge variant="outline">{pendingSent.length}</Badge>}
-          </TabsTrigger>
-        </TabsList>
+      {/* Sent Requests */}
+      {sentRequests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sent Requests ({sentRequests.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {sentRequests.map((friendship) => (
+                <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <span
+                    className={friendship.addressee_has_gold ? getUsernameStyle(undefined, true) : ""}
+                    style={!friendship.addressee_has_gold ? getUsernameStyle(friendship.addressee_name_color) : {}}
+                  >
+                    @{friendship.addressee_username}
+                  </span>
+                  <span className="text-sm text-muted-foreground animate-pulse">Pending</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value="friends" className="space-y-2">
-          {acceptedFriends.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No friends yet</h3>
-                <p className="text-gray-500 text-center">
-                  {searchTerm ? "No friends match your search" : "Add some friends to get started!"}
-                </p>
-              </CardContent>
-            </Card>
+      {/* Friends List - REMOVED ANIMATION TO PREVENT CONSTANT TRANSITIONS */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Friends ({acceptedFriends.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center text-muted-foreground py-4 animate-pulse">Loading friends...</div>
+          ) : acceptedFriends.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">
+              No friends yet. Start by searching for users above!
+            </p>
           ) : (
-            acceptedFriends.map((friend) => (
-              <Card key={friend.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white font-medium">
-                        {friend.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={getUsernameClassName(false, friend.has_gold_animation, !!friend.name_color)}
-                            style={
-                              shouldApplyCustomColor(friend.has_gold_animation, false)
-                                ? getUsernameColorStyle(friend.name_color)
-                                : {}
-                            }
-                          >
-                            {friend.username}
-                          </span>
-                          {friend.custom_title && (
-                            <span className="text-xs text-gray-500 italic">{friend.custom_title}</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">Friends since {formatDate(friend.created_at)}</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => onStartDM(friend.id, friend.username)}>
-                      <MessageCircle className="h-4 w-4 mr-2" />
+            <div className="space-y-2">
+              {acceptedFriends.map((friendship) => {
+                const friend =
+                  friendship.requester_id === currentUserId
+                    ? {
+                        id: friendship.addressee_id,
+                        username: friendship.addressee_username,
+                        name_color: friendship.addressee_name_color,
+                        has_gold: friendship.addressee_has_gold,
+                      }
+                    : {
+                        id: friendship.requester_id,
+                        username: friendship.requester_username,
+                        name_color: friendship.requester_name_color,
+                        has_gold: friendship.requester_has_gold,
+                      }
+
+                return (
+                  <div
+                    key={friendship.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors duration-200"
+                  >
+                    <span
+                      className={friend.has_gold ? getUsernameStyle(undefined, true) : ""}
+                      style={!friend.has_gold ? getUsernameStyle(friend.name_color) : {}}
+                    >
+                      @{friend.username}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => onStartDM(friend.id, friend.username)}
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" />
                       Message
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))
+                )
+              })}
+            </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="pending" className="space-y-2">
-          {pendingReceived.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <UserPlus className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No pending requests</h3>
-                <p className="text-gray-500 text-center">Friend requests will appear here</p>
-              </CardContent>
-            </Card>
-          ) : (
-            pendingReceived.map((friend) => (
-              <Card key={friend.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center text-white font-medium">
-                        {friend.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={getUsernameClassName(false, friend.has_gold_animation, !!friend.name_color)}
-                            style={
-                              shouldApplyCustomColor(friend.has_gold_animation, false)
-                                ? getUsernameColorStyle(friend.name_color)
-                                : {}
-                            }
-                          >
-                            {friend.username}
-                          </span>
-                          {friend.custom_title && (
-                            <span className="text-xs text-gray-500 italic">{friend.custom_title}</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">Sent request on {formatDate(friend.created_at)}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleFriendRequest(friend.id, "accept")}>
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleFriendRequest(friend.id, "reject")}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="sent" className="space-y-2">
-          {pendingSent.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <UserPlus className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No sent requests</h3>
-                <p className="text-gray-500 text-center">Requests you send will appear here</p>
-              </CardContent>
-            </Card>
-          ) : (
-            pendingSent.map((friend) => (
-              <Card key={friend.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-white font-medium">
-                        {friend.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={getUsernameClassName(false, friend.has_gold_animation, !!friend.name_color)}
-                            style={
-                              shouldApplyCustomColor(friend.has_gold_animation, false)
-                                ? getUsernameColorStyle(friend.name_color)
-                                : {}
-                            }
-                          >
-                            {friend.username}
-                          </span>
-                          {friend.custom_title && (
-                            <span className="text-xs text-gray-500 italic">{friend.custom_title}</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">Request sent on {formatDate(friend.created_at)}</p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">Pending</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }

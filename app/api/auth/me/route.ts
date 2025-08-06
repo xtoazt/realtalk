@@ -1,44 +1,20 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 
-export async function GET(request: NextRequest) {
-  console.log("[me-api] GET request received")
-
+export async function GET() {
   try {
-    const token = request.cookies.get("auth-token")?.value
-    console.log("[me-api] Token found:", !!token)
+    const user = await getCurrentUser()
 
-    if (!token) {
-      console.log("[me-api] No token provided")
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const user = await getCurrentUser(token)
-    console.log("[me-api] User found:", !!user)
+    console.log("[api/auth/me] User from getCurrentUser:", user ? user.username : "null")
 
     if (!user) {
-      console.log("[me-api] Invalid token")
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+      console.log("[api/auth/me] Unauthorized: User is null.")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        name_color: user.name_color,
-        custom_title: user.custom_title,
-        has_gold_animation: user.has_gold_animation,
-        notifications_enabled: user.notifications_enabled,
-        theme: user.theme,
-        hue: user.hue,
-        profile_picture: user.profile_picture,
-        bio: user.bio,
-        created_at: user.created_at,
-      },
-    })
+    return NextResponse.json({ user })
   } catch (error: any) {
-    console.error("[me-api] Error:", error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[api/auth/me] Error:", error.message)
+    return NextResponse.json({ error: "Database connection failed" }, { status: 500 })
   }
 }

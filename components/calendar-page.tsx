@@ -3,32 +3,29 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Calendar, Plus, Clock, MapPin, Users } from "lucide-react"
-import { getUsernameClassName, getUsernameColorStyle, shouldApplyCustomColor } from "@/lib/utils"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar, Plus, X, Users, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface CalendarEvent {
   id: string
   title: string
   description?: string
-  event_date: string
-  location?: string
-  created_by: string
+  start_time: string
+  end_time: string
+  is_collaborative: boolean
   creator_username: string
-  creator_name_color?: string
-  creator_has_gold_animation?: boolean
-  creator_custom_title?: string
+  creator_id: string
   created_at: string
+  participants?: { user_id: string; username: string; status: string }[]
+}
+
+interface Friend {
+  friend_id: string
+  friend_username: string
+  friend_name_color?: string
+  friend_has_gold?: boolean
 }
 
 interface CalendarPageProps {
@@ -37,16 +34,18 @@ interface CalendarPageProps {
 
 export function CalendarPage({ currentUserId }: CalendarPageProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [showCreateEvent, setShowCreateEvent] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Form state
+  // Create event form state
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [eventDate, setEventDate] = useState("")
-  const [eventTime, setEventTime] = useState("")
-  const [location, setLocation] = useState("")
+  const [startTime, setStartTime] = useState("")
+  const [endTime, setEndTime] = useState("")
+  const [isCollaborative, setIsCollaborative] = useState(false)
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -62,267 +61,341 @@ export function CalendarPage({ currentUserId }: CalendarPageProps) {
     }
   }, [])
 
+  const fetchFriends = useCallback(async () => {
+    try {
+      const response = await fetch("/api/friends/accepted")
+      if (response.ok) {
+        const data = await response.json()
+        setFriends(data.friends)
+      }
+    } catch (error) {
+      console.error("Failed to fetch friends:", error)
+    }
+  }, [])
+
   useEffect(() => {
     fetchEvents()
-  }, [fetchEvents])
+    fetchFriends()
+  }, [fetchEvents, fetchFriends])
 
   const handleCreateEvent = async () => {
-    if (!title.trim() || !eventDate || creating) return
+    if (!title.trim() || !startTime || !endTime) return
 
-    setCreating(true)
     try {
-      const eventDateTime = eventTime ? `${eventDate}T${eventTime}:00` : `${eventDate}T12:00:00`
-
       const response = await fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          description: description.trim() || null,
-          event_date: eventDateTime,
-          location: location.trim() || null,
+          description: description.trim() || undefined,
+          start_time: startTime,
+          end_time: endTime,
+          is_collaborative: isCollaborative,
+          participants: selectedParticipants,
         }),
       })
 
       if (response.ok) {
-        setTitle("")
-        setDescription("")
-        setEventDate("")
-        setEventTime("")
-        setLocation("")
-        setShowCreateDialog(false)
-        await fetchEvents()
-      } else {
-        const error = await response.json()
-        alert(error.error || "Failed to create event")
+        setShowCreateEvent(false)
+        resetForm()
+        fetchEvents()
       }
     } catch (error) {
       console.error("Failed to create event:", error)
-      alert("Failed to create event")
-    } finally {
-      setCreating(false)
     }
   }
 
-  const formatEventDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const isToday = date.toDateString() === now.toDateString()
-    const isTomorrow = date.toDateString() === new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString()
-
-    let dateLabel = ""
-    if (isToday) dateLabel = "Today"
-    else if (isTomorrow) dateLabel = "Tomorrow"
-    else dateLabel = date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })
-
-    const timeLabel = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-
-    return { dateLabel, timeLabel, fullDate: date }
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setStartTime("")
+    setEndTime("")
+    setIsCollaborative(false)
+    setSelectedParticipants([])
   }
 
-  const groupEventsByDate = (events: CalendarEvent[]) => {
-    const grouped: { [key: string]: CalendarEvent[] } = {}
+  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+    if (hasGold) {
+      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
+    }
+    return nameColor ? { color: nameColor } : {}
+  }
 
-    events.forEach((event) => {
-      const date = new Date(event.event_date).toDateString()
-      if (!grouped[date]) grouped[date] = []
-      grouped[date].push(event)
+  const formatDateTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     })
+  }
 
-    // Sort dates
-    const sortedDates = Object.keys(grouped).sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+  const getEventsForDate = (date: Date) => {
+    const dateStr = date.toDateString()
+    return events.filter((event) => {
+      const eventDate = new Date(event.start_time).toDateString()
+      return eventDate === dateStr
+    })
+  }
 
-    return sortedDates.map((date) => ({
-      date,
-      events: grouped[date].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
-    }))
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDayOfWeek = firstDay.getDay()
+
+    const days = []
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null)
+    }
+
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day))
+    }
+
+    return days
+  }
+
+  const navigateMonth = (direction: "prev" | "next") => {
+    setCurrentDate((prev) => {
+      const newDate = new Date(prev)
+      if (direction === "prev") {
+        newDate.setMonth(prev.getMonth() - 1)
+      } else {
+        newDate.setMonth(prev.getMonth() + 1)
+      }
+      return newDate
+    })
+  }
+
+  const isToday = (date: Date | null) => {
+    if (!date) return false
+    const today = new Date()
+    return date.toDateString() === today.toDateString()
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-          <p className="text-gray-500">Loading events...</p>
-        </div>
+        <div className="text-muted-foreground animate-pulse">Loading calendar...</div>
       </div>
     )
   }
 
-  const groupedEvents = groupEventsByDate(events)
+  const days = getDaysInMonth(currentDate)
+  const monthYear = currentDate.toLocaleDateString([], { month: "long", year: "numeric" })
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Calendar className="h-6 w-6" />
-          Calendar
-        </h2>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Event</DialogTitle>
-              <DialogDescription>Create a new calendar event for the community</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Event Title</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter event title"
-                  maxLength={100}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter event description"
-                  maxLength={500}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="eventDate">Date</Label>
-                  <Input
-                    id="eventDate"
-                    type="date"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="eventTime">Time (Optional)</Label>
-                  <Input id="eventTime" type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="location">Location (Optional)</Label>
-                <Input
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Enter event location"
-                  maxLength={100}
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateEvent}
-                  disabled={!title.trim() || !eventDate || creating}
-                  className="flex-1"
-                >
-                  {creating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Event
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <h2 className="text-2xl font-bold">Calendar</h2>
+        <Button onClick={() => setShowCreateEvent(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Event
+        </Button>
       </div>
 
-      {groupedEvents.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No events scheduled</h3>
-            <p className="text-gray-500 text-center mb-4">
-              Create the first event to get the community calendar started!
-            </p>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {groupedEvents.map(({ date, events }) => (
-            <div key={date}>
-              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                {formatEventDate(events[0].event_date).dateLabel}
-              </h3>
-              <div className="space-y-3">
-                {events.map((event) => {
-                  const { timeLabel } = formatEventDate(event.event_date)
-                  return (
-                    <Card key={event.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">{event.title}</h4>
-                            {event.description && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{event.description}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{timeLabel}</span>
-                              </div>
-                              {event.location && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  <span>{event.location}</span>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                <span>
-                                  Created by{" "}
-                                  <span
-                                    className={getUsernameClassName(
-                                      false,
-                                      event.creator_has_gold_animation,
-                                      !!event.creator_name_color,
-                                    )}
-                                    style={
-                                      shouldApplyCustomColor(event.creator_has_gold_animation, false)
-                                        ? getUsernameColorStyle(event.creator_name_color)
-                                        : {}
-                                    }
-                                  >
-                                    {event.creator_username}
-                                  </span>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {monthYear}
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigateMonth("next")}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+                {day}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((date, index) => {
+              const dayEvents = date ? getEventsForDate(date) : []
+              return (
+                <div
+                  key={index}
+                  className={`min-h-[80px] p-1 border rounded-lg ${
+                    date ? "hover:bg-accent/50 cursor-pointer" : ""
+                  } ${isToday(date) ? "bg-primary/10 border-primary" : ""}`}
+                >
+                  {date && (
+                    <>
+                      <div className={`text-sm font-medium ${isToday(date) ? "text-primary" : ""}`}>
+                        {date.getDate()}
+                      </div>
+                      <div className="space-y-1">
+                        {dayEvents.slice(0, 2).map((event) => (
+                          <div
+                            key={event.id}
+                            className="text-xs p-1 bg-primary/20 rounded truncate"
+                            title={event.title}
+                          >
+                            {event.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 2 && (
+                          <div className="text-xs text-muted-foreground">+{dayEvents.length - 2} more</div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Upcoming Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {events.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No events scheduled</p>
+              <p className="text-sm text-muted-foreground mt-1">Create your first event to get started!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {events
+                .filter((event) => new Date(event.start_time) >= new Date())
+                .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                .slice(0, 5)
+                .map((event) => (
+                  <div key={event.id} className="p-3 border rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{event.title}</h4>
+                        {event.description && <p className="text-sm text-muted-foreground mt-1">{event.description}</p>}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span>
+                            {formatDateTime(event.start_time)} - {formatDateTime(event.end_time)}
+                          </span>
+                          {event.is_collaborative && (
+                            <div className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              <span>Collaborative</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">Created by @{event.creator_username}</div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create Event Modal */}
+      {showCreateEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Create Event</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setShowCreateEvent(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" />
+              </div>
+
+              <div>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm font-medium">Start Time</label>
+                  <Input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">End Time</label>
+                  <Input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox id="collaborative" checked={isCollaborative} onCheckedChange={setIsCollaborative} />
+                <label htmlFor="collaborative" className="text-sm">
+                  Make this a collaborative event
+                </label>
+              </div>
+
+              {isCollaborative && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Invite participants</label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {friends.map((friend) => (
+                      <div key={friend.friend_id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={friend.friend_id}
+                          checked={selectedParticipants.includes(friend.friend_id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedParticipants([...selectedParticipants, friend.friend_id])
+                            } else {
+                              setSelectedParticipants(selectedParticipants.filter((id) => id !== friend.friend_id))
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={friend.friend_id}
+                          className="text-sm cursor-pointer"
+                          style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
+                        >
+                          <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
+                            @{friend.friend_username}
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCreateEvent}
+                  disabled={!title.trim() || !startTime || !endTime}
+                  className="flex-1"
+                >
+                  Create Event
+                </Button>
+                <Button variant="outline" onClick={() => setShowCreateEvent(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

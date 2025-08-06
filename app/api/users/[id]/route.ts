@@ -1,53 +1,61 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getUserById, getFriendshipStatus } from "@/lib/db"
-import { verifyAuth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
+import { query } from "@/lib/db"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const currentUserId = await verifyAuth(request)
-    if (!currentUserId) {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const targetUserId = params.id
-    console.log("[user-profile] Fetching profile for:", targetUserId, "by:", currentUserId)
+    const userId = params.id
 
-    // Get the target user
-    const user = await getUserById(targetUserId)
-    if (!user) {
+    // Get user profile
+    const userResult = await query`
+      SELECT id, username, name_color, custom_title, has_gold_animation, 
+             profile_picture, bio, created_at
+      FROM users 
+      WHERE id = ${userId}
+    `
+
+    if (userResult.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const isOwnProfile = currentUserId === targetUserId
-    let friendshipStatus = null
+    const user = userResult[0]
 
-    // Get friendship status if not own profile
-    if (!isOwnProfile) {
-      friendshipStatus = await getFriendshipStatus(currentUserId, targetUserId)
-    }
+    // Check friendship status
+    const friendshipResult = await query`
+      SELECT status, requester_id, addressee_id
+      FROM friendships
+      WHERE (requester_id = ${currentUser.id} AND addressee_id = ${userId})
+         OR (requester_id = ${userId} AND addressee_id = ${currentUser.id})
+    `
 
-    // Remove sensitive data for other users
-    const publicUser = {
-      id: user.id,
-      username: user.username,
-      profile_picture: user.profile_picture,
-      bio: user.bio,
-      created_at: user.created_at,
-      name_color: user.name_color,
-      custom_title: user.custom_title,
-      has_gold_animation: user.has_gold_animation,
+    let friendshipStatus = "none"
+    let canSendRequest = true
+
+    if (friendshipResult.length > 0) {
+      const friendship = friendshipResult[0]
+      friendshipStatus = friendship.status
+
+      if (friendship.status === "pending") {
+        canSendRequest = false
+      } else if (friendship.status === "accepted") {
+        canSendRequest = false
+      }
     }
 
     return NextResponse.json({
-      user: publicUser,
-      isOwnProfile,
-      friendshipStatus,
+      user,
+      friendship: {
+        status: friendshipStatus,
+        canSendRequest: canSendRequest && userId !== currentUser.id,
+      },
     })
-  } catch (error) {
-    console.error("[user-profile] Error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch profile" },
-      { status: 500 },
-    )
+  } catch (error: any) {
+    console.error("[user-profile] Error:", error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

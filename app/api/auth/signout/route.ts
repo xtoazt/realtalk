@@ -5,8 +5,8 @@ export async function POST() {
   try {
     const cookieStore = await cookies()
 
-    // Delete the session token cookie
-    cookieStore.set("session_token", "", {
+    // Delete the auth token cookie with all possible configurations
+    cookieStore.set("auth-token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -15,9 +15,9 @@ export async function POST() {
     })
 
     // Also try to delete without options (fallback)
-    cookieStore.delete("session_token")
+    cookieStore.delete("auth-token")
 
-    console.log("Signout successful: session_token cookie deleted")
+    console.log("Signout successful: auth-token cookie deleted")
 
     return NextResponse.json(
       { success: true },

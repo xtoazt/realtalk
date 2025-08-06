@@ -37,10 +37,7 @@ export async function POST(request: NextRequest) {
         has_gold_animation: user.has_gold_animation,
         notifications_enabled: user.notifications_enabled,
         theme: user.theme,
-        hue: user.hue,
-        profile_picture: user.profile_picture,
-        bio: user.bio,
-        created_at: user.created_at,
+        signup_code: user.signup_code,
       },
     })
   } catch (error: any) {

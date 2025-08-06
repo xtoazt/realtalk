@@ -1,36 +1,30 @@
-import Groq from "groq-sdk"
+import { createGroq } from "@ai-sdk/groq"
 
-const groq = new Groq({
+const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
-export async function generateAIResponse(messages: Array<{ role: string; content: string }>) {
+export async function generateAIResponse(message: string, context?: string) {
   try {
-    console.log("[groq] Generating AI response with messages:", messages.length)
+    console.log("[groq] Generating AI response for message:", message.substring(0, 100))
+
+    const systemPrompt = `You are real.AI, a helpful AI assistant in the chat app "real.". Keep responses concise, friendly, and conversational. You can help with general questions, provide information, or just chat casually. ${context ? `Context: ${context}` : ""}`
 
     const completion = await groq.chat.completions.create({
       messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful AI assistant in a chat application. Be friendly, concise, and helpful. Keep responses under 200 words unless specifically asked for longer content.",
-        },
-        ...messages.map((msg) => ({
-          role: msg.role as "user" | "assistant" | "system",
-          content: msg.content,
-        })),
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
       ],
-      model: "llama3-8b-8192",
+      model: "mixtral-8x7b-32768",
       temperature: 0.7,
       max_tokens: 500,
     })
 
-    const response = completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response."
-    console.log("[groq] Generated response:", response.substring(0, 100) + "...")
-
+    const response = completion.choices[0]?.message?.content || "Sorry, I could not generate a response."
+    console.log("[groq] AI response generated successfully")
     return response
   } catch (error) {
-    console.error("[groq] Error generating AI response:", error)
-    return "I'm sorry, I'm having trouble responding right now. Please try again later."
+    console.error("[groq] API error:", error)
+    return "Sorry, I am currently unavailable. Please try again later."
   }
 }

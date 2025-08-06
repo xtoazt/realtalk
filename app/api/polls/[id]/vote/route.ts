@@ -1,41 +1,66 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { votePoll } from "@/lib/db"
-import { verifyAuth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
+import { query } from "@/lib/db"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const userId = await verifyAuth(request)
-    if (!userId) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { option_index } = await request.json()
     const pollId = params.id
-    const body = await request.json()
-    const { optionIndex, option_index } = body
 
-    // Support both naming conventions
-    const selectedOption = optionIndex !== undefined ? optionIndex : option_index
+    console.log(`[vote] User ${user.username} voting on poll ${pollId} with option ${option_index}`)
 
-    if (selectedOption === undefined || selectedOption < 0) {
+    if (typeof option_index !== "number" || option_index < 0) {
+      return NextResponse.json({ error: "Valid option index is required" }, { status: 400 })
+    }
+
+    // Check if poll exists and user has access
+    const pollCheck = await query`
+      SELECT p.*, p.expires_at, p.options
+      FROM polls p
+      WHERE p.id = ${pollId}
+        AND (p.is_public = true
+             OR p.creator_id = ${user.id}
+             OR EXISTS (
+               SELECT 1 FROM poll_shares WHERE poll_id = p.id AND user_id = ${user.id}
+             ))
+    `
+
+    if (pollCheck.length === 0) {
+      console.log(`[vote] Poll not found or access denied for poll ${pollId}`)
+      return NextResponse.json({ error: "Poll not found or access denied" }, { status: 404 })
+    }
+
+    const poll = pollCheck[0]
+
+    // Check if poll has expired
+    if (poll.expires_at && new Date(poll.expires_at) < new Date()) {
+      return NextResponse.json({ error: "Poll has expired" }, { status: 400 })
+    }
+
+    // Check if option index is valid
+    if (option_index >= poll.options.length) {
       return NextResponse.json({ error: "Invalid option index" }, { status: 400 })
     }
 
-    console.log("[vote-poll] User:", userId, "voting on poll:", pollId, "option:", selectedOption)
+    // Insert or update vote (upsert)
+    const voteResult = await query`
+      INSERT INTO poll_responses (poll_id, user_id, selected_option)
+      VALUES (${pollId}, ${user.id}, ${option_index})
+      ON CONFLICT (poll_id, user_id)
+      DO UPDATE SET selected_option = ${option_index}, created_at = NOW()
+      RETURNING *
+    `
 
-    const result = await votePoll(pollId, userId, selectedOption)
+    console.log(`[vote] Vote recorded successfully:`, voteResult[0])
 
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 })
-    }
-
-    console.log("[vote-poll] Vote cast successfully")
-
-    return NextResponse.json({
-      success: true,
-      poll: result.poll,
-    })
-  } catch (error) {
-    console.error("[vote-poll] Error:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to vote" }, { status: 500 })
+    return NextResponse.json({ success: true, vote: voteResult[0] })
+  } catch (error: any) {
+    console.error("[vote] API error:", error.message)
+    return NextResponse.json({ error: "Failed to record vote: " + error.message }, { status: 500 })
   }
 }
