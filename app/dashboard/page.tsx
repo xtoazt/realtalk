@@ -15,7 +15,7 @@ import { RecentPoll } from "@/components/recent-poll"
 import { MessageSearch } from "@/components/message-search"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe, Trash2, Search, MessageCircle, UserPlus, BarChart3, Loader2, AlertCircle, LogOut, User, Settings, Calendar } from 'lucide-react'
+import { Plus, Users, Globe, Trash2, Search } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
@@ -35,7 +35,7 @@ const hues = [
   { id: "blue", name: "Blue" },
   { id: "purple", name: "Purple" },
   { id: "pink", name: "Pink" },
-  { id: "red", "name": "Red" },
+  { id: "red", name: "Red" },
   { id: "orange", name: "Orange" },
   { id: "yellow", name: "Yellow" },
   { id: "green", name: "Green" },
@@ -43,7 +43,7 @@ const hues = [
 ]
 
 export default function DashboardPage() {
-  const { user, loading: userLoading, error: userError, signOut, updateUser } = useUser()
+  const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [activeChat, setActiveChat] = useState<{
@@ -129,7 +129,23 @@ export default function DashboardPage() {
   }
 
   const handleSignOut = async () => {
-    await signOut() // Use signOut from useUser hook
+    try {
+      const response = await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        updateLocalUser(null)
+        window.location.href = "/auth"
+      } else {
+        console.error("Sign out failed:", response.status)
+        window.location.href = "/auth"
+      }
+    } catch (error) {
+      console.error("Failed to sign out:", error)
+      window.location.href = "/auth"
+    }
   }
 
   const handleStartDM = (friendId: string, friendUsername: string) => {
@@ -183,7 +199,7 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         console.log("[dashboard] Theme update successful:", data.user.theme)
-        updateUser(data.user) // Use updateUser from useUser hook
+        updateLocalUser(data.user)
       } else {
         const errorData = await response.json()
         console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
@@ -214,7 +230,7 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         console.log("[dashboard] Hue update successful:", data.user.hue)
-        updateUser(data.user) // Use updateUser from useUser hook
+        updateLocalUser(data.user)
       } else {
         const errorData = await response.json()
         console.error("[dashboard] Failed to update hue:", errorData.error || response.statusText)
@@ -264,38 +280,18 @@ export default function DashboardPage() {
 
   if (userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background/50">
-        <Card className="w-full max-w-md backdrop-blur-md bg-card/90">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading your dashboard...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground animate-pulse">Loading...</div>
       </div>
     )
   }
 
-  if (userError || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background/50">
-        <Card className="w-full max-w-md backdrop-blur-md bg-card/90">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <AlertCircle className="h-8 w-8 text-destructive mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Authentication Error</h2>
-            <p className="text-muted-foreground text-center mb-4">
-              {userError || "Please log in to continue"}
-            </p>
-            <Button onClick={() => router.push("/auth")}>
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  if (!user) {
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-background/50 transition-colors duration-300">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <DynamicIsland
         currentPage={currentPage}
         onPageChange={handlePageChange}
@@ -311,7 +307,7 @@ export default function DashboardPage() {
         {currentPage === "dashboard" && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">
-              <Card className="animate-fadeIn backdrop-blur-md bg-card/90">
+              <Card className="animate-fadeIn">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Group Chats</span>
@@ -378,7 +374,7 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <Card className="flex items-center justify-center h-full animate-fadeIn backdrop-blur-md bg-card/90">
+                <Card className="flex items-center justify-center h-full animate-fadeIn">
                   <CardContent className="text-center py-12">
                     <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
                     <h3 className="text-xl font-semibold text-foreground">Welcome to real.</h3>

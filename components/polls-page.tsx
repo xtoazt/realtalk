@@ -52,7 +52,6 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
 
   const fetchPolls = useCallback(async () => {
     try {
-      console.log("[polls-page] Fetching polls...")
       const response = await fetch("/api/polls")
       if (response.ok) {
         const data = await response.json()
@@ -60,11 +59,9 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
         setPolls(data.polls)
       } else {
         console.error("[polls-page] Failed to fetch polls:", response.status)
-        const errorData = await response.json()
-        console.error("[polls-page] Error data:", errorData)
       }
     } catch (error) {
-      console.error("[polls-page] Fetch error:", error)
+      console.error("Failed to fetch polls:", error)
     } finally {
       setLoading(false)
     }
@@ -150,15 +147,13 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
         body: JSON.stringify({ option_index: optionIndex }),
       })
 
-      const data = await response.json()
-      console.log(`[polls-page] Vote response:`, response.status, data)
-
       if (response.ok) {
         console.log("[polls-page] Vote successful, refreshing polls")
         await fetchPolls() // Refresh to get updated results
       } else {
-        console.error("Failed to vote:", data.error)
-        alert(`Failed to vote: ${data.error || "Unknown error"}`)
+        const errorData = await response.json()
+        console.error("Failed to vote:", errorData.error)
+        alert(`Failed to vote: ${errorData.error || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Failed to vote:", error)
@@ -251,11 +246,10 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
         ) : (
           polls.map((poll, index) => {
             const hasVoted = poll.user_response !== undefined
-            const expired = isExpired(poll.expires_at)
             return (
               <Card
                 key={poll.id}
-                className={`glass-effect hover-lift animate-fadeIn ${expired ? "opacity-75" : ""}`}
+                className={`glass-effect hover-lift animate-fadeIn ${isExpired(poll.expires_at) ? "opacity-75" : ""}`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <CardHeader>
@@ -271,8 +265,8 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                             {poll.expires_at && (
                               <>
                                 <Clock className="h-3 w-3" />
-                                <span className={expired ? "text-red-500" : ""}>
-                                  {expired ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
+                                <span className={isExpired(poll.expires_at) ? "text-red-500" : ""}>
+                                  {isExpired(poll.expires_at) ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
                                 </span>
                               </>
                             )}
@@ -298,7 +292,8 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                       by @{poll.creator_username}
                     </span>
                     <span>
-                      {hasVoted ? "You voted" : "Click to vote"} • {poll.total_responses} total votes
+                      {poll.user_response !== undefined ? "You voted" : "Click to vote"} • {poll.total_responses} total
+                      votes
                     </span>
                   </div>
                 </CardHeader>
@@ -317,9 +312,11 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                             variant={isSelected ? "default" : "outline"}
                             className={`flex-1 justify-start hover-lift transition-all duration-200 ${
                               isSelected ? "hue-shadow" : ""
-                            } ${!hasVoted && !expired ? "cursor-pointer" : ""}`}
-                            onClick={() => !hasVoted && !expired && !isVoting && handleVote(poll.id, optionIndex)}
-                            disabled={hasVoted || expired || isVoting}
+                            } ${!hasVoted && !isExpired(poll.expires_at) ? "cursor-pointer" : ""}`}
+                            onClick={() =>
+                              !hasVoted && !isExpired(poll.expires_at) && !isVoting && handleVote(poll.id, optionIndex)
+                            }
+                            disabled={hasVoted || isExpired(poll.expires_at) || isVoting}
                           >
                             <span className="flex-1 text-left">{option}</span>
                             {isVoting && (
@@ -350,7 +347,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                       </div>
                     )
                   })}
-                  {!hasVoted && !expired && (
+                  {!hasVoted && !isExpired(poll.expires_at) && (
                     <p className="text-xs text-muted-foreground text-center mt-4 opacity-70">
                       Click on an option to cast your vote
                     </p>
