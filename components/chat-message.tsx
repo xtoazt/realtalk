@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, MoreHorizontal, Trash2 } from "lucide-react"
+import { Heart, MessageCircle, MoreHorizontal, Trash2 } from 'lucide-react'
 import Image from "next/image"
 
 interface Message {
@@ -31,6 +31,7 @@ interface ChatMessageProps {
   onRemoveReaction?: (messageId: string, emoji: string) => void
   onReply?: (message: Message) => void
   onDelete?: (messageId: string) => void
+  onUserClick?: (userId: string) => void
 }
 
 export function ChatMessage({
@@ -41,6 +42,7 @@ export function ChatMessage({
   onRemoveReaction,
   onReply,
   onDelete,
+  onUserClick,
 }: ChatMessageProps) {
   const [showReactions, setShowReactions] = useState(false)
   const [imageError, setImageError] = useState(false)
@@ -79,6 +81,12 @@ export function ChatMessage({
     }
   }
 
+  const handleUsernameClick = () => {
+    if (!isAI && onUserClick && message.sender_id !== currentUserId) {
+      onUserClick(message.sender_id)
+    }
+  }
+
   const availableEmojis = [
     "😀",
     "😂",
@@ -103,8 +111,9 @@ export function ChatMessage({
       <div className={`max-w-[70%] ${isOwnMessage ? "order-2" : "order-1"}`}>
         <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? "justify-end" : "justify-start"}`}>
           <span
-            className={getUsernameStyle()}
+            className={`${getUsernameStyle()} ${!isAI && !isOwnMessage ? "cursor-pointer hover:underline" : ""}`}
             style={message.name_color && !message.has_gold_animation ? { color: message.name_color } : {}}
+            onClick={handleUsernameClick}
           >
             {isAI ? "AI Assistant" : message.username}
           </span>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { DynamicIsland } from "@/components/dynamic-island"
 import { ChatWindow } from "@/components/chat-window"
 import { FriendsPage } from "@/components/friends-page"
@@ -18,7 +19,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Users, Globe, Trash2, Search } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
-import { useTheme } from "next-themes"
 
 interface GroupChat {
   id: string
@@ -26,11 +26,6 @@ interface GroupChat {
   creator_username: string
   creator_id: string
 }
-
-const themes = [
-  { id: "light", name: "Light" },
-  { id: "dark", name: "Dark" },
-]
 
 const hues = [
   { id: "blue", name: "Blue" },
@@ -45,6 +40,7 @@ const hues = [
 
 export default function DashboardPage() {
   const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
+  const { theme, setTheme } = useTheme()
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [activeChat, setActiveChat] = useState<{
@@ -54,6 +50,7 @@ export default function DashboardPage() {
   }>({ type: null, name: "" })
   const [showCreateGC, setShowCreateGC] = useState(false)
   const [showMessageSearch, setShowMessageSearch] = useState(false)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const router = useRouter()
 
   const fetchGroupChats = useCallback(async () => {
@@ -156,6 +153,7 @@ export default function DashboardPage() {
       name: `@${friendUsername}`,
     })
     setCurrentPage("dashboard")
+    setProfileUserId(null)
   }
 
   const handlePageChange = (page: string) => {
@@ -167,6 +165,7 @@ export default function DashboardPage() {
       setCurrentPage(page)
       if (page !== "dashboard") {
         setActiveChat({ type: null, name: "" })
+        setProfileUserId(null)
       }
     }
   }
@@ -174,17 +173,18 @@ export default function DashboardPage() {
   const handleGlobalChatClick = () => {
     setActiveChat({ type: "global", name: "Global Chat" })
     setCurrentPage("dashboard")
+    setProfileUserId(null)
   }
 
   const handleAIChatClick = () => {
     setActiveChat({ type: "dm", id: AI_USER_ID, name: AI_USERNAME })
     setCurrentPage("dashboard")
+    setProfileUserId(null)
   }
 
   const handleThemeCycle = async () => {
     if (!user) return
 
-    const { theme, setTheme } = useTheme()
     const nextTheme = theme === 'light' ? 'dark' : 'light'
     
     console.log("[dashboard] Cycling theme from", theme, "to", nextTheme)
@@ -202,7 +202,8 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         console.log("[dashboard] Theme update successful:", data.user.theme)
-        updateLocalUser(data.user)
+        // Don't call updateLocalUser here to avoid theme conflicts
+        updateLocalUser({ ...user, theme: nextTheme })
       } else {
         const errorData = await response.json()
         console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
@@ -259,10 +260,12 @@ export default function DashboardPage() {
       setActiveChat({ type: "group", id: chatId, name: groupChat?.name || "Group Chat" })
     }
     setCurrentPage("dashboard")
+    setProfileUserId(null)
   }
 
   const handleViewAllPolls = () => {
     setCurrentPage("polls")
+    setProfileUserId(null)
   }
 
   const handleSendFriendRequest = async (userId: string) => {
@@ -283,6 +286,13 @@ export default function DashboardPage() {
       console.error("Failed to send friend request:", error)
       alert("An error occurred while sending friend request")
     }
+  }
+
+  const handleUserClick = (userId: string) => {
+    console.log("[dashboard] User clicked:", userId)
+    setProfileUserId(userId)
+    setCurrentPage("profile")
+    setActiveChat({ type: null, name: "" })
   }
 
   if (userLoading) {
@@ -378,6 +388,7 @@ export default function DashboardPage() {
                     chatId={activeChat.id}
                     chatName={activeChat.name}
                     currentUserId={user.id}
+                    onUserClick={handleUserClick}
                   />
                 </div>
               ) : (
@@ -427,7 +438,11 @@ export default function DashboardPage() {
 
         {currentPage === "profile" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
-            <ProfilePage onStartDM={handleStartDM} onSendFriendRequest={handleSendFriendRequest} />
+            <ProfilePage 
+              userId={profileUserId} 
+              onStartDM={handleStartDM} 
+              onSendFriendRequest={handleSendFriendRequest} 
+            />
           </div>
         )}
       </div>

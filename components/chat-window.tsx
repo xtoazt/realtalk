@@ -5,7 +5,7 @@ import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown } from 'lucide-react'
 
 interface Message {
   id: string
@@ -30,9 +30,10 @@ interface ChatWindowProps {
   chatId?: string
   chatName: string
   currentUserId: string
+  onUserClick?: (userId: string) => void
 }
 
-export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWindowProps) {
+export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserClick }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -293,6 +294,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId }: ChatWi
               onRemoveReaction={handleRemoveReaction}
               onReply={handleReply}
               onDelete={handleDeleteMessage}
+              onUserClick={onUserClick}
             />
           ))
         )}

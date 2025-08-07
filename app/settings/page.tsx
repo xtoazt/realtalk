@@ -42,7 +42,12 @@ export default function SettingsPage() {
   const [nameColor, setNameColor] = useState("#6366f1")
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -144,7 +149,17 @@ export default function SettingsPage() {
     }
   }
 
-  if (userLoading) {
+  const handleThemeToggle = async (checked: boolean) => {
+    const newTheme = checked ? "dark" : "light"
+    
+    // Update theme immediately
+    setTheme(newTheme)
+    
+    // Update in database
+    await updateSettings({ theme: newTheme })
+  }
+
+  if (userLoading || !mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground animate-pulse">Loading...</div>
@@ -213,11 +228,8 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={theme === "dark"}
-                  onCheckedChange={async (checked) => {
-                    const newTheme = checked ? "dark" : "light"
-                    setTheme(newTheme)
-                    await updateSettings({ theme: newTheme })
-                  }}
+                  onCheckedChange={handleThemeToggle}
+                  disabled={saving}
                 />
               </div>
 

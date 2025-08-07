@@ -29,19 +29,20 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const { setTheme } = useTheme()
+  const { setTheme, theme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-  // Apply theme and hue to document
-  const applyThemeAndHue = (userData: User | null) => {
-    if (typeof window === "undefined") return
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-    if (userData) {
-      console.log("[UserProvider] Applying theme:", userData.theme, "hue:", userData.hue)
+  // Apply hue to document
+  const applyHue = (userData: User | null) => {
+    if (typeof window === "undefined" || !mounted) return
 
-      // Apply theme using next-themes
-      setTheme(userData.theme || 'light')
-
-      // Apply hue
+    if (userData?.hue) {
+      console.log("[UserProvider] Applying hue:", userData.hue)
+      
       const hueClasses = [
         "hue-blue",
         "hue-purple", 
@@ -53,25 +54,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         "hue-teal",
       ]
       hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
-
-      if (userData.hue) {
-        document.documentElement.classList.add(`hue-${userData.hue}`)
-      }
-    } else {
-      // Reset to defaults when no user
-      setTheme('light')
-      const hueClasses = [
-        "hue-blue",
-        "hue-purple",
-        "hue-pink", 
-        "hue-red",
-        "hue-orange",
-        "hue-yellow",
-        "hue-green",
-        "hue-teal",
-      ]
-      hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
-      document.documentElement.classList.add("hue-blue")
+      document.documentElement.classList.add(`hue-${userData.hue}`)
     }
   }
 
@@ -84,28 +67,55 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const userData = await response.json()
           console.log("[UserProvider] User data received:", userData.user)
           setUser(userData.user)
-          applyThemeAndHue(userData.user)
+          
+          // Apply theme and hue after mounting
+          if (mounted && userData.user) {
+            console.log("[UserProvider] Setting theme to:", userData.user.theme)
+            setTheme(userData.user.theme || 'light')
+            applyHue(userData.user)
+          }
         } else {
           console.log("[UserProvider] No user found")
           setUser(null)
-          applyThemeAndHue(null)
+          if (mounted) {
+            setTheme('light')
+          }
         }
       } catch (error) {
         console.error("[UserProvider] Fetch error:", error)
         setUser(null)
-        applyThemeAndHue(null)
+        if (mounted) {
+          setTheme('light')
+        }
       } finally {
         setLoading(false)
       }
     }
 
-    fetchUser()
-  }, [setTheme])
+    if (mounted) {
+      fetchUser()
+    }
+  }, [mounted, setTheme])
+
+  // Apply hue when user changes
+  useEffect(() => {
+    if (mounted) {
+      applyHue(user)
+    }
+  }, [user, mounted])
 
   const updateUser = (updatedUser: User | null) => {
     console.log("[UserProvider] updateUser called with:", updatedUser)
     setUser(updatedUser)
-    applyThemeAndHue(updatedUser)
+    
+    if (mounted && updatedUser) {
+      // Only update theme if it's different from current theme
+      if (updatedUser.theme !== theme) {
+        console.log("[UserProvider] Updating theme from", theme, "to", updatedUser.theme)
+        setTheme(updatedUser.theme)
+      }
+      applyHue(updatedUser)
+    }
   }
 
   return <UserContext.Provider value={{ user, loading, setUser: updateUser }}>{children}</UserContext.Provider>
