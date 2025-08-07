@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun } from "lucide-react"
+import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
 
 interface User {
@@ -213,9 +213,10 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={theme === "dark"}
-                  onCheckedChange={(checked) => {
-                    setTheme(checked ? "dark" : "light")
-                    updateSettings({ theme: checked ? "dark" : "light" })
+                  onCheckedChange={async (checked) => {
+                    const newTheme = checked ? "dark" : "light"
+                    setTheme(newTheme)
+                    await updateSettings({ theme: newTheme })
                   }}
                 />
               </div>

@@ -15,9 +15,10 @@ import { RecentPoll } from "@/components/recent-poll"
 import { MessageSearch } from "@/components/message-search"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe, Trash2, Search } from "lucide-react"
+import { Plus, Users, Globe, Trash2, Search } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
+import { useTheme } from "next-themes"
 
 interface GroupChat {
   id: string
@@ -183,11 +184,13 @@ export default function DashboardPage() {
   const handleThemeCycle = async () => {
     if (!user) return
 
-    const currentThemeIndex = themes.findIndex((t) => t.id === user.theme)
-    const nextThemeIndex = (currentThemeIndex + 1) % themes.length
-    const nextTheme = themes[nextThemeIndex].id
+    const { theme, setTheme } = useTheme()
+    const nextTheme = theme === 'light' ? 'dark' : 'light'
+    
+    console.log("[dashboard] Cycling theme from", theme, "to", nextTheme)
 
-    console.log("[dashboard] Cycling theme from", user.theme, "to", nextTheme)
+    // Update theme immediately
+    setTheme(nextTheme)
 
     try {
       const response = await fetch("/api/user/settings", {
@@ -203,10 +206,14 @@ export default function DashboardPage() {
       } else {
         const errorData = await response.json()
         console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
+        // Revert theme if API call fails
+        setTheme(theme || 'light')
         alert(`Failed to change theme: ${errorData.error || response.statusText}`)
       }
     } catch (error: any) {
       console.error("[dashboard] Failed to update theme:", error)
+      // Revert theme if API call fails
+      setTheme(theme || 'light')
       alert(`An unexpected error occurred while changing theme: ${error.message}`)
     }
   }

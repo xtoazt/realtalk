@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useTheme } from "next-themes"
 
 interface User {
   id: string
@@ -28,6 +29,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const { setTheme } = useTheme()
 
   // Apply theme and hue to document
   const applyThemeAndHue = (userData: User | null) => {
@@ -36,17 +38,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (userData) {
       console.log("[UserProvider] Applying theme:", userData.theme, "hue:", userData.hue)
 
-      // Apply theme
-      if (userData.theme === "dark") {
-        document.documentElement.classList.add("dark")
-      } else {
-        document.documentElement.classList.remove("dark")
-      }
+      // Apply theme using next-themes
+      setTheme(userData.theme || 'light')
 
       // Apply hue
       const hueClasses = [
         "hue-blue",
-        "hue-purple",
+        "hue-purple", 
         "hue-pink",
         "hue-red",
         "hue-orange",
@@ -61,11 +59,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // Reset to defaults when no user
-      document.documentElement.classList.remove("dark")
+      setTheme('light')
       const hueClasses = [
         "hue-blue",
         "hue-purple",
-        "hue-pink",
+        "hue-pink", 
         "hue-red",
         "hue-orange",
         "hue-yellow",
@@ -102,7 +100,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     fetchUser()
-  }, [])
+  }, [setTheme])
 
   const updateUser = (updatedUser: User | null) => {
     console.log("[UserProvider] updateUser called with:", updatedUser)
