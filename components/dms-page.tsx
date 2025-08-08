@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageCircle, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { MessageCircle, MessageSquare, RefreshCw } from "lucide-react"
 import { DirectCallButton } from "@/components/voice/DirectCallButton"
 
 interface DM {
@@ -104,7 +105,7 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
               {dms.map((dm) => (
                 <div
                   key={dm.friend_id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200 hover:scale-102 animate-slideIn"
+                  className="group flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200 hover:scale-102 animate-slideIn"
                 >
                   <div className="flex items-center gap-3 cursor-pointer" onClick={() => onSelectDM(dm.friend_id, dm.friend_username)}>
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -125,7 +126,17 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <DirectCallButton calleeUserId={dm.friend_id} currentUserId={currentUserId} />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => onSelectDM(dm.friend_id, dm.friend_username)}
+                      title="Message"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </Button>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DirectCallButton calleeUserId={dm.friend_id} currentUserId={currentUserId} />
+                    </div>
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   </div>
                 </div>
