@@ -46,6 +46,7 @@ export function DynamicIsland({
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "friends", label: "Friends", icon: UserPlus },
     { id: "dms", label: "DMs", icon: MessageSquare },
+    { id: "channels", label: "Channels", icon: Globe },
     { id: "polls", label: "Polls", icon: BarChart3 },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "profile", label: "Profile", icon: User },
@@ -132,15 +133,18 @@ export function DynamicIsland({
                 <Button
                   key={page.id}
                   variant={currentPage === page.id ? "secondary" : "ghost"}
-                  size="icon"
+                  size={page.id === 'channels' || page.id === 'dms' || page.id === 'polls' ? 'sm' : 'icon'}
                   onClick={() => handlePageClick(page.id)}
-                  className={`h-8 w-8 transition-all duration-200 hover:scale-105 rounded-full ${
+                  className={`h-8 ${page.id === 'channels' || page.id === 'dms' || page.id === 'polls' ? 'px-3' : 'w-8'} transition-all duration-200 hover:scale-105 rounded-full ${
                     currentPage === page.id
                       ? "bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300"
                       : "text-white hover:bg-gray-700/50 border border-gray-600/30"
                   }`}
                 >
                   <Icon className="h-3 w-3" />
+                  {(page.id === 'channels' || page.id === 'dms' || page.id === 'polls') && (
+                    <span className="ml-1 text-xs hidden md:inline">{page.label}</span>
+                  )}
                 </Button>
               )
             })}

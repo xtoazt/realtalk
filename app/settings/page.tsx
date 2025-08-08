@@ -151,12 +151,13 @@ export default function SettingsPage() {
 
   const handleThemeToggle = async (checked: boolean) => {
     const newTheme = checked ? "dark" : "light"
-    
     // Update theme immediately
     setTheme(newTheme)
-    
-    // Update in database
-    await updateSettings({ theme: newTheme })
+    try {
+      await updateSettings({ theme: newTheme })
+    } catch {
+      // noop, error already surfaced in updateSettings
+    }
   }
 
   if (userLoading || !mounted) {

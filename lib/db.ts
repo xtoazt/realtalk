@@ -186,6 +186,40 @@ export async function getMessages(chatType: string, chatId?: string, userId?: st
         LIMIT ${limit}
       `
       return result.reverse()
+    } else if (chatType === "channel") {
+      const result = await sql`
+        SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,
+               COALESCE(
+                 json_agg(
+                   json_build_object(
+                     'emoji', mr.emoji,
+                     'count', mr.reaction_count,
+                     'reacted_by_me', CASE WHEN mr.user_reacted THEN true ELSE false END
+                   )
+                 ) FILTER (WHERE mr.emoji IS NOT NULL), 
+                 '[]'::json
+               ) as reactions,
+               pm.content AS parent_message_content,
+               pu.username AS parent_message_username
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN (
+          SELECT 
+            message_id,
+            emoji,
+            COUNT(*) as reaction_count,
+            BOOL_OR(user_id = ${userId || null}) as user_reacted
+          FROM message_reactions
+          GROUP BY message_id, emoji
+        ) mr ON m.id = mr.message_id
+        LEFT JOIN messages pm ON m.parent_message_id = pm.id
+        LEFT JOIN users pu ON pm.sender_id = pu.id
+        WHERE m.chat_type = 'channel' AND m.chat_id = ${chatId}
+        GROUP BY m.id, u.username, u.name_color, u.custom_title, u.has_gold_animation, pm.content, pu.username
+        ORDER BY m.created_at DESC
+        LIMIT ${limit}
+      `
+      return result.reverse()
     } else {
       const result = await sql`
         SELECT m.*, u.username, u.name_color, u.custom_title, u.has_gold_animation,

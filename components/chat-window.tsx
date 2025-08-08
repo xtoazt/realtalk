@@ -26,7 +26,7 @@ interface Message {
 }
 
 interface ChatWindowProps {
-  chatType: "global" | "group" | "dm"
+  chatType: "global" | "group" | "dm" | "channel"
   chatId?: string
   chatName: string
   currentUserId: string
@@ -99,7 +99,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
               const notificationTitle =
                 newMessage.chat_type === "dm"
                   ? `New DM from ${newMessage.username}`
-                  : newMessage.chat_type === "group"
+                  : newMessage.chat_type === "group" || newMessage.chat_type === "channel"
                     ? `New message in ${chatName}`
                     : `New global message from ${newMessage.username}`
 
@@ -267,7 +267,9 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
             ? "Global chat • Everyone can see your messages"
             : chatType === "group"
               ? "Group chat"
-              : "Direct message"}
+              : chatType === "channel"
+                ? "Channel"
+                : "Direct message"}
         </p>
       </div>
 

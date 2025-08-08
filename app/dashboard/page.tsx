@@ -8,6 +8,7 @@ import { ChatWindow } from "@/components/chat-window"
 import { FriendsPage } from "@/components/friends-page"
 import { DMsPage } from "@/components/dms-page"
 import { PollsPage } from "@/components/polls-page"
+import { ChannelsPage } from "@/components/channels-page"
 import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
 import { CreateGroupChat } from "@/components/create-group-chat"
@@ -44,7 +45,7 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [activeChat, setActiveChat] = useState<{
-    type: "global" | "group" | "dm" | null
+    type: "global" | "group" | "dm" | "channel" | null
     id?: string
     name: string
   }>({ type: null, name: "" })
@@ -200,9 +201,7 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        console.log("[dashboard] Theme update successful:", data.user.theme)
-        // Don't call updateLocalUser here to avoid theme conflicts
+        // Avoid relying on response shape; just sync local state
         updateLocalUser({ ...user, theme: nextTheme })
       } else {
         const errorData = await response.json()
@@ -265,6 +264,12 @@ export default function DashboardPage() {
 
   const handleViewAllPolls = () => {
     setCurrentPage("polls")
+    setProfileUserId(null)
+  }
+
+  const handleSelectChannel = (channelId: string, channelName: string) => {
+    setActiveChat({ type: "channel", id: channelId, name: `# ${channelName}` })
+    setCurrentPage("dashboard")
     setProfileUserId(null)
   }
 
@@ -427,6 +432,12 @@ export default function DashboardPage() {
         {currentPage === "polls" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <PollsPage currentUserId={user.id} userSignupCode={user.signup_code} />
+          </div>
+        )}
+
+        {currentPage === "channels" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <ChannelsPage currentUserId={user.id} userSignupCode={user.signup_code} onSelectChannel={handleSelectChannel} />
           </div>
         )}
 

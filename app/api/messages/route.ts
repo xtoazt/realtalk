@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate AI response if mentioned in global/group chat (not dedicated AI chat)
-    if (hasAIMention && (chatType === "global" || chatType === "group")) {
+    if (hasAIMention && (chatType === "global" || chatType === "group" || chatType === "channel")) {
       console.log("[messages-api] AI mentioned in", chatType, "chat, generating response")
 
       const aiContext = `You are real.AI, responding to a mention in ${chatType} chat. 
