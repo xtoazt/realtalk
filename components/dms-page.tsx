@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, MessageSquare, RefreshCw } from "lucide-react"
-import { DirectCallButton } from "@/components/voice/DirectCallButton"
 
 interface DM {
   friend_id: string
@@ -134,9 +133,6 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
                     >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <DirectCallButton calleeUserId={dm.friend_id} currentUserId={currentUserId} />
-                    </div>
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   </div>
                 </div>
