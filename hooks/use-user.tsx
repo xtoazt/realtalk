@@ -68,25 +68,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
           console.log("[UserProvider] User data received:", userData.user)
           setUser(userData.user)
           
-          // Apply theme and hue after mounting
+          // Apply hue after mounting; do not force theme here to avoid flicker/override
           if (mounted && userData.user) {
-            console.log("[UserProvider] Setting theme to:", userData.user.theme)
-            setTheme(userData.user.theme || 'light')
             applyHue(userData.user)
           }
         } else {
           console.log("[UserProvider] No user found")
           setUser(null)
-          if (mounted) {
-            setTheme('light')
-          }
         }
       } catch (error) {
         console.error("[UserProvider] Fetch error:", error)
         setUser(null)
-        if (mounted) {
-          setTheme('light')
-        }
       } finally {
         setLoading(false)
       }
@@ -109,11 +101,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUser(updatedUser)
     
     if (mounted && updatedUser) {
-      // Only update theme if it's different from current theme
-      if (updatedUser.theme !== theme) {
-        console.log("[UserProvider] Updating theme from", theme, "to", updatedUser.theme)
-        setTheme(updatedUser.theme)
-      }
+      // Set theme directly without relying on server response shape elsewhere
+      setTheme(updatedUser.theme || 'light')
       applyHue(updatedUser)
     }
   }

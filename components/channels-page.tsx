@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Hash, Lock } from "lucide-react"
+import { Plus, Hash, Lock, Trash2 } from "lucide-react"
 
 interface Channel {
   id: string
@@ -46,6 +46,17 @@ export function ChannelsPage({ currentUserId, userSignupCode, onSelectChannel }:
 
   const systemChannels = useMemo(() => channels.filter((c) => c.is_system), [channels])
   const userChannels = useMemo(() => channels.filter((c) => !c.is_system), [channels])
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this channel?')) return
+    const res = await fetch(`/api/channels/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      fetchChannels()
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(`Failed to delete: ${err.error || res.statusText}`)
+    }
+  }
 
   const handleCreate = async () => {
     if (!canCreate || !newName.trim()) return
@@ -124,14 +135,20 @@ export function ChannelsPage({ currentUserId, userSignupCode, onSelectChannel }:
           </CardHeader>
           <CardContent className="space-y-2">
             {userChannels.map((ch) => (
-              <Button
-                key={ch.id}
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => onSelectChannel(ch.id, ch.name)}
-              >
-                <Hash className="h-4 w-4 mr-2" /> {ch.name}
-              </Button>
+              <div key={ch.id} className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-start"
+                  onClick={() => onSelectChannel(ch.id, ch.name)}
+                >
+                  <Hash className="h-4 w-4 mr-2" /> {ch.name}
+                </Button>
+                {ch.creator_id === currentUserId && (
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(ch.id)} className="text-red-500">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             ))}
           </CardContent>
         </Card>

@@ -23,8 +23,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem={true}
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange={true}
         >
           <UserProvider>

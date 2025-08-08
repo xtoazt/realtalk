@@ -16,6 +16,7 @@ import {
   Calendar,
   Moon,
   User,
+  Hash,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -46,8 +47,9 @@ export function DynamicIsland({
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "friends", label: "Friends", icon: UserPlus },
     { id: "dms", label: "DMs", icon: MessageSquare },
-    { id: "channels", label: "Channels", icon: Globe },
+    { id: "channels", label: "Channels", icon: Hash },
     { id: "polls", label: "Polls", icon: BarChart3 },
+    { id: "voice", label: "Voice", icon: Users },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "profile", label: "Profile", icon: User },
     { id: "settings", label: "Settings", icon: Settings },

@@ -98,9 +98,7 @@
   }
 
 /* Prevent theme toggle flicker during class switch */
-html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
-  transition: none !important;
-}
+html[class*="dark"] *, html[class*="dark"] *::before, html[class*="dark"] *::after { transition: none; }
 }
 
 /* Enhanced UI components */

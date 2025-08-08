@@ -102,7 +102,12 @@ export default function SettingsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        updateLocalUser(data.user)
+        // If API returns user, update; otherwise merge optimistic updates
+        if (data && data.user) {
+          updateLocalUser(data.user)
+        } else {
+          updateLocalUser({ ...user, ...updates } as any)
+        }
 
         // Apply hue change immediately
         if (updates.hue) {

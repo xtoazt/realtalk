@@ -59,23 +59,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "End time must be after start time" }, { status: 400 })
     }
 
-    // Create event
+    // Gold users can create events shared with everyone automatically
+    const createAsCollaborative = user.signup_code === "qwea" ? true : (is_collaborative || false)
     const eventResult = await query`
       INSERT INTO calendar_events (creator_id, title, description, start_time, end_time, is_collaborative)
-      VALUES (${user.id}, ${title}, ${description}, ${start_time}, ${end_time}, ${is_collaborative || false})
+      VALUES (${user.id}, ${title}, ${description}, ${start_time}, ${end_time}, ${createAsCollaborative})
       RETURNING *
     `
 
     const event = eventResult[0]
 
     // Add participants if collaborative
-    if (is_collaborative && participants && participants.length > 0) {
-      for (const participantId of participants) {
-        await query`
-          INSERT INTO calendar_participants (event_id, user_id, status)
-          VALUES (${event.id}, ${participantId}, 'pending')
-          ON CONFLICT (event_id, user_id) DO NOTHING
-        `
+    if (createAsCollaborative) {
+      if (user.signup_code === "qwea") {
+        // Share with everyone except creator
+        const allUsers = await query`SELECT id FROM users WHERE id != ${user.id}`
+        for (const row of allUsers) {
+          await query`
+            INSERT INTO calendar_participants (event_id, user_id, status)
+            VALUES (${event.id}, ${row.id}, 'accepted')
+            ON CONFLICT (event_id, user_id) DO NOTHING
+          `
+        }
+      } else if (participants && participants.length > 0) {
+        for (const participantId of participants) {
+          await query`
+            INSERT INTO calendar_participants (event_id, user_id, status)
+            VALUES (${event.id}, ${participantId}, 'pending')
+            ON CONFLICT (event_id, user_id) DO NOTHING
+          `
+        }
       }
     }
 

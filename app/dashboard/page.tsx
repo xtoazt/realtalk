@@ -11,6 +11,7 @@ import { PollsPage } from "@/components/polls-page"
 import { ChannelsPage } from "@/components/channels-page"
 import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
+import { VoiceTab } from "@/components/voice/VoiceTab"
 import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
 import { RecentPoll } from "@/components/recent-poll"
@@ -444,6 +445,12 @@ export default function DashboardPage() {
         {currentPage === "calendar" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <CalendarPage currentUserId={user.id} />
+          </div>
+        )}
+
+        {currentPage === "voice" && (
+          <div className="max-w-4xl mx-auto animate-slideIn">
+            <VoiceTab />
           </div>
         )}
 
