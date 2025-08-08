@@ -11,12 +11,25 @@ export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([])
   const [q, setQ] = useState("")
   const [embedUrl, setEmbedUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    setLoading(true)
     fetch("/games.json")
-      .then((r) => r.json())
-      .then(setGames)
-      .catch((e) => console.error("Failed to load games.json", e))
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((data) => {
+        setGames(data)
+        setError(null)
+      })
+      .catch((e) => {
+        console.error("Failed to load games.json", e)
+        setError("Failed to load games. Please try again later.")
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -39,6 +52,14 @@ export default function GamesPage() {
           />
         </div>
       </div>
+
+      {/* Loading / Error */}
+      {loading && (
+        <div className="px-4 py-8 text-center text-muted-foreground animate-pulse">Loading games…</div>
+      )}
+      {error && (
+        <div className="px-4 py-8 text-center text-red-500">{error}</div>
+      )}
 
       {/* Grid */}
       <div className="mt-6 px-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -71,9 +92,10 @@ export default function GamesPage() {
             <X className="h-5 w-5" />
           </button>
           <iframe
-            src={embedUrl}
+            src={embedUrl || "about:blank"}
             className="w-full h-full"
             sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-forms"
+            allow="fullscreen; autoplay; gamepad; xr-spatial-tracking"
             referrerPolicy="no-referrer"
           />
         </div>
