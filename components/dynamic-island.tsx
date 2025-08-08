@@ -89,8 +89,8 @@ export function DynamicIsland({
             : "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)",
         }}
       >
-        {!isExpanded ? (
-          <div className="flex items-center gap-4 transition-all duration-200">
+         {!isExpanded ? (
+          <div className="flex items-center gap-3 transition-all duration-200">
             <div className="relative">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
               <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-30" />
@@ -98,29 +98,29 @@ export function DynamicIsland({
             <span className="text-lg font-bold tracking-wide bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               real.
             </span>
-            <span className="text-sm text-gray-300 opacity-90 font-medium">@{username}</span>
+            <span className="text-xs text-gray-300 opacity-80 font-medium">@{username}</span>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-1 py-1">
             {/* Quick Action Buttons */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => handlePageClick("global")}
-              className="h-8 px-3 text-white hover:bg-gray-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-gray-600/30 text-xs"
+              className="h-8 w-8 text-white hover:bg-gray-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-gray-600/30"
+              title="Global"
             >
-              <Globe className="h-3 w-3 mr-1" />
-              Global
+              <Globe className="h-3 w-3" />
             </Button>
 
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => handlePageClick("ai-chat")}
-              className="h-8 px-3 text-white hover:bg-blue-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-blue-600/30 text-xs"
+              className="h-8 w-8 text-white hover:bg-blue-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-blue-600/30"
+              title="AI Chat"
             >
-              <Bot className="h-3 w-3 mr-1" />
-              AI
+              <Bot className="h-3 w-3" />
             </Button>
 
             <div className="w-px h-5 bg-gray-600 mx-1" />
@@ -132,16 +132,15 @@ export function DynamicIsland({
                 <Button
                   key={page.id}
                   variant={currentPage === page.id ? "secondary" : "ghost"}
-                  size="sm"
+                  size="icon"
                   onClick={() => handlePageClick(page.id)}
-                  className={`h-8 px-3 transition-all duration-200 hover:scale-105 rounded-full text-xs ${
+                  className={`h-8 w-8 transition-all duration-200 hover:scale-105 rounded-full ${
                     currentPage === page.id
                       ? "bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300"
                       : "text-white hover:bg-gray-700/50 border border-gray-600/30"
                   }`}
                 >
-                  <Icon className="h-3 w-3 mr-1" />
-                  {page.label}
+                  <Icon className="h-3 w-3" />
                 </Button>
               )
             })}
@@ -151,9 +150,9 @@ export function DynamicIsland({
             {/* Theme Toggle Button */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={onThemeCycle}
-              className="h-8 px-3 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
+              className="h-8 w-8 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
               title="Toggle Theme"
             >
               <Moon className="h-3 w-3" />
@@ -162,9 +161,9 @@ export function DynamicIsland({
             {/* Hue Cycle Button */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={onHueCycle}
-              className="h-8 px-3 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
+              className="h-8 w-8 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
               title="Cycle Color"
             >
               <Palette className="h-3 w-3" />
@@ -173,9 +172,10 @@ export function DynamicIsland({
             {/* Sign Out */}
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={onSignOut}
-              className="h-8 px-3 text-white hover:bg-red-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-red-600/30"
+              className="h-8 w-8 text-white hover:bg-red-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-red-600/30"
+              title="Sign out"
             >
               <LogOut className="h-3 w-3" />
             </Button>

@@ -312,11 +312,11 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                             variant={isSelected ? "default" : "outline"}
                             className={`flex-1 justify-start hover-lift transition-all duration-200 ${
                               isSelected ? "hue-shadow" : ""
-                            } ${!hasVoted && !isExpired(poll.expires_at) ? "cursor-pointer" : ""}`}
+                            } ${!isExpired(poll.expires_at) ? "cursor-pointer" : ""}`}
                             onClick={() =>
-                              !hasVoted && !isExpired(poll.expires_at) && !isVoting && handleVote(poll.id, optionIndex)
+                              !isExpired(poll.expires_at) && !isVoting && handleVote(poll.id, optionIndex)
                             }
-                            disabled={hasVoted || isExpired(poll.expires_at) || isVoting}
+                            disabled={isExpired(poll.expires_at) || isVoting}
                           >
                             <span className="flex-1 text-left">{option}</span>
                             {isVoting && (
@@ -347,9 +347,9 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                       </div>
                     )
                   })}
-                  {!hasVoted && !isExpired(poll.expires_at) && (
+                  {!isExpired(poll.expires_at) && (
                     <p className="text-xs text-muted-foreground text-center mt-4 opacity-70">
-                      Click on an option to cast your vote
+                      Click on an option to {hasVoted ? "change your vote" : "cast your vote"}
                     </p>
                   )}
                 </CardContent>

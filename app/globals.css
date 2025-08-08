@@ -96,6 +96,11 @@
   .dark body {
     background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--hue) 20% 8%) 100%);
   }
+
+/* Prevent theme toggle flicker during class switch */
+html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
+  transition: none !important;
+}
 }
 
 /* Enhanced UI components */

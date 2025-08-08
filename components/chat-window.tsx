@@ -112,9 +112,9 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
                         : newMessage.content.length > 100
                           ? newMessage.content.substring(0, 100) + "..."
                           : newMessage.content,
-                    icon: "/favicon.ico",
+                    icon: "/favicon.png",
                     tag: `${newMessage.chat_type}-${newMessage.chat_id || "global"}`,
-                    badge: "/favicon.ico",
+                    badge: "/favicon.png",
                     requireInteraction: false,
                     silent: false,
                   })

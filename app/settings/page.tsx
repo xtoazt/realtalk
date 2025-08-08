@@ -334,10 +334,13 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Desktop Notifications</p>
-                  <p className="text-sm text-muted-foreground">Get notified about new messages</p>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified about new messages
+                      {navigator.userAgent.includes("CrOS") && " • ChromeOS: keep this tab open to see alerts while multitasking"}
+                    </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Status:{" "}
                     <span className={notificationPermission === "granted" ? "text-green-600" : "text-orange-600"}>

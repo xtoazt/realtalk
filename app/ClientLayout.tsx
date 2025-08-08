@@ -13,11 +13,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="system" 
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
           enableSystem={true}
-          disableTransitionOnChange={false}
+          disableTransitionOnChange={true}
         >
           <UserProvider>
             <ParticleBackground />
