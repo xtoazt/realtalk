@@ -17,6 +17,7 @@ import {
   Moon,
   User,
   Users,
+  Phone,
   Hash,
 } from "lucide-react"
 
@@ -50,7 +51,7 @@ export function DynamicIsland({
     { id: "dms", label: "DMs", icon: MessageSquare },
     { id: "channels", label: "Channels", icon: Hash },
     { id: "polls", label: "Polls", icon: BarChart3 },
-    { id: "voice", label: "Voice", icon: Users },
+    { id: "voice", label: "Voice", icon: Phone },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "profile", label: "Profile", icon: User },
     { id: "settings", label: "Settings", icon: Settings },

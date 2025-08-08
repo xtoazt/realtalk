@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import io, { Socket } from "socket.io-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mic, MicOff, PhoneOff, Users } from "lucide-react"
+import { Mic, MicOff, PhoneOff, Phone } from "lucide-react"
 
 interface VoiceChatProps {
   roomId: string
@@ -151,7 +151,7 @@ export function VoiceChat({ roomId, userId, signalingUrl = process.env.NEXT_PUBL
     <Card className="glass-effect">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" /> Voice Room
+          <Phone className="h-5 w-5" /> Voice Room
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

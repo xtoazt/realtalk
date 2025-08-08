@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageCircle, RefreshCw } from "lucide-react"
+import { DirectCallButton } from "@/components/voice/DirectCallButton"
 
 interface DM {
   friend_id: string
@@ -103,10 +104,9 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
               {dms.map((dm) => (
                 <div
                   key={dm.friend_id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 cursor-pointer transition-all duration-200 hover:scale-102 animate-slideIn"
-                  onClick={() => onSelectDM(dm.friend_id, dm.friend_username)}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200 hover:scale-102 animate-slideIn"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => onSelectDM(dm.friend_id, dm.friend_username)}>
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                       <span className="text-sm font-medium text-primary">
                         {dm.friend_username.charAt(0).toUpperCase()}
@@ -124,7 +124,10 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <div className="flex items-center gap-2">
+                    <DirectCallButton calleeUserId={dm.friend_id} currentUserId={currentUserId} />
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  </div>
                 </div>
               ))}
             </div>
