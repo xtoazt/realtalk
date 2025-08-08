@@ -12,6 +12,9 @@ interface IncomingCallHandlerProps {
 export function IncomingCallHandler({ currentUserId, signalingUrl = process.env.NEXT_PUBLIC_VOICE_URL || "" }: IncomingCallHandlerProps) {
   const [incomingFrom, setIncomingFrom] = useState<string | null>(null)
   const socketRef = useRef<any>(null)
+  const pcRef = useRef<RTCPeerConnection | null>(null)
+  const localStreamRef = useRef<MediaStream | null>(null)
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     if (!signalingUrl) return
@@ -21,19 +24,68 @@ export function IncomingCallHandler({ currentUserId, signalingUrl = process.env.
     socket.on("incoming-call", ({ fromUserId }) => {
       setIncomingFrom(fromUserId)
     })
+    // Prepare media element for remote audio
+    const audio = new Audio()
+    audio.autoplay = true
+    remoteAudioRef.current = audio
+
+    // Handle direct signaling as callee
+    socket.on("signal-offer", async ({ from, description, direct }) => {
+      if (!direct || from !== incomingFrom) return
+      const pc = await getOrCreatePc()
+      await pc.setRemoteDescription(description)
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      socket.emit("signal-answer", { to: from, description: pc.localDescription, direct: true })
+    })
+
+    socket.on("signal-ice-candidate", async ({ from, candidate, direct }) => {
+      if (!direct) return
+      try {
+        const pc = await getOrCreatePc()
+        await pc.addIceCandidate(candidate)
+      } catch {}
+    })
+
     return () => socket.disconnect()
   }, [currentUserId, signalingUrl])
 
-  const accept = () => {
-    if (!incomingFrom || !socketRef.current) return
-    socketRef.current.emit("call-accept", { to: incomingFrom })
+  const getOrCreatePc = async () => {
+    if (pcRef.current) return pcRef.current
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] })
+    pc.onicecandidate = (ev) => {
+      if (ev.candidate && incomingFrom && socketRef.current) {
+        socketRef.current.emit("signal-ice-candidate", { to: incomingFrom, candidate: ev.candidate, direct: true })
+      }
+    }
+    pc.ontrack = (ev) => {
+      const [stream] = ev.streams
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream
+    }
+    localStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+    localStreamRef.current.getTracks().forEach((t) => pc.addTrack(t, localStreamRef.current!))
+    pcRef.current = pc
+    return pc
+  }
+
+  const cleanup = () => {
+    pcRef.current?.close()
+    pcRef.current = null
+    localStreamRef.current?.getTracks().forEach((t) => t.stop())
+    localStreamRef.current = null
     setIncomingFrom(null)
+  }
+
+  const accept = async () => {
+    if (!incomingFrom || !socketRef.current) return
+    await getOrCreatePc()
+    socketRef.current.emit("call-accept", { to: incomingFrom })
   }
 
   const decline = () => {
     if (!incomingFrom || !socketRef.current) return
     socketRef.current.emit("call-decline", { to: incomingFrom })
-    setIncomingFrom(null)
+    cleanup()
   }
 
   if (!incomingFrom) return null

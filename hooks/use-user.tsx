@@ -55,6 +55,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       ]
       hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
       document.documentElement.classList.add(`hue-${userData.hue}`)
+    } else {
+      // fallback
+      const hueClasses = [
+        "hue-blue","hue-purple","hue-pink","hue-red","hue-orange","hue-yellow","hue-green","hue-teal"
+      ]
+      hueClasses.forEach((cls) => document.documentElement.classList.remove(cls))
+      document.documentElement.classList.add("hue-blue")
     }
   }
 
