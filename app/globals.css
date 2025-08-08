@@ -28,25 +28,25 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+    --card: 222 50% 7.5%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 50% 7.5%;
+    --popover-foreground: 210 40% 96%;
     --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 223 28% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 223 28% 14%;
+    --muted-foreground: 215 18% 62%;
+    --accent: 223 28% 14%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 2 90% 58%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 220 27% 18%;
+    --input: 220 27% 18%;
+    --ring: 213 27% 84%;
   }
 
   /* Hue variations */
@@ -89,12 +89,16 @@
   }
 
   body {
-    @apply bg-background text-foreground transition-all duration-500;
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--hue) 10% 98%) 100%);
+    @apply bg-background text-foreground transition-colors duration-500;
+    background: radial-gradient(1200px circle at 0% 0%, hsla(var(--hue), 80%, 85%, 0.15), transparent 40%),
+                radial-gradient(900px circle at 100% 0%, hsla(var(--hue), 80%, 85%, 0.12), transparent 40%),
+                linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
   }
 
   .dark body {
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--hue) 20% 8%) 100%);
+    background: radial-gradient(1200px circle at 0% 0%, hsla(var(--hue), 60%, 40%, 0.25), transparent 40%),
+                radial-gradient(900px circle at 100% 0%, hsla(var(--hue), 60%, 40%, 0.18), transparent 40%),
+                linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
   }
 
 /* Prevent theme toggle flicker during class switch */
@@ -102,47 +106,27 @@ html[class*="dark"] *, html[class*="dark"] *::before, html[class*="dark"] *::aft
 }
 
 /* Enhanced UI components */
-.glass-effect {
-  @apply backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border border-white/20 dark:border-gray-700/20;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-gray-700/20;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+  }
 
-.dark .glass-effect {
-  @apply bg-gray-900/90 border-gray-700/30;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
+  .dark .glass-effect {
+    @apply bg-gray-900/75 border-gray-700/30;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  }
 
-.hue-accent {
-  color: hsl(var(--hue) 70% 50%);
-}
+  .hue-accent { color: hsl(var(--hue), 70%, 50%); }
+  .dark .hue-accent { color: hsl(var(--hue), 70%, 60%); }
 
-.dark .hue-accent {
-  color: hsl(var(--hue) 60% 60%);
-}
+  .hue-shadow { box-shadow: 0 8px 30px hsla(var(--hue), 70%, 55%, 0.25); }
+  .dark .hue-shadow { box-shadow: 0 10px 40px hsla(var(--hue), 70%, 55%, 0.35); }
 
-.hue-shadow {
-  box-shadow: 0 4px 20px hsla(var(--hue), 50%, 50%, 0.15);
-}
+  .hue-border { border-color: hsl(var(--hue), 65%, 60%); }
+  .dark .hue-border { border-color: hsl(var(--hue), 55%, 50%); }
 
-.dark .hue-shadow {
-  box-shadow: 0 4px 20px hsla(var(--hue), 60%, 60%, 0.25);
-}
-
-.hue-border {
-  border-color: hsl(var(--hue) 50% 70%);
-}
-
-.dark .hue-border {
-  border-color: hsl(var(--hue) 40% 50%);
-}
-
-.hue-bg {
-  background-color: hsl(var(--hue) 50% 95%);
-}
-
-.dark .hue-bg {
-  background-color: hsl(var(--hue) 30% 15%);
-}
+  .hue-bg { background-color: hsl(var(--hue), 85%, 95%); }
+  .dark .hue-bg { background-color: hsl(var(--hue), 35%, 12%); }
 
 /* Animations */
 @keyframes fadeIn {
