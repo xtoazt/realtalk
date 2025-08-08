@@ -19,6 +19,8 @@ import {
   Users,
   Phone,
   Hash,
+  Clapperboard,
+  Gamepad2,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -51,6 +53,8 @@ export function DynamicIsland({
     { id: "dms", label: "DMs", icon: MessageSquare },
     { id: "channels", label: "Channels", icon: Hash },
     { id: "polls", label: "Polls", icon: BarChart3 },
+    { id: "movies", label: "Movies", icon: Clapperboard },
+    { id: "games", label: "Games", icon: Gamepad2 },
     { id: "voice", label: "Voice", icon: Phone },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "profile", label: "Profile", icon: User },
@@ -133,20 +137,21 @@ export function DynamicIsland({
             {/* Navigation Pages */}
             {pages.map((page) => {
               const Icon = page.icon
+              const showLabel = page.id === 'channels' || page.id === 'dms' || page.id === 'polls' || page.id === 'movies' || page.id === 'games'
               return (
                 <Button
                   key={page.id}
                   variant={currentPage === page.id ? "secondary" : "ghost"}
-                  size={page.id === 'channels' || page.id === 'dms' || page.id === 'polls' ? 'sm' : 'icon'}
+                  size={showLabel ? 'sm' : 'icon'}
                   onClick={() => handlePageClick(page.id)}
-                  className={`h-8 ${page.id === 'channels' || page.id === 'dms' || page.id === 'polls' ? 'px-3' : 'w-8'} transition-all duration-200 hover:scale-105 rounded-full ${
+                  className={`h-8 ${showLabel ? 'px-3' : 'w-8'} transition-all duration-200 hover:scale-105 rounded-full ${
                     currentPage === page.id
                       ? "bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300"
                       : "text-white hover:bg-gray-700/50 border border-gray-600/30"
                   }`}
                 >
                   <Icon className="h-3 w-3" />
-                  {(page.id === 'channels' || page.id === 'dms' || page.id === 'polls') && (
+                  {showLabel && (
                     <span className="ml-1 text-xs hidden md:inline">{page.label}</span>
                   )}
                 </Button>

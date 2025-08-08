@@ -10,7 +10,7 @@ type Movie = {
 }
 
 const IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
-const EMBED_BASE = "https://vidsrc.in/embed/movie/"
+const EMBED_BASE = "https://vidsrc.xyz/embed/movie"
 
 export default function MoviesPage() {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || "2713804610e1e236b1cf44bfac3a7776"
@@ -209,7 +209,7 @@ export default function MoviesPage() {
               <div className="absolute inset-0">
                 <iframe
                   key={selected.id}
-                  src={`${EMBED_BASE}${selected.id}`}
+                  src={`${EMBED_BASE}?tmdb=${selected.id}&autoplay=1`}
                   className="w-full h-full"
                   // Strong sandbox to block popups/ads
                   sandbox="allow-same-origin allow-scripts"

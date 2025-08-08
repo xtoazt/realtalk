@@ -12,6 +12,8 @@ import { ChannelsPage } from "@/components/channels-page"
 import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
 import { VoiceTab } from "@/components/voice/VoiceTab"
+import MoviesPage from "@/app/movies/page"
+import GamesPage from "../../components/games-page"
 import { IncomingCallHandler } from "@/components/voice/IncomingCallHandler"
 import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
@@ -164,6 +166,14 @@ export default function DashboardPage() {
       router.push("/settings")
     } else if (page === "about") {
       router.push("/about")
+    } else if (page === "movies") {
+      router.push("/movies")
+      setActiveChat({ type: null, name: "" })
+      setProfileUserId(null)
+    } else if (page === "games") {
+      router.push("/games")
+      setActiveChat({ type: null, name: "" })
+      setProfileUserId(null)
     } else {
       setCurrentPage(page)
       if (page !== "dashboard") {
@@ -420,6 +430,16 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Fallback quick access when on dashboard top */}
+        <div className="max-w-7xl mx-auto mb-3 flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("movies")}>
+            Movies
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("games")}>
+            Games
+          </Button>
+        </div>
+
         {currentPage === "friends" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <FriendsPage currentUserId={user.id} onStartDM={handleStartDM} />
@@ -456,10 +476,22 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {currentPage === "movies" && (
+          <div className="max-w-7xl mx-auto animate-fadeIn">
+            <MoviesPage />
+          </div>
+        )}
+
+        {currentPage === "games" && (
+          <div className="max-w-7xl mx-auto animate-fadeIn">
+            <GamesPage />
+          </div>
+        )}
+
         {currentPage === "profile" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <ProfilePage 
-              userId={profileUserId} 
+              userId={profileUserId ?? undefined} 
               onStartDM={handleStartDM} 
               onSendFriendRequest={handleSendFriendRequest} 
             />
