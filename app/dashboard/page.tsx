@@ -12,6 +12,7 @@ import { ChannelsPage } from "@/components/channels-page"
 import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
 import { VoiceTab } from "@/components/voice/VoiceTab"
+import { IncomingCallHandler } from "@/components/voice/IncomingCallHandler"
 import { CreateGroupChat } from "@/components/create-group-chat"
 import { OnlineUsers } from "@/components/online-users"
 import { RecentPoll } from "@/components/recent-poll"
@@ -327,6 +328,7 @@ export default function DashboardPage() {
       />
 
       <div className="pt-20 px-4 pb-4">
+        <IncomingCallHandler currentUserId={user.id} />
         {currentPage === "dashboard" && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">

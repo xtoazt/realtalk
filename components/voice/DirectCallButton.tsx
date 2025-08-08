@@ -67,6 +67,28 @@ export function DirectCallButton({ calleeUserId, currentUserId, signalingUrl = p
     // Identify ourselves for direct calls
     socket.emit("join-room", { roomId: `dm:${[currentUserId, calleeUserId].sort().join(":")}`, userId: currentUserId })
 
+    // Ask callee to accept/decline first
+    socket.emit("call-invite", { to: calleeUserId })
+
+    const onDecline = ({ fromUserId }: { fromUserId: string }) => {
+      if (fromUserId !== calleeUserId) return
+      cleanup()
+      alert("Call declined")
+    }
+    const onAccept = async ({ fromUserId }: { fromUserId: string }) => {
+      if (fromUserId !== calleeUserId) return
+      // Proceed to create and send offer
+      const pc = await createPc()
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      setRinging(true)
+      socket.emit("signal-offer", { to: calleeUserId, description: pc.localDescription, direct: true })
+      socket.off("call-accept", onAccept)
+      socket.off("call-decline", onDecline)
+    }
+    socket.on("call-decline", onDecline)
+    socket.on("call-accept", onAccept)
+
     socket.on("signal-offer", async ({ from, description, direct }) => {
       if (!direct) return
       const pc = await createPc()
@@ -107,15 +129,15 @@ export function DirectCallButton({ calleeUserId, currentUserId, signalingUrl = p
 
   if (inCall || calling || ringing) {
     return (
-      <Button onClick={endCall} variant="destructive">
+      <Button onClick={endCall} variant="destructive" size="icon">
         <PhoneOff className="h-4 w-4 mr-1" /> End Call
       </Button>
     )
   }
 
   return (
-    <Button onClick={startCall}>
-      <Phone className="h-4 w-4 mr-1" /> Call
+    <Button onClick={startCall} size="icon" title="Call">
+      <Phone className="h-4 w-4" />
     </Button>
   )
 }
