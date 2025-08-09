@@ -23,6 +23,7 @@ import {
   Clapperboard,
   Gamepad2,
   Radio,
+  MonitorSmartphone,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -204,6 +205,15 @@ export function DynamicIsland({
                   >
                     <Radio className="h-3 w-3" />
                     <span className="text-xs">Radio</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageClick('vm')}
+                    className="justify-start gap-2"
+                  >
+                    <MonitorSmartphone className="h-3 w-3" />
+                    <span className="text-xs">VM</span>
                   </Button>
                 </div>
               </PopoverContent>
