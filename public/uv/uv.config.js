@@ -18,10 +18,23 @@
     ],
   }
 
+  function safeCodec() {
+    try {
+      // @ts-ignore
+      if (typeof Ultraviolet !== 'undefined' && Ultraviolet?.codec?.xor) {
+        // @ts-ignore
+        return { enc: Ultraviolet.codec.xor.encode, dec: Ultraviolet.codec.xor.decode }
+      }
+    } catch {}
+    return { enc: (u) => u, dec: (u) => u }
+  }
+
+  const { enc, dec } = safeCodec()
+
   self.__uv$config = {
     prefix: "/uv/service/",
-    encodeUrl: Ultraviolet.codec.xor.encode,
-    decodeUrl: Ultraviolet.codec.xor.decode,
+    encodeUrl: enc,
+    decodeUrl: dec,
     handler: fallback.handler[0],
     bundle: fallback.bundle[0],
     config: "/uv/uv.config.js",

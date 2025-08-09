@@ -27,15 +27,15 @@ export default function Page() {
             document.head.appendChild(s)
           })
 
-        // Load config first (it sets __uv$config). The SW will load bundle/handler with fallbacks.
-        await addScript("/uv/uv.config.js")
-
+        // Register SW first, then load config so __uv$config is available by the time ready resolves.
         if ("serviceWorker" in navigator) {
-          // @ts-ignore - __uv$config injected by uv.config.js
-          await navigator.serviceWorker.register("/uv/uv.sw.js", { scope: (self as any).__uv$config.prefix })
-          // Wait until SW is active and controlling clients
+          try { await navigator.serviceWorker.register("/uv/uv.sw.js", { scope: "/uv/" }) } catch {}
           await navigator.serviceWorker.ready
         }
+        await addScript("/uv/uv.config.js")
+
+        // Ensure __uv$config exists before enabling UI
+        if (!(self as any).__uv$config) throw new Error("UV config unavailable")
         setReady(true)
       } catch (e: any) {
         setError(e?.message || "Failed to initialize proxy")
