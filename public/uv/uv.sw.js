@@ -36,7 +36,9 @@
     importScripts('/uv/uv.config.js')
   } catch (e) {}
   const ok3 = tryImport(swcores)
-  if (!(ok1 && ok2 && ok3)) {
+  if (ok1 && ok2 && ok3 && self.__uv$config?.prefix) {
+    try { fetch(self.__uv$config.prefix + 'warmup').catch(()=>{}) } catch {}
+  } else {
     // Failed to initialize UV; SW will still register but won't proxy
   }
 })()

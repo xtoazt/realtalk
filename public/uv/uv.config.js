@@ -32,7 +32,7 @@
   const { enc, dec } = safeCodec()
 
   self.__uv$config = {
-    prefix: "/uv/",
+    prefix: "/uv/service/",
     encodeUrl: enc,
     decodeUrl: dec,
     handler: fallback.handler[0],

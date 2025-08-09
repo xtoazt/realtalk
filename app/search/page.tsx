@@ -60,7 +60,7 @@ export default function Page() {
       const cfg = (self as any).__uv$config
       const url = toUrl(target ?? address)
       if (!url) return
-      const proxied = (cfg.prefix || '/uv/') + cfg.encodeUrl(url)
+      const proxied = (cfg.prefix || '/uv/service/') + cfg.encodeUrl(url)
       // Update active tab url and optimistic title
       const hostname = (() => { try { return new URL(url).hostname } catch { return url } })()
       setTabs((prev) => prev.map((t) => t.id === activeTabId ? { ...t, url: proxied, title: hostname } : t))

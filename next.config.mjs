@@ -19,7 +19,7 @@ const nextConfig = {
   // Provide a safe 200 fallback for /uv/* so if SW isn't controlling yet, the iframe won't show a Next 404
   async rewrites() {
     return [
-      { source: '/uv/:path*', destination: '/uv-blank.html' },
+      { source: '/uv/service/:path*', destination: '/uv-blank.html' },
     ]
   },
 }

@@ -49,9 +49,13 @@ try {
       return false
     }
     try { importScripts('/uv/uv.config.js') } catch (e) {}
-    tryImport(bundles)
-    tryImport(handlers)
-    tryImport(swcores)
+    const ok1 = tryImport(bundles)
+    const ok2 = tryImport(handlers)
+    const ok3 = tryImport(swcores)
+    // If initialized, create a dummy fetch to warm SW path
+    if (ok1 && ok2 && ok3 && self.__uv$config?.prefix) {
+      fetch(self.__uv$config.prefix + 'warmup').catch(()=>{})
+    }
   })()
 } catch {}
 
