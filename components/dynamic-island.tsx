@@ -162,10 +162,10 @@ export function DynamicIsland({
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant={currentPage === 'movies' || currentPage === 'games' ? 'secondary' : 'ghost'}
+                  variant={currentPage === 'movies' || currentPage === 'games' || currentPage === 'music' ? 'secondary' : 'ghost'}
                   size='sm'
                   className={`h-8 px-3 transition-all duration-200 hover:scale-105 rounded-full ${
-                    currentPage === 'movies' || currentPage === 'games'
+                    currentPage === 'movies' || currentPage === 'games' || currentPage === 'music'
                       ? 'bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300'
                       : 'text-white hover:bg-gray-700/50 border border-gray-600/30'
                   }`}
@@ -175,7 +175,7 @@ export function DynamicIsland({
                   <span className="ml-1 text-xs hidden md:inline">Entertainment</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-44 p-2" align="center">
+              <PopoverContent className="w-48 p-2" align="center">
                 <div className="flex flex-col gap-2">
                   <Button
                     variant="ghost"
@@ -194,6 +194,15 @@ export function DynamicIsland({
                   >
                     <Gamepad2 className="h-3 w-3" />
                     <span className="text-xs">Games</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageClick('music')}
+                    className="justify-start gap-2"
+                  >
+                    <Play className="h-3 w-3" />
+                    <span className="text-xs">Music</span>
                   </Button>
                 </div>
               </PopoverContent>

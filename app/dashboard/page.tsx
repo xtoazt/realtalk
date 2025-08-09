@@ -13,6 +13,7 @@ import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
 import { VoiceTab } from "@/components/voice/VoiceTab"
 import MoviesPage from "@/app/movies/page"
+import MusicPage from "@/app/music/page"
 import GamesPage from "../../components/games-page"
 import { IncomingCallHandler } from "@/components/voice/IncomingCallHandler"
 import { CreateGroupChat } from "@/components/create-group-chat"
@@ -172,6 +173,10 @@ export default function DashboardPage() {
       setProfileUserId(null)
     } else if (page === "games") {
       router.push("/games")
+      setActiveChat({ type: null, name: "" })
+      setProfileUserId(null)
+    } else if (page === "music") {
+      router.push("/music")
       setActiveChat({ type: null, name: "" })
       setProfileUserId(null)
     } else {
@@ -438,6 +443,9 @@ export default function DashboardPage() {
           <Button variant="ghost" size="sm" onClick={() => setCurrentPage("games")}>
             Games
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("music")}>
+            Music
+          </Button>
         </div>
 
         {currentPage === "friends" && (
@@ -485,6 +493,12 @@ export default function DashboardPage() {
         {currentPage === "games" && (
           <div className="max-w-7xl mx-auto animate-fadeIn">
             <GamesPage />
+          </div>
+        )}
+
+        {currentPage === "music" && (
+          <div className="max-w-7xl mx-auto animate-fadeIn">
+            <MusicPage />
           </div>
         )}
 
