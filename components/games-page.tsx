@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import gamesData from "@/games.json"
 import { Search, X } from "lucide-react"
 
 type Game = { name: string; image: string; url: string; new?: boolean }
@@ -15,21 +16,16 @@ export default function GamesPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    fetch("/games.json")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then((data) => {
-        setGames(data)
-        setError(null)
-      })
-      .catch((e) => {
-        console.error("Failed to load games.json", e)
-        setError("Failed to load games. Please try again later.")
-      })
-      .finally(() => setLoading(false))
+    try {
+      const data = (gamesData as unknown) as Game[]
+      setGames(data)
+      setError(null)
+    } catch (e) {
+      console.error("Failed to load games data", e)
+      setError("Failed to load games. Please try again later.")
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const filtered = useMemo(() => {

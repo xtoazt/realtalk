@@ -1,0 +1,16 @@
+"use strict";(()=>{var e={};e.id=9637,e.ids=[9637],e.modules={3295:e=>{e.exports=require("next/dist/server/app-render/after-task-async-storage.external.js")},10762:e=>{e.exports=import("@neondatabase/serverless")},10846:e=>{e.exports=require("next/dist/compiled/next-server/app-page.runtime.prod.js")},29294:e=>{e.exports=require("next/dist/server/app-render/work-async-storage.external.js")},44870:e=>{e.exports=require("next/dist/compiled/next-server/app-route.runtime.prod.js")},55511:e=>{e.exports=require("crypto")},61870:(e,r,t)=>{t.a(e,async(e,o)=>{try{t.r(r),t.d(r,{patchFetch:()=>d,routeModule:()=>l,serverHooks:()=>x,workAsyncStorage:()=>u,workUnitAsyncStorage:()=>c});var s=t(36044),n=t(63409),a=t(9576),i=t(63622),p=e([i]);i=(p.then?(await p)():p)[0];let l=new s.AppRouteRouteModule({definition:{kind:n.RouteKind.APP_ROUTE,page:"/api/polls/[id]/vote/route",pathname:"/api/polls/[id]/vote",filename:"route",bundlePath:"app/api/polls/[id]/vote/route"},resolvedPagePath:"/Users/rohan/code/realtalk/app/api/polls/[id]/vote/route.ts",nextConfigOutput:"",userland:i}),{workAsyncStorage:u,workUnitAsyncStorage:c,serverHooks:x}=l;function d(){return(0,a.patchFetch)({workAsyncStorage:u,workUnitAsyncStorage:c})}o()}catch(e){o(e)}})},63033:e=>{e.exports=require("next/dist/server/app-render/work-unit-async-storage.external.js")},63622:(e,r,t)=>{t.a(e,async(e,o)=>{try{t.r(r),t.d(r,{POST:()=>p});var s=t(10949),n=t(13122),a=t(19246),i=e([n,a]);async function p(e,{params:r}){try{let t=await (0,n.HW)();if(!t)return s.NextResponse.json({error:"Unauthorized"},{status:401});let{option_index:o}=await e.json(),i=r.id;if(console.log(`[vote] User ${t.username} voting on poll ${i} with option ${o}`),"number"!=typeof o||o<0)return s.NextResponse.json({error:"Valid option index is required"},{status:400});let p=await (0,a.P)`
+      SELECT p.*, p.expires_at, p.options
+      FROM polls p
+      WHERE p.id = ${i}
+        AND (p.is_public = true
+             OR p.creator_id = ${t.id}
+             OR p.id IN (
+               SELECT poll_id FROM poll_shares WHERE user_id = ${t.id}
+             ))
+    `;if(0===p.length)return s.NextResponse.json({error:"Poll not found or access denied"},{status:404});let d=p[0];if(d.expires_at&&new Date(d.expires_at)<new Date)return s.NextResponse.json({error:"Poll has expired"},{status:400});if(o>=d.options.length)return s.NextResponse.json({error:"Invalid option index"},{status:400});let l=await (0,a.P)`
+      INSERT INTO poll_responses (poll_id, user_id, selected_option)
+      VALUES (${i}, ${t.id}, ${o})
+      ON CONFLICT (poll_id, user_id)
+      DO UPDATE SET selected_option = ${o}, created_at = NOW()
+      RETURNING *
+    `;return console.log("[vote] Vote recorded:",l[0]),s.NextResponse.json({success:!0,vote:l[0]})}catch(e){return console.error("Vote API error:",e.message),s.NextResponse.json({error:e.message},{status:500})}}[n,a]=i.then?(await i)():i,o()}catch(e){o(e)}})}};var r=require("../../../../../webpack-runtime.js");r.C(e);var t=e=>r(r.s=e),o=r.X(0,[9369,5886,1854,2920,4418],()=>t(61870));module.exports=o})();

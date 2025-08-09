@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   MessageSquare,
   UserPlus,
@@ -53,8 +54,7 @@ export function DynamicIsland({
     { id: "dms", label: "DMs", icon: MessageSquare },
     { id: "channels", label: "Channels", icon: Hash },
     { id: "polls", label: "Polls", icon: BarChart3 },
-    { id: "movies", label: "Movies", icon: Clapperboard },
-    { id: "games", label: "Games", icon: Gamepad2 },
+    // Movies and Games grouped under Entertainment dropdown
     { id: "voice", label: "Voice", icon: Phone },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "profile", label: "Profile", icon: User },
@@ -137,7 +137,7 @@ export function DynamicIsland({
             {/* Navigation Pages */}
             {pages.map((page) => {
               const Icon = page.icon
-              const showLabel = page.id === 'channels' || page.id === 'dms' || page.id === 'polls' || page.id === 'movies' || page.id === 'games'
+              const showLabel = page.id === 'channels' || page.id === 'dms' || page.id === 'polls'
               return (
                 <Button
                   key={page.id}
@@ -157,6 +157,47 @@ export function DynamicIsland({
                 </Button>
               )
             })}
+
+            {/* Entertainment Dropdown */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={currentPage === 'movies' || currentPage === 'games' ? 'secondary' : 'ghost'}
+                  size='sm'
+                  className={`h-8 px-3 transition-all duration-200 hover:scale-105 rounded-full ${
+                    currentPage === 'movies' || currentPage === 'games'
+                      ? 'bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300'
+                      : 'text-white hover:bg-gray-700/50 border border-gray-600/30'
+                  }`}
+                  title="Entertainment"
+                >
+                  <Clapperboard className="h-3 w-3" />
+                  <span className="ml-1 text-xs hidden md:inline">Entertainment</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-2" align="center">
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageClick('movies')}
+                    className="justify-start gap-2"
+                  >
+                    <Clapperboard className="h-3 w-3" />
+                    <span className="text-xs">Movies</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePageClick('games')}
+                    className="justify-start gap-2"
+                  >
+                    <Gamepad2 className="h-3 w-3" />
+                    <span className="text-xs">Games</span>
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <div className="w-px h-5 bg-gray-600 mx-1" />
 
