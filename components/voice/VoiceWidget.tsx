@@ -9,18 +9,21 @@ import { Mic, MicOff, Phone, X } from "lucide-react"
 export function VoiceWidget() {
   const { user } = useUser()
   const [open, setOpen] = useState(false)
+  const [enabled, setEnabled] = useState(false)
   const [muted, setMuted] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem("voiceWidgetOpen")
     if (saved) setOpen(saved === "1")
+    const en = localStorage.getItem("voiceWidgetEnabled")
+    setEnabled(en === "1")
   }, [])
 
   useEffect(() => {
     localStorage.setItem("voiceWidgetOpen", open ? "1" : "0")
   }, [open])
 
-  if (!user) return null
+  if (!user || !enabled) return null
 
   return (
     <div className="fixed bottom-4 right-4 z-[60]">

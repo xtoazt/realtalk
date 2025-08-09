@@ -137,7 +137,7 @@ export function DynamicIsland({
 
             <div className="w-px h-5 bg-gray-600 mx-1" />
 
-            {/* Navigation Pages */}
+            {/* Navigation Pages (explicit buttons to avoid mis-rendering) */}
             {pages.map((page) => {
               const Icon = page.icon
               const showLabel = page.id === 'channels' || page.id === 'dms' || page.id === 'polls'
@@ -178,7 +178,7 @@ export function DynamicIsland({
                   <span className="ml-1 text-xs hidden md:inline">Entertainment</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2" align="center">
+              <PopoverContent className="w-48 p-2" align="center" avoidCollisions>
                 <div className="flex flex-col gap-2">
                   <Button
                     variant="ghost"
