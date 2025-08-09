@@ -22,6 +22,7 @@ import {
   Hash,
   Clapperboard,
   Gamepad2,
+  Play,
 } from "lucide-react"
 
 interface DynamicIslandProps {
