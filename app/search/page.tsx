@@ -27,9 +27,8 @@ export default function Page() {
             document.head.appendChild(s)
           })
 
-        // Register SW first, then load config so __uv$config is available by the time ready resolves.
+        // Ensure a service worker is active (global /sw.js is registered in ClientLayout)
         if ("serviceWorker" in navigator) {
-          try { await navigator.serviceWorker.register("/uv/uv.sw.js", { scope: "/uv/" }) } catch {}
           await navigator.serviceWorker.ready
         }
         await addScript("/uv/uv.config.js")
@@ -61,7 +60,7 @@ export default function Page() {
       const cfg = (self as any).__uv$config
       const url = toUrl(target ?? address)
       if (!url) return
-      const proxied = cfg.prefix + cfg.encodeUrl(url)
+      const proxied = (cfg.prefix || '/uv/') + cfg.encodeUrl(url)
       // Update active tab url and optimistic title
       const hostname = (() => { try { return new URL(url).hostname } catch { return url } })()
       setTabs((prev) => prev.map((t) => t.id === activeTabId ? { ...t, url: proxied, title: hostname } : t))

@@ -16,7 +16,12 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ['@neondatabase/serverless'],
-  // UV-Static requires no server rewrites for Bare
+  // Provide a safe 200 fallback for /uv/* so if SW isn't controlling yet, the iframe won't show a Next 404
+  async rewrites() {
+    return [
+      { source: '/uv/:path*', destination: '/uv-blank.html' },
+    ]
+  },
 }
 
 export default nextConfig
