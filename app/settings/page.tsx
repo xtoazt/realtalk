@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
   const { theme, setTheme } = useTheme()
   const [saving, setSaving] = useState(false)
-  const [customTitle, setCustomTitle] = useState("")
+  // Removed Custom Title setting
   const [nameColor, setNameColor] = useState("#6366f1")
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
   const [error, setError] = useState<string | null>(null)
@@ -51,7 +51,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!userLoading && user) {
-      setCustomTitle(user.custom_title || "")
       setNameColor(user.name_color || "#6366f1")
       checkNotificationPermission()
 
@@ -269,7 +268,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Customization (for special users) */}
+          {/* Premium Color (kept), removed custom title */}
           {canCustomize && (
             <Card className="glass-effect hover-lift animate-fadeIn hue-bg border-2 hue-border">
               <CardHeader>
@@ -277,24 +276,6 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">Special features unlocked with your signup code</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Custom Title</label>
-                  <Input
-                    value={customTitle}
-                    onChange={(e) => setCustomTitle(e.target.value)}
-                    placeholder="Your custom title"
-                    className="mt-1"
-                  />
-                  <Button
-                    size="sm"
-                    className="mt-2 hover-glow"
-                    onClick={() => updateSettings({ custom_title: customTitle })}
-                    disabled={saving}
-                  >
-                    {saving ? "Saving..." : "Save Title"}
-                  </Button>
-                </div>
-
                 {user.signup_code === "asdf" && (
                   <div>
                     <label className="text-sm font-medium">Name Color</label>

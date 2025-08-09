@@ -8,6 +8,7 @@ import { UserProvider } from "@/hooks/use-user"
 import { ParticleBackground } from "@/components/particle-background"
 import { useEffect } from "react"
 import { VoiceWidget } from "@/components/voice/VoiceWidget"
+import { FreezeOverlay } from "@/components/FreezeOverlay"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -32,6 +33,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <ParticleBackground />
             {children}
             <VoiceWidget />
+            <FreezeOverlay />
           </UserProvider>
         </ThemeProvider>
       </body>

@@ -27,12 +27,14 @@ export default function Page() {
             document.head.appendChild(s)
           })
 
-        await addScript("https://cdn.jsdelivr.net/npm/@titaniumnetwork-dev/ultraviolet@3/dist/uv.bundle.js")
+        await addScript("https://cdn.jsdelivr.net/gh/TheTIW/UV-Static/static/uv.bundle.js")
         await addScript("/uv/uv.config.js")
 
         if ("serviceWorker" in navigator) {
           // @ts-ignore - __uv$config injected by uv.config.js
           await navigator.serviceWorker.register("/uv/uv.sw.js", { scope: (self as any).__uv$config.prefix })
+          // Wait until SW is active and controlling clients
+          await navigator.serviceWorker.ready
         }
         setReady(true)
       } catch (e: any) {

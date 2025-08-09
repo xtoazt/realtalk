@@ -163,6 +163,11 @@ export default function DashboardPage() {
     setProfileUserId(null)
   }
 
+  const handleShowProfile = (userId: string) => {
+    setProfileUserId(userId)
+    setCurrentPage("profile")
+  }
+
   const handlePageChange = (page: string) => {
     if (page === "settings") {
       router.push("/settings")
@@ -440,25 +445,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Fallback quick access when on dashboard top */}
-        <div className="max-w-7xl mx-auto mb-3 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("movies")}>
-            Movies
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("games")}>
-            Games
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("radio")}>
-            Radio
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("search")}>
-            Search
-          </Button>
-        </div>
+        {/* Removed entertainment quick-access */}
 
         {currentPage === "friends" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
-            <FriendsPage currentUserId={user.id} onStartDM={handleStartDM} />
+            <FriendsPage currentUserId={user.id} onStartDM={handleStartDM} onShowProfile={handleShowProfile} />
           </div>
         )}
 

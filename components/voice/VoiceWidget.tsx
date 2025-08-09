@@ -17,6 +17,16 @@ export function VoiceWidget() {
     if (saved) setOpen(saved === "1")
     const en = localStorage.getItem("voiceWidgetEnabled")
     setEnabled(en === "1")
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "voiceWidgetEnabled") setEnabled(e.newValue === "1")
+    }
+    const onToggle = () => setEnabled(localStorage.getItem("voiceWidgetEnabled") === "1")
+    window.addEventListener("storage", onStorage)
+    window.addEventListener("voice-widget-toggle", onToggle as any)
+    return () => {
+      window.removeEventListener("storage", onStorage)
+      window.removeEventListener("voice-widget-toggle", onToggle as any)
+    }
   }, [])
 
   useEffect(() => {
@@ -40,9 +50,6 @@ export function VoiceWidget() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-800">
             <div className="text-sm font-medium">Voice (global)</div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant={muted ? "destructive" : "ghost"} onClick={() => setMuted((m) => !m)}>
-                {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
               <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>

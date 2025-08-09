@@ -16,7 +16,10 @@ export function VoiceTab() {
           id="voice-enable-widget"
           type="checkbox"
           defaultChecked={typeof window !== 'undefined' && localStorage.getItem('voiceWidgetEnabled') === '1'}
-          onChange={(e) => localStorage.setItem('voiceWidgetEnabled', e.target.checked ? '1' : '0')}
+          onChange={(e) => {
+            localStorage.setItem('voiceWidgetEnabled', e.target.checked ? '1' : '0')
+            window.dispatchEvent(new Event('voice-widget-toggle'))
+          }}
         />
         <label htmlFor="voice-enable-widget">Enable floating voice widget across pages</label>
       </div>

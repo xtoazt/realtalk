@@ -26,6 +26,12 @@ export function VoiceChat({ roomId, userId, signalingUrl = process.env.NEXT_PUBL
 
     const start = async () => {
       try {
+        // If frozen, do not initialize
+        const freezeRes = await fetch('/api/users/me', { cache: 'no-store' })
+        if (freezeRes.ok) {
+          const me = await freezeRes.json()
+          if (me?.user?.is_frozen) return
+        }
         // Get microphone
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         localStreamRef.current = stream

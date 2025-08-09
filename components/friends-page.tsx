@@ -29,9 +29,10 @@ interface Friendship {
 interface FriendsPageProps {
   currentUserId: string
   onStartDM: (friendId: string, friendUsername: string) => void
+  onShowProfile?: (userId: string) => void
 }
 
-export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
+export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: FriendsPageProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [friendships, setFriendships] = useState<Friendship[]>([])
@@ -227,12 +228,14 @@ export function FriendsPage({ currentUserId, onStartDM }: FriendsPageProps) {
                     key={user.id}
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-all duration-200"
                   >
-                    <span
+                    <button
+                      type="button"
+                      onClick={() => onShowProfile?.(user.id)}
                       className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
                       style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
                     >
                       @{user.username}
-                    </span>
+                    </button>
                     <Button
                       size="sm"
                       variant={buttonState.variant}

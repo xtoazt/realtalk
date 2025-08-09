@@ -573,7 +573,7 @@ export async function removeMessageReaction(messageId: string, userId: string, e
 
 export async function updateUserSettings(userId: string, updates: any) {
   try {
-    const allowedFields = ["custom_title", "name_color", "notifications_enabled", "theme", "hue"]
+    const allowedFields = ["name_color", "notifications_enabled", "theme", "hue"]
     const validUpdates: any = {}
 
     for (const [key, value] of Object.entries(updates)) {
@@ -607,6 +607,49 @@ export async function updateUserSettings(userId: string, updates: any) {
     return result[0]
   } catch (err) {
     console.error("[db] updateUserSettings error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+// Freeze feature
+export async function setUserFrozen(targetUserId: string, frozenByUserId: string, message?: string) {
+  try {
+    const result = await sql`
+      UPDATE users
+      SET is_frozen = TRUE, frozen_by = ${frozenByUserId}, freeze_message = ${message || null}, updated_at = NOW()
+      WHERE id = ${targetUserId}
+      RETURNING id, is_frozen, frozen_by, freeze_message
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] setUserFrozen error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function clearUserFrozen(targetUserId: string) {
+  try {
+    const result = await sql`
+      UPDATE users
+      SET is_frozen = FALSE, frozen_by = NULL, freeze_message = NULL, updated_at = NOW()
+      WHERE id = ${targetUserId}
+      RETURNING id, is_frozen, frozen_by, freeze_message
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] clearUserFrozen error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function getUserFreezeStatus(userId: string) {
+  try {
+    const result = await sql`
+      SELECT is_frozen, frozen_by, freeze_message FROM users WHERE id = ${userId}
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] getUserFreezeStatus error:", err)
     throw new Error("Database error: " + (err as Error).message)
   }
 }
