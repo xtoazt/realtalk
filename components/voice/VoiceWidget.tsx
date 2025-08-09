@@ -10,6 +10,7 @@ export function VoiceWidget() {
   const { user } = useUser()
   const [open, setOpen] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [frozen, setFrozen] = useState(false)
   const [muted, setMuted] = useState(false)
 
   useEffect(() => {
@@ -17,6 +18,17 @@ export function VoiceWidget() {
     if (saved) setOpen(saved === "1")
     const en = localStorage.getItem("voiceWidgetEnabled")
     setEnabled(en === "1")
+    const fetchMe = async () => {
+      try {
+        const r = await fetch('/api/users/me', { cache: 'no-store' })
+        if (r.ok) {
+          const d = await r.json()
+          setFrozen(Boolean(d?.user?.is_frozen))
+        }
+      } catch {}
+    }
+    fetchMe()
+    const id = setInterval(fetchMe, 5000)
     const onStorage = (e: StorageEvent) => {
       if (e.key === "voiceWidgetEnabled") setEnabled(e.newValue === "1")
     }
@@ -26,6 +38,7 @@ export function VoiceWidget() {
     return () => {
       window.removeEventListener("storage", onStorage)
       window.removeEventListener("voice-widget-toggle", onToggle as any)
+      clearInterval(id)
     }
   }, [])
 
@@ -33,7 +46,7 @@ export function VoiceWidget() {
     localStorage.setItem("voiceWidgetOpen", open ? "1" : "0")
   }, [open])
 
-  if (!user || !enabled) return null
+  if (!user || !enabled || frozen) return null
 
   return (
     <div className="fixed bottom-4 right-4 z-[60]">

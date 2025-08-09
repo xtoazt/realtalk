@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Camera, UserPlus, MessageCircle } from "lucide-react"
+import { User, Camera, UserPlus, MessageCircle, Snowflake, SnowflakeIcon, Unlock, MessageSquare } from "lucide-react"
 import { useUser } from "@/hooks/use-user"
 import Image from "next/image"
 
@@ -33,6 +33,8 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showFreezeDialog, setShowFreezeDialog] = useState(false)
+  const [freezeMsg, setFreezeMsg] = useState("")
   const [uploadingImage, setUploadingImage] = useState(false)
 
   // Form state
@@ -40,6 +42,7 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
   const [profilePicture, setProfilePicture] = useState("")
 
   const isOwnProfile = !userId || userId === currentUser?.id
+  const isGold = Boolean(currentUser?.has_gold_animation)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -265,11 +268,78 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Friend
                 </Button>
+                {isGold && (
+                  <>
+                    <Button variant="destructive" onClick={() => setShowFreezeDialog(true)}>
+                      <Snowflake className="h-4 w-4 mr-2" /> Freeze
+                    </Button>
+                    <Button variant="outline" onClick={async () => {
+                      try {
+                        await fetch(`/api/freeze?targetUserId=${profileUser.id}`, { method: 'DELETE' })
+                        alert('User unfrozen')
+                      } catch { alert('Failed to unfreeze') }
+                    }}>
+                      <Unlock className="h-4 w-4 mr-2" /> Unfreeze
+                    </Button>
+                  </>
+                )}
               </>
             ) : null}
           </div>
         </CardContent>
       </Card>
+
+      {/* Freeze Dialog */}
+      {showFreezeDialog && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl p-4 border">
+            <div className="text-lg font-semibold mb-2">Freeze @{profileUser.username}</div>
+            <p className="text-sm text-muted-foreground mb-2">Only gold members can do this. The user will be prevented from typing or using voice.</p>
+            <textarea
+              className="w-full border rounded p-2 text-sm mb-3"
+              rows={3}
+              placeholder="Optional message shown on their screen"
+              value={freezeMsg}
+              onChange={(e) => setFreezeMsg(e.target.value)}
+            />
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="outline" onClick={() => setShowFreezeDialog(false)}>Cancel</Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    const txt = prompt('Popup message to show immediately (optional)') || ''
+                    if (!txt) return
+                    try {
+                      await fetch('/api/freeze/popup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId: profileUser.id, popupMessage: txt }) })
+                      alert('Popup sent')
+                    } catch { alert('Failed to send popup') }
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-1" /> Send Popup
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    try {
+                      const r = await fetch('/api/freeze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ targetUserId: profileUser.id, message: freezeMsg }) })
+                      if (r.ok) {
+                        alert('User frozen')
+                        setShowFreezeDialog(false)
+                        setFreezeMsg('')
+                      } else {
+                        const d = await r.json(); alert(d.error || 'Failed to freeze')
+                      }
+                    } catch { alert('Failed to freeze') }
+                  }}
+                >
+                  <SnowflakeIcon className="h-4 w-4 mr-1" /> Confirm Freeze
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
