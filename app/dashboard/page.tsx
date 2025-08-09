@@ -13,7 +13,7 @@ import { CalendarPage } from "@/components/calendar-page"
 import { ProfilePage } from "@/components/profile-page"
 import { VoiceTab } from "@/components/voice/VoiceTab"
 import MoviesPage from "@/app/movies/page"
-import MusicPage from "@/app/music/page"
+import RadioPage from "@/app/radio/page"
 import GamesPage from "../../components/games-page"
 import { IncomingCallHandler } from "@/components/voice/IncomingCallHandler"
 import { CreateGroupChat } from "@/components/create-group-chat"
@@ -175,8 +175,8 @@ export default function DashboardPage() {
       router.push("/games")
       setActiveChat({ type: null, name: "" })
       setProfileUserId(null)
-    } else if (page === "music") {
-      router.push("/music")
+    } else if (page === "radio") {
+      router.push("/radio")
       setActiveChat({ type: null, name: "" })
       setProfileUserId(null)
     } else {
@@ -443,8 +443,8 @@ export default function DashboardPage() {
           <Button variant="ghost" size="sm" onClick={() => setCurrentPage("games")}>
             Games
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("music")}>
-            Music
+          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("radio")}>
+            Radio
           </Button>
         </div>
 
@@ -496,9 +496,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {currentPage === "music" && (
+        {currentPage === "radio" && (
           <div className="max-w-7xl mx-auto animate-fadeIn">
-            <MusicPage />
+            <RadioPage />
           </div>
         )}
 

@@ -2,12 +2,12 @@
 
 import dynamic from "next/dynamic"
 
-const MusicPage = dynamic(() => import("@/components/music-page"), { ssr: false })
+const RadioPage = dynamic(() => import("@/components/radio-page"), { ssr: false })
 
 export default function Page() {
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn">
-      <MusicPage />
+      <RadioPage />
     </div>
   )
 }

@@ -22,7 +22,7 @@ import {
   Hash,
   Clapperboard,
   Gamepad2,
-  Play,
+  Radio,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -163,10 +163,10 @@ export function DynamicIsland({
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant={currentPage === 'movies' || currentPage === 'games' || currentPage === 'music' ? 'secondary' : 'ghost'}
+                  variant={currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio' ? 'secondary' : 'ghost'}
                   size='sm'
                   className={`h-8 px-3 transition-all duration-200 hover:scale-105 rounded-full ${
-                    currentPage === 'movies' || currentPage === 'games' || currentPage === 'music'
+                    currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio'
                       ? 'bg-white text-black hover:bg-gray-100 shadow-lg border border-gray-300'
                       : 'text-white hover:bg-gray-700/50 border border-gray-600/30'
                   }`}
@@ -199,11 +199,11 @@ export function DynamicIsland({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handlePageClick('music')}
+                    onClick={() => handlePageClick('radio')}
                     className="justify-start gap-2"
                   >
-                    <Play className="h-3 w-3" />
-                    <span className="text-xs">Music</span>
+                    <Radio className="h-3 w-3" />
+                    <span className="text-xs">Radio</span>
                   </Button>
                 </div>
               </PopoverContent>
