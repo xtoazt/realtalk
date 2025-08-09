@@ -24,6 +24,7 @@ import {
   Gamepad2,
   Radio,
   MonitorSmartphone,
+  Search as SearchIcon,
 } from "lucide-react"
 
 interface DynamicIslandProps {
@@ -209,11 +210,11 @@ export function DynamicIsland({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handlePageClick('vm')}
+                    onClick={() => handlePageClick('search')}
                     className="justify-start gap-2"
                   >
-                    <MonitorSmartphone className="h-3 w-3" />
-                    <span className="text-xs">VM</span>
+                    <SearchIcon className="h-3 w-3" />
+                    <span className="text-xs">Search</span>
                   </Button>
                 </div>
               </PopoverContent>

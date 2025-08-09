@@ -47,11 +47,11 @@ export default function Page() {
     }
   }
 
-  const navigate = () => {
+  const navigate = (target?: string) => {
     try {
       // @ts-ignore - __uv$config injected by uv.config.js
       const cfg = (self as any).__uv$config
-      const url = toUrl(address)
+      const url = toUrl(target ?? address)
       if (!url) return
       const proxied = cfg.prefix + cfg.encodeUrl(url)
       if (frameRef.current) {
@@ -64,11 +64,20 @@ export default function Page() {
     }
   }
 
+  const goHome = () => navigate("https://www.google.com")
+  const goBack = () => frameRef.current?.contentWindow?.history.back()
+  const goForward = () => frameRef.current?.contentWindow?.history.forward()
+  const reload = () => frameRef.current?.contentWindow?.location.reload()
+
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn min-h-[60vh] px-4">
-      <h1 className="text-xl font-semibold mb-4">Proxy</h1>
+      <h1 className="text-xl font-semibold mb-4">Search</h1>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <div className="flex gap-2 mb-3">
+        <button className="px-3 py-2 rounded border" onClick={goBack} disabled={!ready}>&larr;</button>
+        <button className="px-3 py-2 rounded border" onClick={goForward} disabled={!ready}>&rarr;</button>
+        <button className="px-3 py-2 rounded border" onClick={reload} disabled={!ready}>Reload</button>
+        <button className="px-3 py-2 rounded border" onClick={goHome} disabled={!ready}>Home</button>
         <input
           className="w-full border rounded px-3 py-2 text-sm"
           placeholder="Enter URL or search…"
@@ -81,7 +90,7 @@ export default function Page() {
         />
         <button
           className="px-4 py-2 rounded bg-black text-white border"
-          onClick={navigate}
+          onClick={() => navigate()}
           disabled={!ready}
         >
           Go

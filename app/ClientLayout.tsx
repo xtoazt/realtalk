@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes"
 import { UserProvider } from "@/hooks/use-user"
 import { ParticleBackground } from "@/components/particle-background"
 import { useEffect } from "react"
+import { VoiceWidget } from "@/components/voice/VoiceWidget"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -30,6 +31,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <UserProvider>
             <ParticleBackground />
             {children}
+            <VoiceWidget />
           </UserProvider>
         </ThemeProvider>
       </body>

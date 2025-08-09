@@ -14,7 +14,7 @@ import { ProfilePage } from "@/components/profile-page"
 import { VoiceTab } from "@/components/voice/VoiceTab"
 import MoviesPage from "@/app/movies/page"
 import RadioPage from "@/app/radio/page"
-import VmPage from "@/app/vm/page"
+import SearchPage from "@/app/search/page"
 import GamesPage from "../../components/games-page"
 import { IncomingCallHandler } from "@/components/voice/IncomingCallHandler"
 import { CreateGroupChat } from "@/components/create-group-chat"
@@ -180,8 +180,8 @@ export default function DashboardPage() {
       router.push("/radio")
       setActiveChat({ type: null, name: "" })
       setProfileUserId(null)
-    } else if (page === "vm") {
-      router.push("/vm")
+    } else if (page === "search") {
+      router.push("/search")
       setActiveChat({ type: null, name: "" })
       setProfileUserId(null)
     } else {
@@ -451,8 +451,8 @@ export default function DashboardPage() {
           <Button variant="ghost" size="sm" onClick={() => setCurrentPage("radio")}>
             Radio
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("vm")}>
-            VM
+          <Button variant="ghost" size="sm" onClick={() => setCurrentPage("search")}>
+            Search
           </Button>
         </div>
 
@@ -510,9 +510,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {currentPage === "vm" && (
+        {currentPage === "search" && (
           <div className="max-w-7xl mx-auto animate-fadeIn">
-            <VmPage />
+            <SearchPage />
           </div>
         )}
 
