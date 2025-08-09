@@ -27,7 +27,7 @@ export default function Page() {
             document.head.appendChild(s)
           })
 
-        await addScript("https://cdn.jsdelivr.net/gh/TheTIW/UV-Static/static/uv.bundle.js")
+        // Load config first (it sets __uv$config). The SW will load bundle/handler with fallbacks.
         await addScript("/uv/uv.config.js")
 
         if ("serviceWorker" in navigator) {
