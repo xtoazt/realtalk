@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react"
 
 export default function Page() {
-  const [ready, setReady] = useState(false)
+  const [isReady] = useState(true)
   const [address, setAddress] = useState("")
   const [tabs, setTabs] = useState<{ id: string; title: string; url: string }[]>([
     { id: "t1", title: "New Tab", url: "" },
@@ -15,7 +15,6 @@ export default function Page() {
   const activeTab = useMemo(() => tabs.find((t) => t.id === activeTabId)!, [tabs, activeTabId])
 
   // No SW or external scripts needed with simple CORS proxy
-  const ready = true
 
   const toUrl = (input: string) => {
     const trimmed = input.trim()
@@ -102,10 +101,10 @@ export default function Page() {
       </div>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <div className="flex gap-2 mb-3">
-        <button className="px-3 py-2 rounded border" onClick={goBack} disabled={!ready}>&larr;</button>
-        <button className="px-3 py-2 rounded border" onClick={goForward} disabled={!ready}>&rarr;</button>
-        <button className="px-3 py-2 rounded border" onClick={reload} disabled={!ready}>Reload</button>
-        <button className="px-3 py-2 rounded border" onClick={goHome} disabled={!ready}>Home</button>
+        <button className="px-3 py-2 rounded border" onClick={goBack} disabled={!isReady}>&larr;</button>
+        <button className="px-3 py-2 rounded border" onClick={goForward} disabled={!isReady}>&rarr;</button>
+        <button className="px-3 py-2 rounded border" onClick={reload} disabled={!isReady}>Reload</button>
+        <button className="px-3 py-2 rounded border" onClick={goHome} disabled={!isReady}>Home</button>
         <input
           className="w-full border rounded px-3 py-2 text-sm"
           placeholder="Enter URL or search…"
@@ -114,12 +113,12 @@ export default function Page() {
           onKeyDown={(e) => {
             if (e.key === "Enter") navigate()
           }}
-          disabled={!ready}
+          disabled={!isReady}
         />
         <button
           className="px-4 py-2 rounded bg-black text-white border"
           onClick={() => navigate()}
-          disabled={!ready}
+          disabled={!isReady}
         >
           Go
         </button>
