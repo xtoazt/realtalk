@@ -21,9 +21,9 @@ export async function createUser(username: string, passwordHash: string, signupC
     }
 
     const result = await sql`
-      INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active, theme, hue)
-      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW(), 'light', 'blue')
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio
+      INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active, theme, hue, ui_mode)
+      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW(), 'light', 'blue', 'pro')
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio, ui_mode
     `
     return result[0]
   } catch (err) {
@@ -51,7 +51,7 @@ export async function getUserById(id: string) {
   try {
     const result = await sql`
       SELECT id, username, email, signup_code, name_color, custom_title, has_gold_animation, 
-             notifications_enabled, theme, hue, profile_picture, bio
+             notifications_enabled, theme, hue, profile_picture, bio, ui_mode
       FROM users WHERE id = ${id}
     `
     return result[0]
@@ -573,7 +573,7 @@ export async function removeMessageReaction(messageId: string, userId: string, e
 
 export async function updateUserSettings(userId: string, updates: any) {
   try {
-    const allowedFields = ["name_color", "notifications_enabled", "theme", "hue"]
+    const allowedFields = ["name_color", "notifications_enabled", "theme", "hue", "ui_mode"]
     const validUpdates: any = {}
 
     for (const [key, value] of Object.entries(updates)) {
@@ -594,17 +594,17 @@ export async function updateUserSettings(userId: string, updates: any) {
       UPDATE users 
       SET ${setClause}, updated_at = NOW()
       WHERE id = $1
-      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio
+      RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio, ui_mode
     `
 
     const params = [userId, ...Object.values(validUpdates)]
-    const result = await sql.unsafe(queryString, params)
+    const result: any[] = await (sql as any).unsafe(queryString, params as any)
 
-    if (result.length === 0) {
+    if (!result || (result as any).length === 0) {
       throw new Error("User not found or no settings updated.")
     }
 
-    return result[0]
+    return (result as any)[0]
   } catch (err) {
     console.error("[db] updateUserSettings error:", err)
     throw new Error("Database error: " + (err as Error).message)

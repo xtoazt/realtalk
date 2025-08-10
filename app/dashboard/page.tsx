@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Users, Globe, Trash2, Search } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
+import { ModeGate } from "./mode-gate"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
 interface GroupChat {
@@ -336,6 +337,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300">
+      <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
         onPageChange={handlePageChange}
