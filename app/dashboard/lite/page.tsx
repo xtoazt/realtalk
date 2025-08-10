@@ -8,7 +8,6 @@ import { ChatWindow } from "@/components/chat-window"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/hooks/use-user"
-import { Button } from "@/components/ui/button"
 
 export default function LiteDashboard() {
   const { user, loading } = useUser()
