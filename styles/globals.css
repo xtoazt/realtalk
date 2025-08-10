@@ -78,6 +78,46 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* Hue themes */
+  .hue-blue {
+    --hue-accent: 220 70% 50%;
+  }
+  .hue-purple {
+    --hue-accent: 270 70% 55%;
+  }
+  .hue-pink {
+    --hue-accent: 320 70% 55%;
+  }
+  .hue-red {
+    --hue-accent: 0 75% 55%;
+  }
+  .hue-orange {
+    --hue-accent: 30 80% 55%;
+  }
+  .hue-yellow {
+    --hue-accent: 50 90% 50%;
+  }
+  .hue-green {
+    --hue-accent: 140 60% 45%;
+  }
+  .hue-teal {
+    --hue-accent: 180 60% 45%;
+  }
+
+  /* Utility surfaces reacting to hue */
+  .hue-bg {
+    background: radial-gradient(1200px 200px at 20% 100%, hsl(var(--hue-accent) / 0.15), transparent);
+  }
+  .hue-border {
+    border-color: hsl(var(--hue-accent) / 0.6);
+  }
+  .hue-shadow {
+    box-shadow: 0 10px 40px hsl(var(--hue-accent) / 0.25);
+  }
+  .hue-accent {
+    color: hsl(var(--hue-accent));
+  }
 }
 
 @layer base {

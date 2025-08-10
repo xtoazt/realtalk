@@ -17,6 +17,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
+      // Apply stored hue immediately on client mount
+      try {
+        const hue = localStorage.getItem('user-hue')
+        if (hue) {
+          document.documentElement.className = document.documentElement.className
+            .replace(/hue-\w+/g, '')
+            .concat(` hue-${hue}`)
+        }
+      } catch {}
     }
   }, [])
 

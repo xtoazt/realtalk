@@ -248,7 +248,7 @@ export default function SettingsPage() {
                   {hues.map((hue) => (
                     <button
                       key={hue.id}
-                      onClick={() => updateSettings({ hue: hue.id })}
+                      onClick={() => { updateSettings({ hue: hue.id }); try { localStorage.setItem('user-hue', hue.id) } catch {} }}
                       className={`p-3 rounded-lg border-2 transition-all duration-200 hover-lift ${
                         user.hue === hue.id
                           ? "border-current hue-shadow"
