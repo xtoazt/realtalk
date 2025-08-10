@@ -126,5 +126,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Use --vh on mobile to avoid white screen due to 100vh issues */
+    min-height: calc(var(--vh, 1vh) * 100);
   }
 }

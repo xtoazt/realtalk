@@ -26,6 +26,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             .concat(` hue-${hue}`)
         }
       } catch {}
+      // iOS Safari viewport height fix and scroll restoration
+      window.history.scrollRestoration = 'manual'
+      const setVh = () => {
+        const vh = window.innerHeight * 0.01
+        document.documentElement.style.setProperty('--vh', `${vh}px`)
+      }
+      setVh()
+      window.addEventListener('resize', setVh)
+      return () => window.removeEventListener('resize', setVh)
     }
   }, [])
 

@@ -69,7 +69,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const fetchUser = async () => {
       try {
         console.log("[UserProvider] Fetching user data...")
-        const response = await fetch("/api/auth/me")
+        const response = await fetch("/api/auth/me", { cache: 'no-store' })
         if (response.ok) {
           const userData = await response.json()
           console.log("[UserProvider] User data received:", userData.user)
@@ -93,6 +93,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     if (mounted) {
       fetchUser()
+      // Avoid showing blank content flashes by deferring render to next tick on first mount
+      setTimeout(() => {}, 0)
     }
   }, [mounted, setTheme])
 
