@@ -438,21 +438,13 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <Card className="flex items-center justify-center h-full animate-fadeIn">
-                  <CardContent className="text-center py-12">
-                    <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
-                    <h3 className="text-xl font-semibold text-foreground">Welcome to real.</h3>
-                    <p className="text-muted-foreground mt-2 mb-4">
-                      Click on "Global" or "AI Chat" in the dynamic island above to start chatting,
-                      <br />
-                      or select a group chat from the sidebar.
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span>Ready to connect</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="text-center py-10">
+                  <div className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3">real.</div>
+                  <div className="flex flex-col items-center gap-2">
+                    <TimeDateDisplay />
+                    <BatteryStatus />
+                  </div>
+                </div>
               )}
             </div>
           </div>
