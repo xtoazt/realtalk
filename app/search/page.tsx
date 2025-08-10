@@ -27,8 +27,9 @@ export default function Page() {
             document.head.appendChild(s)
           })
 
-        // Ensure a service worker is active (global /sw.js is registered in ClientLayout)
+        // Register UV-specific SW with scope '/uv/' so it can intercept '/uv/service/*' navigations
         if ("serviceWorker" in navigator) {
+          try { await navigator.serviceWorker.register("/uv/uv.sw.js", { scope: "/uv/" }) } catch {}
           await navigator.serviceWorker.ready
         }
         await addScript("/uv/uv.config.js")
