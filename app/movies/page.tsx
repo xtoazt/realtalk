@@ -169,7 +169,12 @@ export default function MoviesPage() {
       {/* Toolbar */}
       <div className="sticky top-4 z-10 px-4 mt-3">
         <div className="glass-effect flex items-center flex-wrap gap-2 px-4 py-2 rounded-full shadow-lg">
-          <button onClick={()=> location.href = '/dashboard'} className="text-xs px-3 py-1 rounded-full border text-white/90 border-white/30 hover:bg-white/10">Back to Dashboard</button>
+          <button
+            onClick={()=> location.href = '/dashboard'}
+            className="text-xs px-3 py-1 rounded-full border backdrop-blur-md bg-white/40 dark:bg-black/30 text-black dark:text-white border-white/40 dark:border-white/20 hover:bg-white/60 dark:hover:bg-black/50"
+          >
+            Back to Dashboard
+          </button>
           <div className="flex items-center gap-1 mr-2">
             {(['popular','top_rated','upcoming','now_playing'] as const).map((c) => (
               <button key={c} onClick={()=>setCategory(c)} className={`text-xs px-2 py-1 rounded-full border ${category===c? 'bg-white text-black border-white' : 'text-white/80 border-white/30 hover:bg-white/10'}`}>{c.replace('_',' ')}</button>
