@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/hooks/use-user"
 import SettingsPage from "@/app/settings/page"
+import { TimeDateDisplay } from "@/components/time-date-display"
+import { BatteryStatus } from "@/components/BatteryStatus"
 
 export default function LiteDashboard() {
   const { user, loading } = useUser()
@@ -36,6 +38,14 @@ export default function LiteDashboard() {
       </div>
 
       {section==='home' && (
+        <>
+        <div className="text-center py-10">
+          <div className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">real.</div>
+          <div className="mt-3 flex flex-col items-center gap-2">
+            <TimeDateDisplay large />
+            <BatteryStatus />
+          </div>
+        </div>
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('global')}>
             <div className="text-sm text-muted-foreground mb-1">Chat</div>
@@ -63,6 +73,7 @@ export default function LiteDashboard() {
             <div className="mt-2 text-xs text-muted-foreground">Themes, notifications, and more.</div>
           </Card>
         </div>
+        </>
       )}
 
       {section==='global' && (
