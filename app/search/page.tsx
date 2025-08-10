@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 
 export default function Page() {
   const [ready, setReady] = useState(false)
@@ -14,35 +14,8 @@ export default function Page() {
 
   const activeTab = useMemo(() => tabs.find((t) => t.id === activeTabId)!, [tabs, activeTabId])
 
-  useEffect(() => {
-    const inject = async () => {
-      try {
-        const addScript = (src: string) =>
-          new Promise<void>((resolve, reject) => {
-            const s = document.createElement("script")
-            s.src = src
-            s.defer = true
-            s.onload = () => resolve()
-            s.onerror = () => reject(new Error(`Failed to load ${src}`))
-            document.head.appendChild(s)
-          })
-
-        // Register UV-specific SW with scope '/uv/' so it can intercept '/uv/service/*' navigations
-        if ("serviceWorker" in navigator) {
-          try { await navigator.serviceWorker.register("/uv/uv.sw.js", { scope: "/uv/" }) } catch {}
-          await navigator.serviceWorker.ready
-        }
-        await addScript("/uv/uv.config.js")
-
-        // Ensure __uv$config exists before enabling UI
-        if (!(self as any).__uv$config) throw new Error("UV config unavailable")
-        setReady(true)
-      } catch (e: any) {
-        setError(e?.message || "Failed to initialize proxy")
-      }
-    }
-    inject()
-  }, [])
+  // No SW or external scripts needed with simple CORS proxy
+  const ready = true
 
   const toUrl = (input: string) => {
     const trimmed = input.trim()
@@ -57,11 +30,9 @@ export default function Page() {
 
   const navigate = (target?: string) => {
     try {
-      // @ts-ignore - __uv$config injected by uv.config.js
-      const cfg = (self as any).__uv$config
       const url = toUrl(target ?? address)
       if (!url) return
-      const proxied = (cfg.prefix || '/uv/service/') + cfg.encodeUrl(url)
+      const proxied = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
       // Update active tab url and optimistic title
       const hostname = (() => { try { return new URL(url).hostname } catch { return url } })()
       setTabs((prev) => prev.map((t) => t.id === activeTabId ? { ...t, url: proxied, title: hostname } : t))
