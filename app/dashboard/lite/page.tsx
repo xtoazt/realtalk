@@ -8,11 +8,12 @@ import { ChatWindow } from "@/components/chat-window"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/hooks/use-user"
+import SettingsPage from "@/app/settings/page"
 
 export default function LiteDashboard() {
   const { user, loading } = useUser()
   const router = useRouter()
-  const [section, setSection] = useState<'global'|'friends'|'dms'|'gc'|'settings'>('global')
+  const [section, setSection] = useState<'home'|'global'|'friends'|'dms'|'gc'|'settings'>('home')
   const [dmTarget, setDmTarget] = useState<{ id: string, username: string } | null>(null)
 
   useEffect(()=>{
@@ -22,18 +23,47 @@ export default function LiteDashboard() {
   if (!user) return null
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
+    <div className="max-w-7xl mx-auto p-4">
       <div className="sticky top-0 z-10 mb-4">
         <div className="glass-effect rounded-2xl border shadow-md px-3 py-2 flex items-center gap-2">
-          {(['global','friends','dms','gc','settings'] as const).map(s => (
+          {(['home','global','friends','dms','gc','settings'] as const).map(s => (
             <Button key={s} size="sm" variant={section===s? 'default':'outline'} onClick={()=> setSection(s)} className="capitalize">{s}</Button>
           ))}
           <div className="ml-auto flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={()=> router.push('/settings')}>Settings</Button>
-            <Button size="sm" variant="ghost" onClick={()=> router.push('/dashboard')}>Pro</Button>
           </div>
         </div>
       </div>
+
+      {section==='home' && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('global')}>
+            <div className="text-sm text-muted-foreground mb-1">Chat</div>
+            <div className="text-xl font-semibold">Global</div>
+            <div className="mt-2 text-xs text-muted-foreground">Talk to everyone in real-time.</div>
+          </Card>
+          <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('friends')}>
+            <div className="text-sm text-muted-foreground mb-1">Social</div>
+            <div className="text-xl font-semibold">Friends</div>
+            <div className="mt-2 text-xs text-muted-foreground">Manage and find friends.</div>
+          </Card>
+          <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('dms')}>
+            <div className="text-sm text-muted-foreground mb-1">Messages</div>
+            <div className="text-xl font-semibold">DMs</div>
+            <div className="mt-2 text-xs text-muted-foreground">Direct conversations.</div>
+          </Card>
+          <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('gc')}>
+            <div className="text-sm text-muted-foreground mb-1">Groups</div>
+            <div className="text-xl font-semibold">Group Chats</div>
+            <div className="mt-2 text-xs text-muted-foreground">Chat with your circles.</div>
+          </Card>
+          <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('settings')}>
+            <div className="text-sm text-muted-foreground mb-1">Preferences</div>
+            <div className="text-xl font-semibold">Settings</div>
+            <div className="mt-2 text-xs text-muted-foreground">Themes, notifications, and more.</div>
+          </Card>
+        </div>
+      )}
 
       {section==='global' && (
         <Card className="p-0 overflow-hidden">
@@ -71,9 +101,8 @@ export default function LiteDashboard() {
         </div>
       )}
       {section==='settings' && (
-        <Card className="p-4 flex items-center gap-2">
-          <Button onClick={()=> router.push('/settings')}>Open Settings</Button>
-          <Button variant="outline" onClick={()=> router.push('/dashboard')}>Switch to Pro</Button>
+        <Card className="p-4">
+          <SettingsPage />
         </Card>
       )}
     </div>
