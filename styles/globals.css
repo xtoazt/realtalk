@@ -118,6 +118,35 @@
   .hue-accent {
     color: hsl(var(--hue-accent));
   }
+  
+  /* Animated backdrop blobs */
+  @keyframes blobFloat {
+    0% { transform: translate3d(0,0,0) scale(1); }
+    33% { transform: translate3d(8%, -6%, 0) scale(1.06); }
+    66% { transform: translate3d(-6%, 5%, 0) scale(0.98); }
+    100% { transform: translate3d(0,0,0) scale(1); }
+  }
+  .animated-blobs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9), rgba(0,0,0,0.4));
+  }
+  .animated-blob {
+    position: absolute;
+    width: 40rem;
+    height: 40rem;
+    filter: blur(60px);
+    border-radius: 50%;
+    background: radial-gradient(closest-side, hsl(var(--hue-accent) / 0.18), transparent 70%);
+    animation: blobFloat 28s ease-in-out infinite alternate;
+    will-change: transform;
+    mix-blend-mode: soft-light;
+  }
+  .animated-blob.blob-2 { width: 46rem; height: 46rem; animation-duration: 34s; animation-delay: -6s; opacity: .9; }
+  .animated-blob.blob-3 { width: 36rem; height: 36rem; animation-duration: 26s; animation-delay: -3s; opacity: .7; }
 }
 
 @layer base {

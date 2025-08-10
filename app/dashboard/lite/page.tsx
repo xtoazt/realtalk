@@ -25,9 +25,14 @@ export default function LiteDashboard() {
   if (!user) return null
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
+    <div className="relative max-w-7xl mx-auto p-4">
+      <div className="animated-blobs">
+        <div className="animated-blob" style={{ top: '-10%', left: '-10%' }} />
+        <div className="animated-blob blob-2" style={{ bottom: '-15%', right: '-10%' }} />
+        <div className="animated-blob blob-3" style={{ top: '20%', right: '15%' }} />
+      </div>
       <div className="sticky top-0 z-10 mb-4">
-        <div className="glass-effect rounded-2xl border shadow-md px-3 py-2 flex items-center gap-2">
+        <div className="relative z-10 glass-effect rounded-2xl border shadow-md px-3 py-2 flex items-center gap-2">
           {(['home','global','friends','dms','gc','settings'] as const).map(s => (
             <Button key={s} size="sm" variant={section===s? 'default':'outline'} onClick={()=> setSection(s)} className="capitalize">{s}</Button>
           ))}
@@ -39,14 +44,14 @@ export default function LiteDashboard() {
 
       {section==='home' && (
         <>
-        <div className="text-center py-10">
+        <div className="relative z-10 text-center py-10">
           <div className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">real.</div>
           <div className="mt-3 flex flex-col items-center gap-2">
             <TimeDateDisplay large />
             <BatteryStatus />
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="relative z-10 grid gap-4 md:grid-cols-3">
           <Card className="p-6 hover:shadow-lg transition cursor-pointer" onClick={()=> setSection('global')}>
             <div className="text-sm text-muted-foreground mb-1">Chat</div>
             <div className="text-xl font-semibold">Global</div>
