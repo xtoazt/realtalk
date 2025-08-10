@@ -207,15 +207,7 @@ export function DynamicIsland({
                     <Radio className="h-3 w-3" />
                     <span className="text-xs">Radio</span>
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handlePageClick('search')}
-                    className="justify-start gap-2"
-                  >
-                    <SearchIcon className="h-3 w-3" />
-                    <span className="text-xs">Search</span>
-                  </Button>
+                  {/* Search removed */}
                 </div>
               </PopoverContent>
             </Popover>

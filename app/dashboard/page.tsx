@@ -185,10 +185,6 @@ export default function DashboardPage() {
       router.push("/radio")
       setActiveChat({ type: null, name: "" })
       setProfileUserId(null)
-    } else if (page === "search") {
-      router.push("/search")
-      setActiveChat({ type: null, name: "" })
-      setProfileUserId(null)
     } else {
       setCurrentPage(page)
       if (page !== "dashboard") {
@@ -501,11 +497,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {currentPage === "search" && (
-          <div className="max-w-7xl mx-auto animate-fadeIn">
-            <SearchPage />
-          </div>
-        )}
+        
 
         {currentPage === "profile" && (
           <div className="max-w-4xl mx-auto animate-slideIn">

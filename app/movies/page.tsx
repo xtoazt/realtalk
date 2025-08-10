@@ -1,16 +1,32 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Play, Search, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Play, Search, X, Settings, ExternalLink, Copy, Info } from "lucide-react"
 
 type Movie = {
   id: number
   title: string
   poster_path: string | null
+  release_date?: string
+  overview?: string
 }
 
 const IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
-const AUTOEMBED_BASE = "https://player.autoembed.cc/embed/movie/"
+const buildVidSrc = (
+  version: 'v2' | 'v3',
+  identifier: string, // tmdb numeric id or imdb tt id
+  autoPlay: boolean,
+  opts?: { poster?: boolean }
+) => {
+  const base = `https://vidsrc.cc/${version}/embed/movie/${identifier}`
+  const params = new URLSearchParams()
+  if (version === 'v3') {
+    params.set('autoPlay', autoPlay ? 'true' : 'false')
+    if (typeof opts?.poster === 'boolean') params.set('poster', String(opts.poster))
+  }
+  const query = params.toString()
+  return query ? `${base}?${query}` : base
+}
 
 export default function MoviesPage() {
   const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY || "2713804610e1e236b1cf44bfac3a7776"
@@ -20,6 +36,14 @@ export default function MoviesPage() {
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<Movie | null>(null)
   const [showPlayer, setShowPlayer] = useState(false)
+  const [useImdb, setUseImdb] = useState(true)
+  const [version, setVersion] = useState<'v2' | 'v3'>('v3')
+  const [autoPlay, setAutoPlay] = useState(false)
+  const [showPoster, setShowPoster] = useState(false)
+  const [embedSrc, setEmbedSrc] = useState<string>("")
+  const [loadingEmbed, setLoadingEmbed] = useState(false)
+  const [embedError, setEmbedError] = useState<string | null>(null)
+  const [imdbByTmdb, setImdbByTmdb] = useState<Record<number, string | undefined>>({})
   const rowRef = useRef<HTMLDivElement>(null)
   const originalOpenRef = useRef<typeof window.open | null>(null)
 
@@ -31,6 +55,20 @@ export default function MoviesPage() {
     const data = await res.json()
     return (data.results || []) as Movie[]
   }, [apiKey])
+
+  const fetchImdbId = useCallback(async (tmdbId: number) => {
+    if (imdbByTmdb[tmdbId] !== undefined) return imdbByTmdb[tmdbId]
+    try {
+      const res = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/external_ids?api_key=${apiKey}`)
+      const data = await res.json()
+      const imdb = data?.imdb_id || undefined
+      setImdbByTmdb((prev) => ({ ...prev, [tmdbId]: imdb }))
+      return imdb
+    } catch {
+      setImdbByTmdb((prev) => ({ ...prev, [tmdbId]: undefined }))
+      return undefined
+    }
+  }, [apiKey, imdbByTmdb])
 
   useEffect(() => {
     // initial load
@@ -66,6 +104,7 @@ export default function MoviesPage() {
   const openMovie = (movie: Movie) => {
     setSelected(movie)
     setShowPlayer(false)
+    setEmbedError(null)
   }
 
   const playSelected = () => {
@@ -74,6 +113,13 @@ export default function MoviesPage() {
     originalOpenRef.current = window.open
     ;(window as any).open = () => null
     setShowPlayer(true)
+    setLoadingEmbed(true)
+    ;(async () => {
+      const imdb = useImdb ? await fetchImdbId(selected.id) : undefined
+      const identifier = imdb && imdb.startsWith('tt') ? imdb : String(selected.id)
+      const src = buildVidSrc(version, identifier, autoPlay, { poster: showPoster })
+      setEmbedSrc(src)
+    })()
   }
 
   const closeOverlay = () => {
@@ -86,6 +132,14 @@ export default function MoviesPage() {
   }
 
   const featured = useMemo(() => top10[0], [top10])
+
+  const yearOf = (date?: string) => (date ? new Date(date).getFullYear() : undefined)
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('Link copied')
+    } catch {}
+  }
 
   return (
     <div className="min-h-screen">
@@ -195,27 +249,54 @@ export default function MoviesPage() {
             />
           )}
 
-          {/* Title & Play */}
+          {/* Title & Controls */}
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <h3 className="text-2xl md:text-3xl font-bold mb-4">{selected.title}</h3>
+            <h3 className="text-2xl md:text-3xl font-bold mb-1">{selected.title} {yearOf(selected.release_date) ? <span className="text-base text-muted-foreground">({yearOf(selected.release_date)})</span> : null}</h3>
+            {selected.overview && <p className="max-w-2xl text-sm text-muted-foreground mb-3 line-clamp-3">{selected.overview}</p>}
             {!showPlayer ? (
-              <button
-                onClick={playSelected}
-                className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-3 rounded-full shadow-lg"
-              >
-                <Play className="h-5 w-5" /> Play
-              </button>
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full">
+                  <Settings className="h-4 w-4" />
+                  <label className="text-sm flex items-center gap-1"><input type="checkbox" checked={useImdb} onChange={(e)=>setUseImdb(e.target.checked)} /> Use IMDB when available</label>
+                  <select className="bg-transparent text-sm border rounded px-2 py-1" value={version} onChange={(e)=>setVersion(e.target.value as 'v2'|'v3')}>
+                    <option value="v3">v3</option>
+                    <option value="v2">v2</option>
+                  </select>
+                  <label className="text-sm flex items-center gap-1"><input type="checkbox" checked={autoPlay} onChange={(e)=>setAutoPlay(e.target.checked)} /> Autoplay</label>
+                  <label className="text-sm flex items-center gap-1"><input type="checkbox" checked={showPoster} onChange={(e)=>setShowPoster(e.target.checked)} /> Poster</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={playSelected}
+                    className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-3 rounded-full shadow-lg"
+                  >
+                    <Play className="h-5 w-5" /> Play
+                  </button>
+                </div>
+                <div className="text-xs text-white/70 flex items-center gap-1"><Info className="h-3 w-3" /> If playback fails, try switching version.</div>
+              </div>
             ) : (
               <div className="absolute inset-0">
+                {loadingEmbed && (
+                  <div className="absolute inset-0 grid place-items-center text-white/80"><div className="w-6 h-6 border-2 border-white/60 border-t-transparent rounded-full animate-spin" /></div>
+                )}
+                {embedError && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white rounded px-3 py-1 text-sm shadow">{embedError}</div>
+                )}
                 <iframe
-                  key={selected.id}
-                  src={`${AUTOEMBED_BASE}${selected.id}`}
+                  key={embedSrc}
+                  src={embedSrc}
                   className="w-full h-full"
-                  // Strong sandbox to block popups/ads
                   sandbox="allow-same-origin allow-scripts allow-pointer-lock allow-forms"
                   allow="autoplay; encrypted-media; fullscreen"
                   referrerPolicy="no-referrer"
+                  onLoad={() => setLoadingEmbed(false)}
                 />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                  <button className="text-xs bg-white/10 hover:bg-white/20 text-white rounded px-3 py-1" onClick={() => window.open(embedSrc, '_blank') }><ExternalLink className="h-3 w-3 inline mr-1" />Open in new tab</button>
+                  <button className="text-xs bg-white/10 hover:bg-white/20 text-white rounded px-3 py-1" onClick={() => copyToClipboard(embedSrc)}><Copy className="h-3 w-3 inline mr-1" />Copy link</button>
+                  <button className="text-xs bg-white/10 hover:bg-white/20 text-white rounded px-3 py-1" onClick={() => { setShowPlayer(false); setTimeout(playSelected, 0) }}>Reload</button>
+                </div>
               </div>
             )}
           </div>
