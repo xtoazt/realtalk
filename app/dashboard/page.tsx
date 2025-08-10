@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Users, Globe, Trash2, Search } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
+import { TimeDateDisplay } from "@/components/time-date-display"
+import { BatteryStatus } from "@/components/BatteryStatus"
 import { ModeGate } from "./mode-gate"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
 
@@ -336,7 +338,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
+    <div className="relative min-h-screen bg-background transition-colors duration-300">
+      <div className="animated-blobs">
+        <div className="animated-blob" style={{ top: '-12%', left: '-8%' }} />
+        <div className="animated-blob blob-2" style={{ bottom: '-18%', right: '-10%' }} />
+        <div className="animated-blob blob-3" style={{ top: '18%', right: '20%' }} />
+      </div>
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -349,7 +356,16 @@ export default function DashboardPage() {
         onHueCycle={handleHueCycle}
       />
 
-      <div className="pt-20 px-4 pb-4">
+      <div className="relative z-10 pt-20 px-4 pb-4">
+        {currentPage === 'dashboard' && (
+          <div className="text-center py-6">
+            <div className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">real.</div>
+            <div className="mt-3 flex flex-col items-center gap-2">
+              <TimeDateDisplay large />
+              <BatteryStatus />
+            </div>
+          </div>
+        )}
         <IncomingCallHandler currentUserId={user.id} />
         {currentPage === "dashboard" && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
