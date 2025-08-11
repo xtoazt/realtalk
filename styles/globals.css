@@ -118,6 +118,17 @@
   .hue-accent {
     color: hsl(var(--hue-accent));
   }
+
+  /* Make hues influence core UI variables site-wide */
+  html[class*="hue-"] {
+    --ring: var(--hue-accent);
+    --sidebar-ring: var(--hue-accent);
+  }
+
+  /* Global selection tint */
+  ::selection {
+    background: hsl(var(--hue-accent) / 0.25);
+  }
   
   /* Animated backdrop blobs */
   @keyframes blobFloat {
@@ -167,6 +178,13 @@
   .glass-surface {
     background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
     backdrop-filter: blur(8px);
+    border-color: hsl(var(--hue-accent) / 0.35);
+  }
+
+  /* Subtle focus styles adopting hue */
+  :focus-visible {
+    outline: 2px solid hsl(var(--hue-accent) / 0.7);
+    outline-offset: 2px;
   }
 }
 
