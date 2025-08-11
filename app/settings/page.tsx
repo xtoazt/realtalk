@@ -186,7 +186,21 @@ export default function SettingsPage() {
     <div className="min-h-screen p-4 relative z-10">
       <div className="max-w-2xl mx-auto pt-20">
         <div className="flex items-center gap-4 mb-6">
-          <Button data-settings-back variant="ghost" onClick={() => router.push(document.referrer?.includes('/dashboard/lite') ? '/dashboard/lite' : '/dashboard')} className="hover-lift">
+          <Button
+            data-settings-back
+            variant="ghost"
+            onClick={() => {
+              try {
+                const params = new URLSearchParams(location.search)
+                const back = params.get('back')
+                if (back === 'lite') return router.push('/dashboard/lite')
+                const ui = localStorage.getItem('ui-mode')
+                if (ui === 'lite') return router.push('/dashboard/lite')
+              } catch {}
+              router.push('/dashboard')
+            }}
+            className="hover-lift"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -270,8 +284,8 @@ export default function SettingsPage() {
               <div className="mt-6">
                 <label className="text-sm font-medium mb-3 block">UI Mode</label>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'lite' })}).then(()=> location.href='/dashboard/lite') }>Switch to Lite</Button>
-                  <Button size="sm" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'pro' })}).then(()=> location.href='/dashboard') }>Switch to Pro</Button>
+                  <Button size="sm" variant="outline" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'lite' })}).then(()=> { try { localStorage.setItem('ui-mode','lite') } catch {}; location.href='/dashboard/lite' }) }>Switch to Lite</Button>
+                  <Button size="sm" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'pro' })}).then(()=> { try { localStorage.setItem('ui-mode','pro') } catch {}; location.href='/dashboard' }) }>Switch to Pro</Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">Lite shows a minimal dashboard. You can switch anytime.</p>
               </div>

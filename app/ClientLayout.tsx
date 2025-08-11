@@ -25,6 +25,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             .replace(/hue-\w+/g, '')
             .concat(` hue-${hue}`)
         }
+        const ui = localStorage.getItem('ui-mode')
+        if (!ui) {
+          // seed from path if available
+          if (location.pathname.startsWith('/dashboard/lite')) localStorage.setItem('ui-mode','lite')
+          else localStorage.setItem('ui-mode','pro')
+        }
       } catch {}
       // iOS Safari viewport height fix and scroll restoration
       window.history.scrollRestoration = 'manual'
