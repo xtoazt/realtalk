@@ -147,6 +147,27 @@
   }
   .animated-blob.blob-2 { width: 46rem; height: 46rem; animation-duration: 34s; animation-delay: -6s; opacity: .9; }
   .animated-blob.blob-3 { width: 36rem; height: 36rem; animation-duration: 26s; animation-delay: -3s; opacity: .7; }
+
+  /* Pro dashboard background: animated neon grid */
+  @keyframes gridPan {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: 60px 60px, 120px 120px; }
+  }
+  .neon-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(hsl(var(--hue-accent) / 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--hue-accent) / 0.08) 1px, transparent 1px);
+    background-size: 60px 60px, 60px 60px;
+    animation: gridPan 20s linear infinite;
+  }
+  .glass-surface {
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    backdrop-filter: blur(8px);
+  }
 }
 
 @layer base {

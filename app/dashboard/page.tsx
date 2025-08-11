@@ -339,11 +339,7 @@ export default function DashboardPage() {
 
   return (
     <div className="relative min-h-screen bg-background transition-colors duration-300">
-      <div className="animated-blobs">
-        <div className="animated-blob" style={{ top: '-12%', left: '-8%' }} />
-        <div className="animated-blob blob-2" style={{ bottom: '-18%', right: '-10%' }} />
-        <div className="animated-blob blob-3" style={{ top: '18%', right: '20%' }} />
-      </div>
+      <div className="neon-grid" />
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -359,50 +355,50 @@ export default function DashboardPage() {
       <div className="relative z-10 pt-20 px-4 pb-4">
         {currentPage === 'dashboard' && (
           <>
-            <div className="text-center py-6">
-              <div className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">real.</div>
+            <div className="text-center py-10">
+              <div className="text-5xl md:text-7xl font-black tracking-tighter bg-gradient-to-r from-white via-gray-300 to-white bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">real.</div>
               <div className="mt-3 flex flex-col items-center gap-2">
                 <TimeDateDisplay large />
                 <BatteryStatus />
               </div>
             </div>
-            <div className="max-w-7xl mx-auto grid gap-4 md:grid-cols-4 px-1">
-              <div onClick={handleGlobalChatClick} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+            <div className="max-w-7xl mx-auto grid gap-5 lg:grid-cols-3 px-1">
+              <div onClick={handleGlobalChatClick} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Chat</div>
                 <div className="text-xl font-semibold">Global</div>
                 <div className="mt-1 text-xs text-muted-foreground">Start chatting with everyone</div>
               </div>
-              <div onClick={()=> setCurrentPage('friends')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> setCurrentPage('friends')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Social</div>
                 <div className="text-xl font-semibold">Friends</div>
                 <div className="mt-1 text-xs text-muted-foreground">Manage your friends</div>
               </div>
-              <div onClick={()=> setCurrentPage('dms')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> setCurrentPage('dms')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Messages</div>
                 <div className="text-xl font-semibold">DM</div>
                 <div className="mt-1 text-xs text-muted-foreground">Continue conversations</div>
               </div>
-              <div onClick={()=> router.push('/movies')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> router.push('/movies')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Entertainment</div>
                 <div className="text-xl font-semibold">Movies</div>
                 <div className="mt-1 text-xs text-muted-foreground">Watch now</div>
               </div>
-              <div onClick={()=> router.push('/games')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> router.push('/games')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Entertainment</div>
                 <div className="text-xl font-semibold">Games</div>
                 <div className="mt-1 text-xs text-muted-foreground">Play instantly</div>
               </div>
-              <div onClick={()=> router.push('/radio')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> router.push('/radio')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Music</div>
                 <div className="text-xl font-semibold">Radio</div>
                 <div className="mt-1 text-xs text-muted-foreground">Listen live</div>
               </div>
-              <div onClick={()=> setCurrentPage('channels')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> setCurrentPage('channels')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Groups</div>
                 <div className="text-xl font-semibold">GC</div>
                 <div className="mt-1 text-xs text-muted-foreground">Open group chats</div>
               </div>
-              <div onClick={()=> router.push('/settings')} className="cursor-pointer rounded-2xl border bg-background/60 backdrop-blur p-5 hover:shadow-xl hover:-translate-y-0.5 transition">
+              <div onClick={()=> router.push('/settings')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Preferences</div>
                 <div className="text-xl font-semibold">Settings</div>
                 <div className="mt-1 text-xs text-muted-foreground">Themes, notifications</div>
