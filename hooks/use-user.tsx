@@ -77,6 +77,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           
           // Apply hue after mounting; do not force theme here to avoid flicker/override
           if (mounted && userData.user) {
+            // Apply theme from server preference
+            try { setTheme(userData.user.theme || 'light') } catch {}
             applyHue(userData.user)
           }
         } else {
