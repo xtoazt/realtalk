@@ -22,7 +22,7 @@ export async function createUser(username: string, passwordHash: string, signupC
 
     const result = await sql`
       INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, email, last_active, theme, hue, ui_mode)
-      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW(), 'light', 'blue', 'pro')
+      VALUES (${username}, ${passwordHash}, ${signupCode}, ${nameColor}, ${hasGoldAnimation}, NULL, NOW(), 'light', 'blue', 'full')
       RETURNING id, username, email, signup_code, name_color, custom_title, has_gold_animation, notifications_enabled, theme, hue, profile_picture, bio, ui_mode
     `
     return result[0]

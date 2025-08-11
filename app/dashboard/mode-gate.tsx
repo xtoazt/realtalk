@@ -14,7 +14,19 @@ export function ModeGate() {
     } catch {}
   },[])
 
-  const choose = (mode: 'lite'|'pro') => {
+  // Force a refresh post-auth before showing chooser to ensure a clean state
+  useEffect(()=>{
+    try {
+      const flag = sessionStorage.getItem('refreshed-after-auth')
+      const onAuth = location.pathname === '/dashboard' || location.pathname === '/dashboard/lite'
+      if (onAuth && !flag) {
+        sessionStorage.setItem('refreshed-after-auth','1')
+        location.reload()
+      }
+    } catch {}
+  },[])
+
+  const choose = (mode: 'lite'|'full') => {
     try { localStorage.setItem('seen-mode-gate','1') } catch {}
     if (mode==='lite') router.push('/dashboard/lite')
     else router.push('/dashboard')
@@ -31,8 +43,8 @@ export function ModeGate() {
             <div className="font-medium mb-1">Lite</div>
             <div className="text-xs text-muted-foreground">Minimal and fast. Global chat, Friends, DMs, Settings, Group Chats.</div>
           </button>
-          <button onClick={()=> choose('pro')} className="rounded-lg border p-4 hover:bg-gray-50 dark:hover:bg-gray-800 text-left">
-            <div className="font-medium mb-1">Pro</div>
+          <button onClick={()=> choose('full')} className="rounded-lg border p-4 hover:bg-gray-50 dark:hover:bg-gray-800 text-left">
+            <div className="font-medium mb-1">Full</div>
             <div className="text-xs text-muted-foreground">Full experience with entertainment, voice, polls, and more.</div>
           </button>
         </div>

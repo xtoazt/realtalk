@@ -148,7 +148,7 @@
   .animated-blob.blob-2 { width: 46rem; height: 46rem; animation-duration: 34s; animation-delay: -6s; opacity: .9; }
   .animated-blob.blob-3 { width: 36rem; height: 36rem; animation-duration: 26s; animation-delay: -3s; opacity: .7; }
 
-  /* Pro dashboard background: animated neon grid */
+  /* Full dashboard background: animated neon grid */
   @keyframes gridPan {
     0% { background-position: 0 0, 0 0; }
     100% { background-position: 60px 60px, 120px 120px; }

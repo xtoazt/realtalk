@@ -285,7 +285,7 @@ export default function SettingsPage() {
                 <label className="text-sm font-medium mb-3 block">UI Mode</label>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'lite' })}).then(()=> { try { localStorage.setItem('ui-mode','lite') } catch {}; location.href='/dashboard/lite' }) }>Switch to Lite</Button>
-                  <Button size="sm" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'pro' })}).then(()=> { try { localStorage.setItem('ui-mode','pro') } catch {}; location.href='/dashboard' }) }>Switch to Pro</Button>
+                  <Button size="sm" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'full' })}).then(()=> { try { localStorage.setItem('ui-mode','full') } catch {}; location.href='/dashboard' }) }>Switch to Full</Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">Lite shows a minimal dashboard. You can switch anytime.</p>
               </div>
