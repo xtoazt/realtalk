@@ -43,7 +43,7 @@ export default function LiteDashboard() {
             </Button>
           ))}
           <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={()=> router.push('/settings')}>Settings</Button>
+            <Button size="sm" variant="secondary" onClick={()=> router.push('/settings/lite')}>Settings</Button>
           </div>
         </div>
       </div>

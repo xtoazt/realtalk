@@ -362,46 +362,50 @@ export default function DashboardPage() {
                 <BatteryStatus />
               </div>
             </div>
-            <div className="max-w-7xl mx-auto grid gap-5 lg:grid-cols-3 px-1">
-              <div onClick={handleGlobalChatClick} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+            <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-12 px-1">
+              <div className="lg:col-span-4 space-y-6">
+                <div onClick={handleGlobalChatClick} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Chat</div>
                 <div className="text-xl font-semibold">Global</div>
                 <div className="mt-1 text-xs text-muted-foreground">Start chatting with everyone</div>
               </div>
-              <div onClick={()=> setCurrentPage('friends')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                <div onClick={()=> setCurrentPage('friends')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Social</div>
                 <div className="text-xl font-semibold">Friends</div>
                 <div className="mt-1 text-xs text-muted-foreground">Manage your friends</div>
               </div>
-              <div onClick={()=> setCurrentPage('dms')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                <div onClick={()=> setCurrentPage('channels')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                  <div className="text-sm text-muted-foreground mb-1">Groups</div>
+                  <div className="text-xl font-semibold">GC</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Open group chats</div>
+                </div>
+              </div>
+              <div className="lg:col-span-8 grid gap-6 md:grid-cols-2">
+                <div onClick={()=> setCurrentPage('dms')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Messages</div>
                 <div className="text-xl font-semibold">DM</div>
                 <div className="mt-1 text-xs text-muted-foreground">Continue conversations</div>
               </div>
-              <div onClick={()=> router.push('/movies')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                <div onClick={()=> router.push('/movies')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Entertainment</div>
                 <div className="text-xl font-semibold">Movies</div>
                 <div className="mt-1 text-xs text-muted-foreground">Watch now</div>
               </div>
-              <div onClick={()=> router.push('/games')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                <div onClick={()=> router.push('/games')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Entertainment</div>
                 <div className="text-xl font-semibold">Games</div>
                 <div className="mt-1 text-xs text-muted-foreground">Play instantly</div>
               </div>
-              <div onClick={()=> router.push('/radio')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                <div onClick={()=> router.push('/radio')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
                 <div className="text-sm text-muted-foreground mb-1">Music</div>
                 <div className="text-xl font-semibold">Radio</div>
                 <div className="mt-1 text-xs text-muted-foreground">Listen live</div>
               </div>
-              <div onClick={()=> setCurrentPage('channels')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Groups</div>
-                <div className="text-xl font-semibold">GC</div>
-                <div className="mt-1 text-xs text-muted-foreground">Open group chats</div>
-              </div>
-              <div onClick={()=> router.push('/settings')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
+                <div onClick={()=> router.push('/settings')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition md:col-span-2">
                 <div className="text-sm text-muted-foreground mb-1">Preferences</div>
                 <div className="text-xl font-semibold">Settings</div>
                 <div className="mt-1 text-xs text-muted-foreground">Themes, notifications</div>
+              </div>
               </div>
             </div>
           </>
