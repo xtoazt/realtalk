@@ -12,12 +12,14 @@ import SettingsPage from "@/app/settings/page"
 import { TimeDateDisplay } from "@/components/time-date-display"
 import { BatteryStatus } from "@/components/BatteryStatus"
 import { ParticleBackground } from "@/components/particle-background"
+import { CreateGroupChat } from "@/components/create-group-chat"
 
 export default function LiteDashboard() {
   const { user, loading } = useUser()
   const router = useRouter()
   const [section, setSection] = useState<'home'|'global'|'friends'|'dms'|'gc'|'settings'>('home')
   const [dmTarget, setDmTarget] = useState<{ id: string, username: string } | null>(null)
+  const [showCreateGC, setShowCreateGC] = useState(false)
 
   useEffect(()=>{
     if (!loading && !user) router.push('/auth')
@@ -36,7 +38,9 @@ export default function LiteDashboard() {
       <div className="sticky top-0 z-10 mb-4">
         <div className="relative z-10 glass-effect rounded-2xl border shadow-md px-3 py-2 flex items-center gap-2">
           {(['home','global','friends','dms','gc'] as const).map(s => (
-            <Button key={s} size="sm" variant={section===s? 'default':'outline'} onClick={()=> setSection(s)} className="capitalize">{s}</Button>
+            <Button key={s} size="sm" variant={section===s? 'default':'outline'} onClick={()=> setSection(s)} className="capitalize">
+              {s === 'dms' ? 'DM' : s === 'gc' ? 'GC' : s}
+            </Button>
           ))}
           <div className="ml-auto flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={()=> router.push('/settings')}>Settings</Button>
@@ -110,7 +114,8 @@ export default function LiteDashboard() {
       {section==='gc' && (
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="p-4 md:col-span-1">
-            <div className="text-sm text-muted-foreground">Your group chats</div>
+            <div className="text-sm text-muted-foreground mb-2">Your group chats</div>
+            <Button size="sm" className="mb-3" onClick={()=> setShowCreateGC(true)}>New Group</Button>
             {/* TODO: list GCs similarly to DMsPage */}
           </Card>
           <Card className="p-0 md:col-span-2 min-h-[60vh]">
@@ -119,6 +124,23 @@ export default function LiteDashboard() {
         </div>
       )}
       {/* Settings accessible via top-right only */}
+
+      {showCreateGC && (
+        <CreateGroupChat
+          onClose={()=> setShowCreateGC(false)}
+          onCreate={async (name, members)=>{
+            try {
+              const r = await fetch('/api/group-chats', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, memberIds: members }) })
+              if (r.ok) {
+                setShowCreateGC(false)
+                alert('Group created')
+              } else {
+                const d = await r.json(); alert(d.error || 'Failed to create group')
+              }
+            } catch { alert('Failed to create group') }
+          }}
+        />
+      )}
     </div>
   )
 }

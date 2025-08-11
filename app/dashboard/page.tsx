@@ -368,7 +368,7 @@ export default function DashboardPage() {
         )}
         <IncomingCallHandler currentUserId={user.id} />
         {currentPage === "dashboard" && (
-          <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-theme(spacing.20))]">
+          <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">
               <Card className="animate-fadeIn">
                 <CardHeader>
