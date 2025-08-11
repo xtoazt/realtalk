@@ -363,49 +363,57 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-12 px-1">
+              {/* Widget column */}
               <div className="lg:col-span-4 space-y-6">
-                <div onClick={handleGlobalChatClick} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Chat</div>
-                <div className="text-xl font-semibold">Global</div>
-                <div className="mt-1 text-xs text-muted-foreground">Start chatting with everyone</div>
-              </div>
-                <div onClick={()=> setCurrentPage('friends')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Social</div>
-                <div className="text-xl font-semibold">Friends</div>
-                <div className="mt-1 text-xs text-muted-foreground">Manage your friends</div>
-              </div>
-                <div onClick={()=> setCurrentPage('channels')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                  <div className="text-sm text-muted-foreground mb-1">Groups</div>
-                  <div className="text-xl font-semibold">GC</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Open group chats</div>
+                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
+                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Quick Start</div>
+                  <div className="p-4 grid grid-cols-2 gap-3">
+                    <Button size="sm" variant="secondary" onClick={handleGlobalChatClick}>Global</Button>
+                    <Button size="sm" variant="outline" onClick={()=> setCurrentPage('friends')}>Friends</Button>
+                    <Button size="sm" variant="outline" onClick={()=> setCurrentPage('dms')}>DM</Button>
+                    <Button size="sm" variant="outline" onClick={()=> setCurrentPage('channels')}>GC</Button>
+                  </div>
+                </div>
+                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
+                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Now Playing</div>
+                  <div className="p-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                    <Button size="sm" variant="ghost" onClick={()=> router.push('/movies')}>Movies</Button>
+                    <Button size="sm" variant="ghost" onClick={()=> router.push('/games')}>Games</Button>
+                    <Button size="sm" variant="ghost" onClick={()=> router.push('/radio')}>Radio</Button>
+                  </div>
+                </div>
+                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
+                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Status</div>
+                  <div className="p-4 text-sm text-muted-foreground space-y-1">
+                    <div>Theme: {theme}</div>
+                    <div>Hue: {user.hue}</div>
+                    <div>Notifications: {user.notifications_enabled ? 'on' : 'off'}</div>
+                  </div>
                 </div>
               </div>
-              <div className="lg:col-span-8 grid gap-6 md:grid-cols-2">
-                <div onClick={()=> setCurrentPage('dms')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Messages</div>
-                <div className="text-xl font-semibold">DM</div>
-                <div className="mt-1 text-xs text-muted-foreground">Continue conversations</div>
-              </div>
-                <div onClick={()=> router.push('/movies')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Entertainment</div>
-                <div className="text-xl font-semibold">Movies</div>
-                <div className="mt-1 text-xs text-muted-foreground">Watch now</div>
-              </div>
-                <div onClick={()=> router.push('/games')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Entertainment</div>
-                <div className="text-xl font-semibold">Games</div>
-                <div className="mt-1 text-xs text-muted-foreground">Play instantly</div>
-              </div>
-                <div onClick={()=> router.push('/radio')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition">
-                <div className="text-sm text-muted-foreground mb-1">Music</div>
-                <div className="text-xl font-semibold">Radio</div>
-                <div className="mt-1 text-xs text-muted-foreground">Listen live</div>
-              </div>
-                <div onClick={()=> router.push('/settings')} className="cursor-pointer rounded-3xl border glass-surface p-6 hover:shadow-2xl hover:-translate-y-1 transition md:col-span-2">
-                <div className="text-sm text-muted-foreground mb-1">Preferences</div>
-                <div className="text-xl font-semibold">Settings</div>
-                <div className="mt-1 text-xs text-muted-foreground">Themes, notifications</div>
-              </div>
+              {/* Preview/Info area */}
+              <div className="lg:col-span-8 space-y-6">
+                <div className="rounded-3xl border glass-surface p-6">
+                  <div className="text-sm text-muted-foreground mb-2">Welcome back</div>
+                  <div className="text-2xl font-semibold">@{user.username}</div>
+                  <div className="mt-3 text-xs text-muted-foreground">Jump into Global or open a Group Chat from the left. Your active conversation will appear below.</div>
+                </div>
+                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
+                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Active Conversation</div>
+                  <div className="min-h-[300px]">
+                    {activeChat.type ? (
+                      <ChatWindow
+                        chatType={activeChat.type}
+                        chatId={activeChat.id}
+                        chatName={activeChat.name}
+                        currentUserId={user.id}
+                        onUserClick={handleUserClick}
+                      />
+                    ) : (
+                      <div className="h-full grid place-items-center text-sm text-muted-foreground p-6">No conversation selected</div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </>
