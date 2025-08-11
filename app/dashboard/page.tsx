@@ -438,13 +438,7 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <div className="text-center py-10">
-                  <div className="text-4xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3">real.</div>
-                  <div className="flex flex-col items-center gap-2">
-                    <TimeDateDisplay />
-                    <BatteryStatus />
-                  </div>
-                </div>
+                <></>
               )}
             </div>
           </div>
