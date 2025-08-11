@@ -186,7 +186,7 @@ export default function SettingsPage() {
     <div className="min-h-screen p-4 relative z-10">
       <div className="max-w-2xl mx-auto pt-20">
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => router.push(document.referrer?.includes('/dashboard/lite') ? '/dashboard/lite' : '/dashboard')} className="hover-lift">
+          <Button data-settings-back variant="ghost" onClick={() => router.push(document.referrer?.includes('/dashboard/lite') ? '/dashboard/lite' : '/dashboard')} className="hover-lift">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
