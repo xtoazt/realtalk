@@ -45,7 +45,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [])
 
   return (
-    <html lang="en" suppressHydrationWarning className="hue-blue">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"

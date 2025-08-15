@@ -1,3 +1,14 @@
 {
-  "/_not-found/page": "app/_not-found/page.js"
+  "/api/users/me/route": "app/api/users/me/route.js",
+  "/api/users/[id]/route": "app/api/users/[id]/route.js",
+  "/api/users/online/route": "app/api/users/online/route.js",
+  "/api/group-chats/route": "app/api/group-chats/route.js",
+  "/api/group-chats/join/route": "app/api/group-chats/join/route.js",
+  "/api/group-chats/[id]/requests/route": "app/api/group-chats/[id]/requests/route.js",
+  "/api/user/activity/route": "app/api/user/activity/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/games/page": "app/games/page.js",
+  "/dashboard/lite/page": "app/dashboard/lite/page.js",
+  "/settings/lite/page": "app/settings/lite/page.js"
 }

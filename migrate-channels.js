@@ -1,6 +1,10 @@
 // Quick migration script for Neon
 import { neon } from '@neondatabase/serverless'
 import fs from 'fs'
+import dotenv from 'dotenv'
+
+// Load environment variables
+dotenv.config({ path: '.env.local' })
 
 const sql = neon(process.env.DATABASE_URL)
 

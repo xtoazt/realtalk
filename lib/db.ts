@@ -284,11 +284,34 @@ export async function createMessage(
   }
 }
 
+// Generate a random short code
+function generateShortCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let result = ''
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
 export async function createGroupChat(name: string, creatorId: string, memberIds: string[] = []) {
   try {
+    // Generate a unique short code
+    let shortCode: string
+    let attempts = 0
+    let existing: any[]
+    do {
+      shortCode = generateShortCode()
+      existing = await sql`SELECT id FROM group_chats WHERE short_code = ${shortCode}`
+      attempts++
+      if (attempts > 10) {
+        throw new Error("Failed to generate unique short code")
+      }
+    } while (existing.length > 0)
+
     const result = await sql`
-      INSERT INTO group_chats (name, creator_id)
-      VALUES (${name}, ${creatorId})
+      INSERT INTO group_chats (name, creator_id, short_code)
+      VALUES (${name}, ${creatorId}, ${shortCode})
       RETURNING *
     `
 
@@ -327,6 +350,112 @@ export async function getUserGroupChats(userId: string) {
     return result
   } catch (err) {
     console.error("[db] getUserGroupChats error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function getGroupChatByShortCode(shortCode: string) {
+  try {
+    const result = await sql`
+      SELECT gc.*, u.username as creator_username
+      FROM group_chats gc
+      JOIN users u ON gc.creator_id = u.id
+      WHERE gc.short_code = ${shortCode}
+      LIMIT 1
+    `
+    return result[0] || null
+  } catch (err) {
+    console.error("[db] getGroupChatByShortCode error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function createJoinRequest(groupChatId: string, requesterId: string) {
+  try {
+    // Check if user is already a member
+    const existingMember = await sql`
+      SELECT id FROM group_chat_members 
+      WHERE group_chat_id = ${groupChatId} AND user_id = ${requesterId}
+    `
+    if (existingMember.length > 0) {
+      throw new Error("Already a member of this group chat")
+    }
+
+    // Check if there's already a pending request
+    const existingRequest = await sql`
+      SELECT id FROM group_join_requests 
+      WHERE group_chat_id = ${groupChatId} AND requester_id = ${requesterId}
+    `
+    if (existingRequest.length > 0) {
+      throw new Error("Join request already pending")
+    }
+
+    const result = await sql`
+      INSERT INTO group_join_requests (group_chat_id, requester_id, status)
+      VALUES (${groupChatId}, ${requesterId}, 'pending')
+      RETURNING *
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] createJoinRequest error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function getPendingJoinRequests(groupChatId: string) {
+  try {
+    const result = await sql`
+      SELECT gjr.*, u.username, u.name_color, u.custom_title, u.has_gold_animation
+      FROM group_join_requests gjr
+      JOIN users u ON gjr.requester_id = u.id
+      WHERE gjr.group_chat_id = ${groupChatId} AND gjr.status = 'pending'
+      ORDER BY gjr.created_at ASC
+    `
+    return result
+  } catch (err) {
+    console.error("[db] getPendingJoinRequests error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function approveJoinRequest(requestId: string, groupChatId: string, requesterId: string) {
+  try {
+    await sql`BEGIN`
+    
+    // Update the request status
+    await sql`
+      UPDATE group_join_requests 
+      SET status = 'approved', updated_at = NOW()
+      WHERE id = ${requestId}
+    `
+    
+    // Add user to group chat members
+    await sql`
+      INSERT INTO group_chat_members (group_chat_id, user_id)
+      VALUES (${groupChatId}, ${requesterId})
+      ON CONFLICT (group_chat_id, user_id) DO NOTHING
+    `
+    
+    await sql`COMMIT`
+    return true
+  } catch (err) {
+    await sql`ROLLBACK`
+    console.error("[db] approveJoinRequest error:", err)
+    throw new Error("Database error: " + (err as Error).message)
+  }
+}
+
+export async function rejectJoinRequest(requestId: string) {
+  try {
+    const result = await sql`
+      UPDATE group_join_requests 
+      SET status = 'rejected', updated_at = NOW()
+      WHERE id = ${requestId}
+      RETURNING *
+    `
+    return result[0]
+  } catch (err) {
+    console.error("[db] rejectJoinRequest error:", err)
     throw new Error("Database error: " + (err as Error).message)
   }
 }

@@ -82,7 +82,7 @@ export function ChatInput({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col p-4 border-t bg-white">
+    <form onSubmit={handleSubmit} className="flex flex-col p-4 border-t bg-background">
       {replyToMessage && (
         <div className="flex items-center justify-between p-2 mb-2 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
           <div className="flex-1 truncate">

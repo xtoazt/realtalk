@@ -17,12 +17,14 @@ import RadioPage from "@/app/radio/page"
 import GamesPage from "../../components/games-page"
 import { IncomingCallHandler } from "@/components/voice/IncomingCallHandler"
 import { CreateGroupChat } from "@/components/create-group-chat"
+import { JoinGroupChat } from "@/components/join-group-chat"
+import { JoinRequests } from "@/components/join-requests"
 import { OnlineUsers } from "@/components/online-users"
 import { RecentPoll } from "@/components/recent-poll"
 import { MessageSearch } from "@/components/message-search"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Users, Globe, Trash2, Search } from 'lucide-react'
+import { Plus, Users, Globe, Trash2, Search, Hash, Clock } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
 import { TimeDateDisplay } from "@/components/time-date-display"
 import { BatteryStatus } from "@/components/BatteryStatus"
@@ -58,6 +60,8 @@ export default function DashboardPage() {
     name: string
   }>({ type: null, name: "" })
   const [showCreateGC, setShowCreateGC] = useState(false)
+  const [showJoinGC, setShowJoinGC] = useState(false)
+  const [showJoinRequests, setShowJoinRequests] = useState(false)
   const [showMessageSearch, setShowMessageSearch] = useState(false)
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const router = useRouter()
@@ -101,6 +105,11 @@ export default function DashboardPage() {
           name: data.groupChat.name,
         })
         setCurrentPage("dashboard")
+        
+        // Show the short code to the creator
+        if (data.groupChat.short_code) {
+          alert(`Group chat created! Share this code with others: ${data.groupChat.short_code}`)
+        }
       } else {
         console.error("Failed to create group chat:", response.status, await response.text())
       }
@@ -325,6 +334,15 @@ export default function DashboardPage() {
     setActiveChat({ type: null, name: "" })
   }
 
+  const handleJoinSuccess = (groupChat: any) => {
+    alert(`Join request sent to ${groupChat.name}! The creator will be notified.`)
+    fetchGroupChats()
+  }
+
+  const handleRequestProcessed = () => {
+    fetchGroupChats()
+  }
+
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -354,72 +372,6 @@ export default function DashboardPage() {
 
       <div className="relative z-10 pt-20 px-4 pb-4">
         {currentPage === 'dashboard' && (
-          <>
-            <div className="text-center py-10">
-              <div className="text-5xl md:text-7xl font-black tracking-tighter bg-gradient-to-r from-white via-gray-300 to-white bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">real.</div>
-              <div className="mt-3 flex flex-col items-center gap-2">
-                <TimeDateDisplay large />
-                <BatteryStatus />
-              </div>
-            </div>
-            <div className="max-w-7xl mx-auto grid gap-6 lg:grid-cols-12 px-1">
-              {/* Widget column */}
-              <div className="lg:col-span-4 space-y-6">
-                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
-                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Quick Start</div>
-                  <div className="p-4 grid grid-cols-2 gap-3">
-                    <Button size="sm" variant="secondary" onClick={handleGlobalChatClick}>Global</Button>
-                    <Button size="sm" variant="outline" onClick={()=> setCurrentPage('friends')}>Friends</Button>
-                    <Button size="sm" variant="outline" onClick={()=> setCurrentPage('dms')}>DM</Button>
-                    <Button size="sm" variant="outline" onClick={()=> setCurrentPage('channels')}>GC</Button>
-                  </div>
-                </div>
-                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
-                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Now Playing</div>
-                  <div className="p-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                    <Button size="sm" variant="ghost" onClick={()=> router.push('/movies')}>Movies</Button>
-                    <Button size="sm" variant="ghost" onClick={()=> router.push('/games')}>Games</Button>
-                    <Button size="sm" variant="ghost" onClick={()=> router.push('/radio')}>Radio</Button>
-                  </div>
-                </div>
-                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
-                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Status</div>
-                  <div className="p-4 text-sm text-muted-foreground space-y-1">
-                    <div>Theme: {theme}</div>
-                    <div>Hue: {user.hue}</div>
-                    <div>Notifications: {user.notifications_enabled ? 'on' : 'off'}</div>
-                  </div>
-                </div>
-              </div>
-              {/* Preview/Info area */}
-              <div className="lg:col-span-8 space-y-6">
-                <div className="rounded-3xl border glass-surface p-6">
-                  <div className="text-sm text-muted-foreground mb-2">Welcome back</div>
-                  <div className="text-2xl font-semibold">@{user.username}</div>
-                  <div className="mt-3 text-xs text-muted-foreground">Jump into Global or open a Group Chat from the left. Your active conversation will appear below.</div>
-                </div>
-                <div className="rounded-3xl border glass-surface p-0 overflow-hidden">
-                  <div className="px-5 py-4 border-b text-sm text-muted-foreground">Active Conversation</div>
-                  <div className="min-h-[300px]">
-                    {activeChat.type ? (
-                      <ChatWindow
-                        chatType={activeChat.type}
-                        chatId={activeChat.id}
-                        chatName={activeChat.name}
-                        currentUserId={user.id}
-                        onUserClick={handleUserClick}
-                      />
-                    ) : (
-                      <div className="h-full grid place-items-center text-sm text-muted-foreground p-6">No conversation selected</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-        <IncomingCallHandler currentUserId={user.id} />
-        {currentPage === "dashboard" && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">
               <Card className="animate-fadeIn">
@@ -434,6 +386,14 @@ export default function DashboardPage() {
                         title="Search Messages"
                       >
                         <Search className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowJoinGC(true)}
+                        title="Join Group Chat"
+                      >
+                        <Hash className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setShowCreateGC(true)}>
                         <Plus className="h-4 w-4" />
@@ -456,17 +416,30 @@ export default function DashboardPage() {
                             <Users className="h-4 w-4 mr-2 shrink-0" />
                             <span className="truncate">{gc.name}</span>
                           </Button>
-                          {user.id === gc.creator_id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteGroupChat(gc.id)}
-                              className="ml-2 text-red-500 hover:bg-red-500/10"
-                              title="Delete Group Chat"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {user.id === gc.creator_id && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setShowJoinRequests(true)}
+                                  className="text-blue-500 hover:bg-blue-500/10"
+                                  title="View Join Requests"
+                                >
+                                  <Clock className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteGroupChat(gc.id)}
+                                  className="text-red-500 hover:bg-red-500/10"
+                                  title="Delete Group Chat"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -490,13 +463,27 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <></>
+                <Card className="h-full flex items-center justify-center">
+                  <CardContent className="text-center py-12">
+                    <div className="text-5xl md:text-7xl font-black tracking-tighter bg-gradient-to-r from-white via-gray-300 to-white bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">real.</div>
+                    <div className="mt-6 flex flex-col items-center gap-2">
+                      <TimeDateDisplay large />
+                      <BatteryStatus />
+                    </div>
+                    <div className="mt-6 text-sm text-muted-foreground">
+                      Welcome back @{user.username}
+                    </div>
+                    <div className="mt-4 flex gap-2 justify-center">
+                      <Button onClick={handleGlobalChatClick}>Global Chat</Button>
+                      <Button variant="outline" onClick={() => setCurrentPage('friends')}>Friends</Button>
+                      <Button variant="outline" onClick={() => setCurrentPage('channels')}>Channels</Button>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>
         )}
-
-        {/* Removed entertainment quick-access */}
 
         {currentPage === "friends" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
@@ -552,8 +539,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        
-
         {currentPage === "profile" && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <ProfilePage 
@@ -565,7 +550,20 @@ export default function DashboardPage() {
         )}
       </div>
 
+      <IncomingCallHandler currentUserId={user.id} />
+
       {showCreateGC && user && <CreateGroupChat onClose={() => setShowCreateGC(false)} onCreate={handleCreateGC} />}
+
+      {showJoinGC && <JoinGroupChat onClose={() => setShowJoinGC(false)} onJoinSuccess={handleJoinSuccess} />}
+
+      {showJoinRequests && (
+        <JoinRequests 
+          groupChatId={groupChats.find(gc => gc.creator_id === user?.id)?.id || ""}
+          groupChatName={groupChats.find(gc => gc.creator_id === user?.id)?.name || ""}
+          onClose={() => setShowJoinRequests(false)}
+          onRequestProcessed={handleRequestProcessed}
+        />
+      )}
 
       {showMessageSearch && (
         <MessageSearch onClose={() => setShowMessageSearch(false)} onMessageClick={handleMessageSearchClick} />

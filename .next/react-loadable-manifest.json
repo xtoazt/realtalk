@@ -1,1 +1,8 @@
-{}
+{
+  "app/radio/page.tsx -> @/components/radio-page": {
+    "id": "app/radio/page.tsx -> @/components/radio-page",
+    "files": [
+      "static/chunks/_app-pages-browser_components_radio-page_tsx.js"
+    ]
+  }
+}

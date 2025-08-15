@@ -61,8 +61,8 @@ export async function signUp(username: string, password: string, signupCode?: st
   }
 
   const users = await query`
-    INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, theme, hue, notifications_enabled, last_active)
-    VALUES (${username}, ${hashedPassword}, ${signupCode || null}, ${nameColor}, ${hasGoldAnimation}, 'light', 'blue', false, NOW())
+    INSERT INTO users (username, password_hash, signup_code, name_color, has_gold_animation, theme, hue, notifications_enabled, last_active, ui_mode)
+    VALUES (${username}, ${hashedPassword}, ${signupCode || null}, ${nameColor}, ${hasGoldAnimation}, 'light', 'blue', false, NOW(), 'full')
     RETURNING *
   `
 

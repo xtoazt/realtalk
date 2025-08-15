@@ -27,6 +27,13 @@ interface ProfilePageProps {
   onSendFriendRequest?: (userId: string) => void
 }
 
+interface Friendship {
+  id: string
+  requester_id: string
+  addressee_id: string
+  status: 'pending' | 'accepted' | 'blocked'
+}
+
 export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfilePageProps) {
   const { user: currentUser, setUser: updateCurrentUser } = useUser()
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null)
@@ -36,6 +43,7 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
   const [showFreezeDialog, setShowFreezeDialog] = useState(false)
   const [freezeMsg, setFreezeMsg] = useState("")
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [friendship, setFriendship] = useState<Friendship | null>(null)
 
   // Form state
   const [bio, setBio] = useState("")
@@ -64,7 +72,22 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
       setLoading(false)
     }
 
+    const fetchFriendship = async () => {
+      if (!isOwnProfile && userId && currentUser) {
+        try {
+          const response = await fetch(`/api/friends/check?userId=${userId}`)
+          if (response.ok) {
+            const data = await response.json()
+            setFriendship(data.friendship)
+          }
+        } catch (error) {
+          console.error("Failed to fetch friendship:", error)
+        }
+      }
+    }
+
     fetchProfile()
+    fetchFriendship()
   }, [userId, currentUser, isOwnProfile])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,14 +283,33 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
               </>
             ) : !isOwnProfile ? (
               <>
-                <Button onClick={() => onStartDM?.(profileUser.id, profileUser.username)} className="flex-1">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Send Message
-                </Button>
-                <Button variant="outline" onClick={() => onSendFriendRequest?.(profileUser.id)}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Friend
-                </Button>
+                {friendship?.status === 'accepted' ? (
+                  <Button onClick={() => onStartDM?.(profileUser.id, profileUser.username)} className="flex-1">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Send Message
+                  </Button>
+                ) : (
+                  <Button disabled className="flex-1 opacity-50 cursor-not-allowed">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    {friendship?.status === 'pending' ? 'Friend Request Pending' : 'Add Friend to Message'}
+                  </Button>
+                )}
+                {!friendship || friendship.status === 'blocked' ? (
+                  <Button variant="outline" onClick={() => onSendFriendRequest?.(profileUser.id)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Friend
+                  </Button>
+                ) : friendship.status === 'pending' ? (
+                  <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Request Sent
+                  </Button>
+                ) : (
+                  <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Friends
+                  </Button>
+                )}
                 {isGold && (
                   <>
                     <Button variant="destructive" onClick={() => setShowFreezeDialog(true)}>
