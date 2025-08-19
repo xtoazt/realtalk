@@ -485,7 +485,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {currentPage === "friends" && (
+        {currentPage === "friends" && user && (
           <div className="max-w-4xl mx-auto animate-slideIn">
             <FriendsPage currentUserId={user.id} onStartDM={handleStartDM} onShowProfile={handleShowProfile} />
           </div>

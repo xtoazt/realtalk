@@ -32,13 +32,22 @@ export async function getCurrentUser() {
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")?.value
 
-  if (!token) return null
+  console.log("[auth] getCurrentUser called, token exists:", !!token)
+
+  if (!token) {
+    console.log("[auth] No auth token found")
+    return null
+  }
 
   try {
     const payload = await decrypt(token)
+    console.log("[auth] Token decrypted successfully, userId:", payload.userId)
     const users = await query`SELECT * FROM users WHERE id = ${payload.userId}`
-    return users[0] || null
-  } catch {
+    const user = users[0] || null
+    console.log("[auth] User found:", !!user)
+    return user
+  } catch (error) {
+    console.error("[auth] Error getting current user:", error)
     return null
   }
 }

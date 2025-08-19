@@ -40,30 +40,56 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
   const [searchLoading, setSearchLoading] = useState(false)
   const [sendRequestError, setSendRequestError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState(Date.now())
+  const [authError, setAuthError] = useState<string | null>(null)
 
   const fetchFriendships = useCallback(async () => {
+    // Don't fetch if no currentUserId (user not authenticated)
+    if (!currentUserId) {
+      console.log("[friends-page] No currentUserId, skipping fetch")
+      return
+    }
+
     try {
       setLoading(true)
-      const response = await fetch("/api/friends")
+      setAuthError(null)
+      console.log("[friends-page] Fetching friendships for user:", currentUserId)
+      
+      const response = await fetch("/api/friends", {
+        credentials: 'include', // Ensure cookies are sent
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
+      
       if (response.ok) {
         const data = await response.json()
         setFriendships(data.friendships)
         setLastUpdate(Date.now())
+        console.log("[friends-page] Successfully fetched friendships:", data.friendships?.length || 0)
+      } else if (response.status === 401) {
+        const errorText = await response.text()
+        console.error("Authentication error fetching friendships:", response.status, errorText)
+        setAuthError("Authentication failed. Please log in again.")
       } else {
-        console.error("Failed to fetch friendships:", response.status, await response.text())
+        const errorText = await response.text()
+        console.error("Failed to fetch friendships:", response.status, errorText)
+        setAuthError("Failed to load friendships. Please try again.")
       }
     } catch (error) {
       console.error("Failed to fetch friendships:", error)
+      setAuthError("Network error. Please check your connection.")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentUserId])
 
   useEffect(() => {
-    fetchFriendships()
-    const interval = setInterval(fetchFriendships, 3000)
-    return () => clearInterval(interval)
-  }, [fetchFriendships])
+    if (currentUserId) {
+      fetchFriendships()
+      const interval = setInterval(fetchFriendships, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [fetchFriendships, currentUserId])
 
   const searchUsers = async () => {
     if (!searchQuery.trim()) {
@@ -188,6 +214,17 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
           <span>Last updated: {new Date(lastUpdate).toLocaleTimeString()}</span>
         </div>
       </div>
+
+      {/* Authentication Error */}
+      {authError && (
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent className="pt-6">
+            <div className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md">
+              {authError}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search Users */}
       <Card>
