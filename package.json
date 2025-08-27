@@ -11,6 +11,7 @@
     "migrate": "node migrate-channels.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
     "@neondatabase/serverless": "latest",
     "@radix-ui/react-accordion": "1.2.2",

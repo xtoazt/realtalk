@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{\"app/radio/page.tsx -> @/components/radio-page\":{\"id\":\"app/radio/page.tsx -> @/components/radio-page\",\"files\":[\"static/chunks/_app-pages-browser_components_radio-page_tsx.js\"]}}"
+self.__REACT_LOADABLE_MANIFEST='{"app/radio/page.tsx -> @/components/radio-page":{"id":836,"files":["static/chunks/836.6d131f5601b0f672.js"]}}';

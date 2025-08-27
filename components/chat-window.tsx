@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { ChatMessage } from "./chat-message"
+import { SmartMessage } from "./smart-message"
 import { ChatInput } from "./chat-input"
+import { SmartChatInput } from "./smart-chat-input"
+import { SmartAIAssistant } from "./smart-ai-assistant"
 import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Brain, Sparkles } from 'lucide-react'
+import { notificationService } from "@/lib/notification-service"
 
 interface Message {
   id: string
@@ -40,6 +44,8 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null)
   const [showScrollButton, setShowScrollButton] = useState(false)
   const [hasNewMessages, setHasNewMessages] = useState(false)
+  const [showSmartFeatures, setShowSmartFeatures] = useState(true)
+  const [showAIAssistant, setShowAIAssistant] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<Message[]>([])
@@ -93,44 +99,33 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
           setHasNewMessages(true)
         }
 
+        // Show notifications for new messages using the notification service
         if (user && user.notifications_enabled && newMessagesForNotification.length > 0) {
           newMessagesForNotification.forEach((newMessage: Message) => {
             if (newMessage.sender_id !== currentUserId) {
-              const notificationTitle =
-                newMessage.chat_type === "dm"
-                  ? `New DM from ${newMessage.username}`
-                  : newMessage.chat_type === "group" || newMessage.chat_type === "channel"
-                    ? `New message in ${chatName}`
-                    : `New global message from ${newMessage.username}`
-
-              if ("Notification" in window && Notification.permission === "granted") {
-                try {
-                  const notification = new Notification(notificationTitle, {
-                    body:
-                      newMessage.message_type === "image"
-                        ? "📷 Sent an image"
-                        : newMessage.content.length > 100
-                          ? newMessage.content.substring(0, 100) + "..."
-                          : newMessage.content,
-                    icon: "/favicon.png",
-                    tag: `${newMessage.chat_type}-${newMessage.chat_id || "global"}`,
-                    badge: "/favicon.png",
-                    requireInteraction: false,
-                    silent: false,
-                  })
-
-                  setTimeout(() => {
-                    notification.close()
-                  }, 5000)
-
-                  notification.onclick = () => {
-                    window.focus()
-                    notification.close()
+              notificationService.showMessageNotification(
+                {
+                  content: newMessage.content,
+                  username: newMessage.username,
+                  chatType: newMessage.chat_type,
+                  chatName: chatName,
+                  chatId: newMessage.chat_id,
+                  messageType: newMessage.message_type,
+                  id: newMessage.id
+                },
+                (chatType, chatId, chatName) => {
+                  // Navigate to the specific chat if needed
+                  if (chatType !== chatType || (chatId && chatId !== chatId)) {
+                    window.dispatchEvent(new CustomEvent('navigateToChat', {
+                      detail: {
+                        type: chatType,
+                        id: chatId,
+                        name: chatName
+                      }
+                    }))
                   }
-                } catch (error) {
-                  console.warn("Failed to show notification:", error)
                 }
-              }
+              )
             }
           })
         }
@@ -250,6 +245,32 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
     }
   }
 
+  const handleImageUpload = async (file: File) => {
+    if (sending) return
+
+    setSending(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        await handleSendMessage(`[Image: ${data.url}]`, undefined, "image")
+      } else {
+        console.error("Failed to upload image:", response.status)
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error)
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -261,16 +282,52 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
   return (
     <div className="flex-1 flex flex-col h-full bg-card rounded-lg shadow-md overflow-hidden border relative">
       <div className="border-b p-4 bg-card">
-        <h2 className="font-medium text-card-foreground">{chatName}</h2>
-        <p className="text-sm text-muted-foreground">
-          {chatType === "global"
-            ? "Global chat • Everyone can see your messages"
-            : chatType === "group"
-              ? "Group chat"
-              : chatType === "channel"
-                ? "Channel"
-                : "Direct message"}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-medium text-card-foreground flex items-center gap-2">
+              {chatName}
+              {showSmartFeatures && (
+                <div className="flex items-center gap-1">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-primary">AI Enhanced</span>
+                </div>
+              )}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {chatType === "global"
+                ? "Global chat • Everyone can see your messages"
+                : chatType === "group"
+                  ? "Group chat"
+                  : chatType === "channel"
+                    ? "Channel"
+                    : "Direct message"}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSmartFeatures(!showSmartFeatures)}
+              className="flex items-center gap-1"
+              title={showSmartFeatures ? "Disable smart features" : "Enable smart features"}
+            >
+              <Brain className="h-4 w-4" />
+              <span className="text-xs">Smart</span>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAIAssistant(!showAIAssistant)}
+              className="flex items-center gap-1"
+              title="AI Assistant"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="text-xs">AI</span>
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div
@@ -286,19 +343,49 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
             </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              currentUserId={currentUserId}
-              currentUserHasGold={user?.has_gold_animation || false}
-              onAddReaction={handleAddReaction}
-              onRemoveReaction={handleRemoveReaction}
-              onReply={handleReply}
-              onDelete={handleDeleteMessage}
-              onUserClick={onUserClick}
-            />
-          ))
+          <div className="space-y-4">
+            {showAIAssistant && (
+              <SmartAIAssistant
+                chatType={chatType}
+                chatName={chatName}
+                currentUser={user?.username || ''}
+                messageHistory={messages.map(msg => ({
+                  content: msg.content,
+                  username: msg.username,
+                  timestamp: msg.created_at,
+                  isAI: msg.is_ai_response
+                }))}
+                userPreferences={user}
+                onSendMessage={handleSendMessage}
+              />
+            )}
+            
+            {messages.map((message) => (
+              showSmartFeatures ? (
+                <SmartMessage
+                  key={message.id}
+                  message={message}
+                  currentUserId={currentUserId}
+                  onUserClick={onUserClick}
+                  onReply={handleReply}
+                  onReaction={handleAddReaction}
+                  showAI={showSmartFeatures}
+                />
+              ) : (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  currentUserId={currentUserId}
+                  currentUserHasGold={user?.has_gold_animation || false}
+                  onAddReaction={handleAddReaction}
+                  onRemoveReaction={handleRemoveReaction}
+                  onReply={handleReply}
+                  onDelete={handleDeleteMessage}
+                  onUserClick={onUserClick}
+                />
+              )
+            ))}
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -320,18 +407,54 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
         </div>
       )}
 
-      <div className="bg-card border-t">
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          placeholder={`Message ${chatName}...`}
-          disabled={sending}
-          replyToMessage={
-            replyToMessage
-              ? { id: replyToMessage.id, content: replyToMessage.content, username: replyToMessage.username }
-              : undefined
-          }
-          onClearReply={handleClearReply}
-        />
+      <div className="bg-card border-t p-4">
+        {replyToMessage && (
+          <div className="mb-3 p-2 bg-muted rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <span className="font-medium">Replying to {replyToMessage.username}:</span>
+                <span className="text-muted-foreground ml-2">
+                  {replyToMessage.content.length > 50
+                    ? replyToMessage.content.substring(0, 50) + "..."
+                    : replyToMessage.content}
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleClearReply}>
+                ×
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {showSmartFeatures ? (
+          <SmartChatInput
+            onSendMessage={handleSendMessage}
+            onImageUpload={handleImageUpload}
+            chatType={chatType}
+            chatName={chatName}
+            currentUser={user?.username || ''}
+            messageHistory={messages.slice(-5).map(msg => ({
+              role: msg.is_ai_response ? 'assistant' : 'user',
+              content: msg.content
+            }))}
+            userPreferences={user}
+            disabled={sending}
+          />
+        ) : (
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            disabled={sending}
+            placeholder={
+              chatType === "global"
+                ? "Message everyone..."
+                : chatType === "group"
+                  ? "Message the group..."
+                  : chatType === "channel"
+                    ? "Message the channel..."
+                    : "Send a message..."
+            }
+          />
+        )}
       </div>
     </div>
   )

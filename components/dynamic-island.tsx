@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   MessageSquare,
   UserPlus,
@@ -215,15 +216,11 @@ export function DynamicIsland({
             <div className="w-px h-5 bg-gray-600 mx-1" />
 
             {/* Theme Toggle Button */}
-            <Button
+            <ThemeToggle
+              size="sm"
               variant="ghost"
-              size="icon"
-              onClick={onThemeCycle}
               className="h-8 w-8 text-white hover:bg-purple-700/50 transition-all duration-200 hover:scale-105 rounded-full border border-purple-600/30"
-              title="Toggle Theme"
-            >
-              <Moon className="h-3 w-3" />
-            </Button>
+            />
 
             {/* Hue Cycle Button */}
             <Button

@@ -30,6 +30,7 @@ import { TimeDateDisplay } from "@/components/time-date-display"
 import { BatteryStatus } from "@/components/BatteryStatus"
 import { ModeGate } from "./mode-gate"
 import { AI_USER_ID, AI_USERNAME } from "@/lib/constants"
+import { GoldMemberPopup } from "@/components/gold-member-popup"
 
 interface GroupChat {
   id: string
@@ -64,6 +65,7 @@ export default function DashboardPage() {
   const [showJoinRequests, setShowJoinRequests] = useState(false)
   const [showMessageSearch, setShowMessageSearch] = useState(false)
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
+  const [showGoldMemberPopup, setShowGoldMemberPopup] = useState(false)
   const router = useRouter()
 
   const fetchGroupChats = useCallback(async () => {
@@ -86,6 +88,35 @@ export default function DashboardPage() {
       fetchGroupChats()
     }
   }, [userLoading, user, fetchGroupChats])
+
+  // Handle navigation events from notifications
+  useEffect(() => {
+    const handleNavigateToChat = (event: CustomEvent) => {
+      const { type, id, name } = event.detail
+      setActiveChat({ type, id, name })
+    }
+
+    window.addEventListener('navigateToChat', handleNavigateToChat as EventListener)
+    
+    return () => {
+      window.removeEventListener('navigateToChat', handleNavigateToChat as EventListener)
+    }
+  }, [])
+
+  // Handle Gemini API key exhaustion for gold members
+  useEffect(() => {
+    const handleGeminiKeyExhausted = () => {
+      if (user?.signup_code === 'qwea') {
+        setShowGoldMemberPopup(true)
+      }
+    }
+
+    window.addEventListener('geminiKeyExhausted', handleGeminiKeyExhausted)
+    
+    return () => {
+      window.removeEventListener('geminiKeyExhausted', handleGeminiKeyExhausted)
+    }
+  }, [user])
 
   const handleCreateGC = async (name: string, memberIds: string[]) => {
     try {
@@ -218,38 +249,8 @@ export default function DashboardPage() {
   }
 
   const handleThemeCycle = async () => {
-    if (!user) return
-
-    const nextTheme = theme === 'light' ? 'dark' : 'light'
-    
-    console.log("[dashboard] Cycling theme from", theme, "to", nextTheme)
-
-    // Update theme immediately
-    setTheme(nextTheme)
-
-    try {
-      const response = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: nextTheme }),
-      })
-
-      if (response.ok) {
-        // Avoid relying on response shape; just sync local state
-        updateLocalUser({ ...user, theme: nextTheme })
-      } else {
-        const errorData = await response.json()
-        console.error("[dashboard] Failed to update theme:", errorData.error || response.statusText)
-        // Revert theme if API call fails
-        setTheme(theme || 'light')
-        alert(`Failed to change theme: ${errorData.error || response.statusText}`)
-      }
-    } catch (error: any) {
-      console.error("[dashboard] Failed to update theme:", error)
-      // Revert theme if API call fails
-      setTheme(theme || 'light')
-      alert(`An unexpected error occurred while changing theme: ${error.message}`)
-    }
+    // This function is now handled by the ThemeToggle component
+    // Keeping it for backward compatibility but it's no longer used
   }
 
   const handleHueCycle = async () => {
@@ -356,8 +357,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-background transition-colors duration-300">
-      <div className="neon-grid" />
+    <div className="relative min-h-screen bg-background">
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -370,11 +370,11 @@ export default function DashboardPage() {
         onHueCycle={handleHueCycle}
       />
 
-      <div className="relative z-10 pt-20 px-4 pb-4">
+      <div className="relative z-10 pt-20 px-4 pb-4 animate-fadeIn">
         {currentPage === 'dashboard' && (
           <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
             <div className="w-full md:w-80 space-y-4 flex-shrink-0">
-              <Card className="animate-fadeIn">
+              <Card className="animate-fadeIn glass">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Group Chats</span>
@@ -447,8 +447,12 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <OnlineUsers currentUserId={user.id} />
-              <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
+              <Card className="glass">
+                <OnlineUsers currentUserId={user.id} />
+              </Card>
+              <Card className="glass">
+                <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
+              </Card>
             </div>
 
             <div className="flex-1 h-full">
@@ -463,9 +467,9 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <Card className="h-full flex items-center justify-center">
+                <Card className="h-full flex items-center justify-center glass">
                   <CardContent className="text-center py-12">
-                    <div className="text-5xl md:text-7xl font-black tracking-tighter bg-gradient-to-r from-white via-gray-300 to-white bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">real.</div>
+                    <div className="text-5xl md:text-7xl font-black tracking-tighter text-gradient">real.</div>
                     <div className="mt-6 flex flex-col items-center gap-2">
                       <TimeDateDisplay large />
                       <BatteryStatus />
@@ -474,7 +478,7 @@ export default function DashboardPage() {
                       Welcome back @{user.username}
                     </div>
                     <div className="mt-4 flex gap-2 justify-center">
-                      <Button onClick={handleGlobalChatClick}>Global Chat</Button>
+                      <Button variant="modern" onClick={handleGlobalChatClick}>Global Chat</Button>
                       <Button variant="outline" onClick={() => setCurrentPage('friends')}>Friends</Button>
                       <Button variant="outline" onClick={() => setCurrentPage('channels')}>Channels</Button>
                     </div>
@@ -568,6 +572,11 @@ export default function DashboardPage() {
       {showMessageSearch && (
         <MessageSearch onClose={() => setShowMessageSearch(false)} onMessageClick={handleMessageSearchClick} />
       )}
+
+      <GoldMemberPopup 
+        isOpen={showGoldMemberPopup} 
+        onClose={() => setShowGoldMemberPopup(false)} 
+      />
     </div>
   )
 }

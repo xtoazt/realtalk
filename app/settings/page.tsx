@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun } from 'lucide-react'
+import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun, Brain } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
+import { notificationService } from "@/lib/notification-service"
+import { SmartSettings } from "@/components/smart-settings"
 
 interface User {
   id: string
@@ -43,6 +45,7 @@ export default function SettingsPage() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default")
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState<'general' | 'smart'>('general')
   const router = useRouter()
 
   useEffect(() => {
@@ -64,22 +67,23 @@ export default function SettingsPage() {
   }, [user, userLoading])
 
   const checkNotificationPermission = () => {
-    if ("Notification" in window) {
-      setNotificationPermission(Notification.permission)
-    }
+    setNotificationPermission(notificationService.getPermission())
   }
 
   const requestNotificationPermission = async () => {
-    if ("Notification" in window) {
-      const permission = await Notification.requestPermission()
-      setNotificationPermission(permission)
-      if (permission === "granted") {
+    try {
+      const granted = await notificationService.requestPermission()
+      setNotificationPermission(notificationService.getPermission())
+      if (granted) {
         await updateSettings({ notifications_enabled: true })
-        new Notification("Notifications Enabled", {
+        notificationService.showNotification({
+          title: "Notifications Enabled",
           body: "You'll now receive notifications from real.",
           icon: "/favicon.png",
         })
       }
+    } catch (error) {
+      console.error("Failed to request notification permission:", error)
     }
   }
 
@@ -146,7 +150,8 @@ export default function SettingsPage() {
 
   const testNotification = () => {
     if (notificationPermission === "granted") {
-      new Notification("real. Test", {
+      notificationService.showNotification({
+        title: "real. Test",
         body: "Notifications are working! 🎉",
         icon: "/favicon.png",
       })
@@ -207,15 +212,36 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold">Settings</h1>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-4 mb-6 border-b">
+          <Button
+            variant={activeTab === 'general' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('general')}
+            className="flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            General
+          </Button>
+          <Button
+            variant={activeTab === 'smart' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('smart')}
+            className="flex items-center gap-2"
+          >
+            <Brain className="h-4 w-4" />
+            Smart AI
+          </Button>
+        </div>
+
         {error && (
           <div className="text-sm text-destructive text-center p-3 bg-destructive/10 rounded-lg mb-4 animate-fadeIn border border-destructive/20">
             {error}
           </div>
         )}
 
-        <div className="space-y-6">
-          {/* Profile Settings */}
-          <Card className="glass-effect hover-lift animate-fadeIn">
+        {activeTab === 'general' && (
+          <div className="space-y-6">
+            {/* Profile Settings */}
+            <Card className="glass-effect hover-lift animate-fadeIn">
             <CardHeader>
               <CardTitle>Profile</CardTitle>
             </CardHeader>
@@ -405,6 +431,14 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </div>
+        )}
+
+        {activeTab === 'smart' && (
+          <SmartSettings
+            user={user}
+            onUpdateSettings={updateSettings}
+          />
+        )}
       </div>
     </div>
   )
