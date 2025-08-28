@@ -5,28 +5,41 @@ class GeminiAPIKeyManager {
   private apiKeys: string[] = [];
   private currentKeyIndex: number = 0;
   private exhaustedKeys: Set<string> = new Set();
+  private loading: boolean = false;
+  private error: string | null = null;
 
   constructor() {
-    // Initialize with environment variable
     const envKey = process.env.GEMINI_API_KEY;
     if (envKey) {
       this.apiKeys.push(envKey);
     }
-    
-    // Load additional keys from database/storage
     this.loadAdditionalKeys();
   }
 
+  public getError() {
+    return this.error;
+  }
+
+  public isLoading() {
+    return this.loading;
+  }
+
   private async loadAdditionalKeys() {
+    this.loading = true;
+    this.error = null;
     try {
-      // Load from database or secure storage
       const response = await fetch('/api/gemini/keys');
       if (response.ok) {
         const keys = await response.json();
         this.apiKeys.push(...keys.filter((key: string) => !this.exhaustedKeys.has(key)));
+      } else {
+        const data = await response.json().catch(() => ({}));
+        this.error = data.error || 'Failed to load Gemini API keys.';
       }
-    } catch (error) {
-      console.error('Failed to load additional API keys:', error);
+    } catch (error: any) {
+      this.error = 'Failed to load Gemini API keys.';
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -37,49 +50,40 @@ class GeminiAPIKeyManager {
 
   markKeyAsExhausted(key: string) {
     this.exhaustedKeys.add(key);
-    // Remove from active keys
     this.apiKeys = this.apiKeys.filter(k => k !== key);
-    
-    // Move to next key
     if (this.currentKeyIndex >= this.apiKeys.length) {
-      this.currentKeyIndex = 0; // Reset to first available key
+      this.currentKeyIndex = 0;
     }
-    
-    // If no keys left, trigger gold member notification
     if (this.apiKeys.length === 0) {
       this.triggerGoldMemberNotification();
     }
   }
 
-  async addNewKey(key: string, addedBy: string) {
+  async addNewKey(key: string, addedBy: string): Promise<{ success: boolean; message: string }> {
     try {
-      // Validate the key
+      // Validate the key with Gemini API
       const testGenAI = new GoogleGenerativeAI(key);
       const model = testGenAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      
-      // Test the key with a simple request
       await model.generateContent('test');
-      
       // Add to database
       const response = await fetch('/api/gemini/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, addedBy })
       });
-      
       if (response.ok) {
-        this.apiKeys.push(key);
-        console.log(`New API key added by ${addedBy}`);
-        return true;
+        await this.loadAdditionalKeys();
+        return { success: true, message: 'API key added successfully!' };
+      } else {
+        const data = await response.json().catch(() => ({}));
+        return { success: false, message: data.error || 'Failed to add API key.' };
       }
-    } catch (error) {
-      console.error('Invalid API key:', error);
-      return false;
+    } catch (error: any) {
+      return { success: false, message: 'Invalid API key or network error.' };
     }
   }
 
   private triggerGoldMemberNotification() {
-    // This will be handled by the frontend
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('geminiKeyExhausted'));
     }
@@ -90,7 +94,9 @@ class GeminiAPIKeyManager {
       totalKeys: this.apiKeys.length,
       exhaustedKeys: this.exhaustedKeys.size,
       currentKeyIndex: this.currentKeyIndex,
-      hasAvailableKeys: this.apiKeys.length > 0
+      hasAvailableKeys: this.apiKeys.length > 0,
+      error: this.error,
+      loading: this.loading
     };
   }
 }
@@ -98,7 +104,6 @@ class GeminiAPIKeyManager {
 // Global API Key Manager
 export const geminiKeyManager = new GeminiAPIKeyManager();
 
-// Simplified AI Models - only essential features
 const getGeminiModel = () => {
   const key = geminiKeyManager.getCurrentKey();
   if (!key) {
@@ -107,7 +112,6 @@ const getGeminiModel = () => {
   return new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });
 };
 
-// Core AI Personas - simplified
 export const AI_PERSONAS = {
   assistant: {
     name: 'real.AI',
@@ -126,7 +130,6 @@ export const AI_PERSONAS = {
   }
 };
 
-// Simplified Smart Features
 export const SMART_FEATURES = {
   smartSuggestions: true,
   contentModeration: true,
@@ -134,7 +137,6 @@ export const SMART_FEATURES = {
   conversationSummary: true
 };
 
-// Core AI Functions - streamlined
 export async function generateAIResponse(
   message: string, 
   context: {
@@ -147,7 +149,6 @@ export async function generateAIResponse(
   try {
     const model = getGeminiModel();
     const selectedPersona = AI_PERSONAS[persona];
-    
     const prompt = `
 ${selectedPersona.personality}
 
@@ -158,7 +159,6 @@ User message: ${message}
 
 Respond as ${selectedPersona.name} in a helpful, engaging way. Keep it under 150 words.
 `;
-
     const result = await model.generateContent(prompt);
     return {
       content: result.response.text(),
@@ -166,16 +166,12 @@ Respond as ${selectedPersona.name} in a helpful, engaging way. Keep it under 150
       confidence: 0.9
     };
   } catch (error: any) {
-    console.error('[Gemini] Error generating response:', error);
-    
-    // Check if it's an API key error
     if (error.message?.includes('quota') || error.message?.includes('exceeded')) {
       const currentKey = geminiKeyManager.getCurrentKey();
       if (currentKey) {
         geminiKeyManager.markKeyAsExhausted(currentKey);
       }
     }
-    
     return {
       content: "I'm having trouble thinking right now. Please try again later.",
       persona: 'real.AI',
@@ -184,11 +180,9 @@ Respond as ${selectedPersona.name} in a helpful, engaging way. Keep it under 150
   }
 }
 
-// Smart Content Moderation
 export async function moderateContent(message: string) {
   try {
     const model = getGeminiModel();
-    
     const prompt = `
 Analyze this message for inappropriate content (hate speech, harassment, explicit content, spam, personal information).
 
@@ -196,33 +190,26 @@ Message: "${message}"
 
 Respond with only: APPROPRIATE or INAPPROPRIATE
 `;
-
     const result = await model.generateContent(prompt);
     const response = result.response.text().trim().toLowerCase();
-    
     return {
       isAppropriate: response.includes('appropriate'),
       confidence: 0.9
     };
   } catch (error: any) {
-    console.error('[Gemini] Content moderation error:', error);
-    
     if (error.message?.includes('quota') || error.message?.includes('exceeded')) {
       const currentKey = geminiKeyManager.getCurrentKey();
       if (currentKey) {
         geminiKeyManager.markKeyAsExhausted(currentKey);
       }
     }
-    
     return { isAppropriate: true, confidence: 0.5 };
   }
 }
 
-// Smart Suggestions
 export async function generateSmartSuggestions(message: string, context: any) {
   try {
     const model = getGeminiModel();
-    
     const prompt = `
 Based on this message, suggest 3 quick reply options (under 30 characters each):
 
@@ -233,40 +220,31 @@ Provide only the suggestions, one per line:
 2. [suggestion 2]
 3. [suggestion 3]
 `;
-
     const result = await model.generateContent(prompt);
     const response = result.response.text();
-    
     const suggestions = response
       .split('\n')
       .filter(line => line.match(/^\d+\./))
       .map(line => line.replace(/^\d+\.\s*/, ''))
       .slice(0, 3);
-    
     return suggestions;
   } catch (error: any) {
-    console.error('[Gemini] Smart suggestions error:', error);
-    
     if (error.message?.includes('quota') || error.message?.includes('exceeded')) {
       const currentKey = geminiKeyManager.getCurrentKey();
       if (currentKey) {
         geminiKeyManager.markKeyAsExhausted(currentKey);
       }
     }
-    
     return [];
   }
 }
 
-// Conversation Summary
 export async function generateConversationSummary(messages: Array<{ content: string; username: string }>) {
   try {
     const model = getGeminiModel();
-    
     const conversationText = messages
       .map(msg => `${msg.username}: ${msg.content}`)
       .join('\n');
-    
     const prompt = `
 Summarize this conversation in 1-2 sentences:
 
@@ -274,24 +252,19 @@ ${conversationText}
 
 Provide a concise summary.
 `;
-
     const result = await model.generateContent(prompt);
     return result.response.text();
   } catch (error: any) {
-    console.error('[Gemini] Summary generation error:', error);
-    
     if (error.message?.includes('quota') || error.message?.includes('exceeded')) {
       const currentKey = geminiKeyManager.getCurrentKey();
       if (currentKey) {
         geminiKeyManager.markKeyAsExhausted(currentKey);
       }
     }
-    
     return "Unable to generate summary";
   }
 }
 
-// API Key Management Functions
 export async function addGeminiAPIKey(key: string, addedBy: string) {
   return await geminiKeyManager.addNewKey(key, addedBy);
 }
