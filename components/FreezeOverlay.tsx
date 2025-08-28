@@ -22,7 +22,6 @@ export function FreezeOverlay() {
         setMessage(data.user?.freeze_message || null)
         if (data.user?.freeze_popup_message) {
           setPopup(data.user.freeze_popup_message)
-          // Clear server-side popup once seen
           try {
             await fetch(`/api/freeze/popup`, { method: 'POST', body: JSON.stringify({ targetUserId: user.id, popupMessage: '' }) })
           } catch {}
@@ -30,8 +29,7 @@ export function FreezeOverlay() {
       } catch {}
     }
     poll()
-    const id = setInterval(poll, 3000)
-    return () => { active = false; clearInterval(id) }
+    return () => { active = false }
   }, [user?.id])
 
   useEffect(() => {

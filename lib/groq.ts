@@ -6,8 +6,6 @@ const groq = new Groq({
 
 export async function generateAIResponse(message: string, context?: string) {
   try {
-    console.log("[groq] Generating AI response for message:", message.substring(0, 100))
-
     const systemPrompt = `You are real.AI, a helpful AI assistant in the chat app "real.". Keep responses concise, friendly, and conversational. You can help with general questions, provide information, or just chat casually. ${context ? `Context: ${context}` : ""}`
 
     const completion = await groq.chat.completions.create({
@@ -21,10 +19,8 @@ export async function generateAIResponse(message: string, context?: string) {
     })
 
     const response = completion.choices[0]?.message?.content || "Sorry, I could not generate a response."
-    console.log("[groq] AI response generated successfully")
     return response
   } catch (error) {
-    console.error("[groq] API error:", error)
     return "Sorry, I am currently unavailable. Please try again later."
   }
 }

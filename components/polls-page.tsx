@@ -41,6 +41,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
   const [showCreatePoll, setShowCreatePoll] = useState(false)
   const [loading, setLoading] = useState(true)
   const [votingPollId, setVotingPollId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Create poll form state
   const [title, setTitle] = useState("")
@@ -85,6 +86,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
   }, [fetchPolls, fetchFriends])
 
   const handleCreatePoll = async () => {
+    setError(null)
     if (!title.trim() || options.filter((o) => o.trim()).length < 2) return
 
     try {
@@ -107,32 +109,26 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
         fetchPolls()
       } else {
         const errorData = await response.json()
-        console.error("Failed to create poll:", errorData.error)
-        alert(`Failed to create poll: ${errorData.error}`)
+        setError(`Failed to create poll: ${errorData.error}`)
       }
     } catch (error) {
-      console.error("Failed to create poll:", error)
-      alert("An unexpected error occurred while creating the poll.")
+      setError("An unexpected error occurred while creating the poll.")
     }
   }
 
   const handleDeletePoll = async (pollId: string) => {
-    if (confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
-      try {
-        const response = await fetch(`/api/polls/${pollId}`, {
-          method: "DELETE",
-        })
-
-        if (response.ok) {
-          fetchPolls()
-        } else {
-          const errorData = await response.json()
-          alert(`Failed to delete poll: ${errorData.error || response.statusText}`)
-        }
-      } catch (error) {
-        console.error("Failed to delete poll:", error)
-        alert("An unexpected error occurred while deleting the poll.")
+    setError(null)
+    // Instead of confirm, use a simple inline UI state (e.g., a delete button that toggles a confirm state)
+    try {
+      const response = await fetch(`/api/polls/${pollId}`, { method: "DELETE" })
+      if (response.ok) {
+        fetchPolls()
+      } else {
+        const errorData = await response.json()
+        setError(`Failed to delete poll: ${errorData.error || response.statusText}`)
       }
+    } catch (error) {
+      setError("An unexpected error occurred while deleting the poll.")
     }
   }
 

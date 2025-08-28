@@ -24,8 +24,6 @@ export default function AuthPage() {
     const password = formData.get("password") as string
     const signupCode = formData.get("signupCode") as string
 
-    console.log("[auth-page] Signup attempt:", { username, signupCode: signupCode ? "provided" : "none" })
-
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -33,18 +31,14 @@ export default function AuthPage() {
         body: JSON.stringify({ username, password, signupCode: signupCode || undefined }),
       })
 
-      console.log("[auth-page] Signup response status:", response.status)
       const data = await response.json()
 
       if (response.ok) {
-        console.log("[auth-page] Signup successful, redirecting...")
         router.push("/dashboard")
       } else {
-        console.log("[auth-page] Signup failed:", data.error)
         setError(data.error)
       }
     } catch (error: any) {
-      console.error("[auth-page] Signup error:", error)
       setError("Network error. Please check your connection and try again.")
     } finally {
       setIsLoading(false)
@@ -60,8 +54,6 @@ export default function AuthPage() {
     const username = formData.get("username") as string
     const password = formData.get("password") as string
 
-    console.log("[auth-page] Signin attempt:", { username })
-
     try {
       const response = await fetch("/api/auth/signin", {
         method: "POST",
@@ -69,18 +61,14 @@ export default function AuthPage() {
         body: JSON.stringify({ username, password }),
       })
 
-      console.log("[auth-page] Signin response status:", response.status)
       const data = await response.json()
 
       if (response.ok) {
-        console.log("[auth-page] Signin successful, redirecting...")
         router.push("/dashboard")
       } else {
-        console.log("[auth-page] Signin failed:", data.error)
         setError(data.error)
       }
     } catch (error: any) {
-      console.error("[auth-page] Signin error:", error)
       setError("Network error. Please check your connection and try again.")
     } finally {
       setIsLoading(false)

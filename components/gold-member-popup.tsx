@@ -40,10 +40,8 @@ export function GoldMemberPopup({ isOpen, onClose }: GoldMemberPopupProps) {
     const handleKeyExhausted = () => {
       if (isGoldMember) {
         // The popup will be shown by the parent component
-        console.log('Gemini API key exhausted - gold member notification triggered')
       }
     }
-
     window.addEventListener('geminiKeyExhausted', handleKeyExhausted)
     return () => window.removeEventListener('geminiKeyExhausted', handleKeyExhausted)
   }, [isGoldMember])
@@ -53,7 +51,7 @@ export function GoldMemberPopup({ isOpen, onClose }: GoldMemberPopupProps) {
       const status = getGeminiKeyStatus()
       setKeyStatus(status)
     } catch (error) {
-      console.error('Error loading key status:', error)
+      setMessage('Error loading key status')
     }
   }
 

@@ -53,15 +53,9 @@ class NotificationService {
   }
 
   public async showNotification(data: NotificationData): Promise<boolean> {
-    // Only show notifications if:
-    // 1. We're on the client side
-    // 2. Notifications are supported
-    // 3. Permission is granted
-    // 4. User is on a different tab
     if (typeof window === 'undefined' || !this.isSupported || this.permission !== 'granted' || this.isTabActive) {
       return false
     }
-
     try {
       const notification = new Notification(data.title, {
         body: data.body,
@@ -72,29 +66,15 @@ class NotificationService {
         silent: false,
         data: data.data
       })
-
-      // Auto-close after 5 seconds
-      setTimeout(() => {
+      // Only close on click
+      notification.onclick = () => {
+        window.focus()
+        data.onClick?.()
         notification.close()
-      }, 5000)
-
-      // Handle click
-      if (data.onClick) {
-        notification.onclick = () => {
-          window.focus()
-          data.onClick?.()
-          notification.close()
-        }
-      } else {
-        notification.onclick = () => {
-          window.focus()
-          notification.close()
-        }
       }
-
       return true
     } catch (error) {
-      console.error('Failed to show notification:', error)
+      // Show a user-friendly error message if needed (could be a toast in the UI)
       return false
     }
   }
