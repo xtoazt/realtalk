@@ -52,8 +52,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange={true}
+          enableSystem={true}
+          disableTransitionOnChange={false}
         >
           <UserProvider>
             <ErrorBoundary>
