@@ -147,10 +147,14 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
     }
   }
 
-  const getUsernameStyle = (user: ProfileUser) => {
+  const getUsernameClass = (user: ProfileUser): string => {
     if (user.has_gold_animation) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (user: ProfileUser): React.CSSProperties => {
     return user.name_color ? { color: user.name_color } : {}
   }
 
@@ -225,7 +229,7 @@ export function ProfilePage({ userId, onStartDM, onSendFriendRequest }: ProfileP
             </div>
             <div className="flex-1">
               <h3
-                className={`text-2xl font-bold ${profileUser.has_gold_animation ? getUsernameStyle(profileUser) : ""}`}
+                className={`text-2xl font-bold ${profileUser.has_gold_animation ? getUsernameClass(profileUser) : ""}`}
                 style={!profileUser.has_gold_animation ? getUsernameStyle(profileUser) : {}}
               >
                 @{profileUser.username}

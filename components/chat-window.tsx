@@ -107,9 +107,9 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
                 {
                   content: newMessage.content,
                   username: newMessage.username,
-                  chatType: newMessage.chat_type,
+                  chatType: chatType,
                   chatName: chatName,
-                  chatId: newMessage.chat_id,
+                  chatId: chatId,
                   messageType: newMessage.message_type,
                   id: newMessage.id
                 },
@@ -219,8 +219,15 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
     }
   }
 
-  const handleReply = (messageToReply: Message) => {
-    setReplyToMessage(messageToReply)
+  const handleReply = (messageId: string) => {
+    const messageToReply = messages.find(m => m.id === messageId)
+    if (messageToReply) {
+      setReplyToMessage(messageToReply)
+    }
+  }
+
+  const handleReplyFromMessage = (message: Message) => {
+    setReplyToMessage(message)
   }
 
   const handleClearReply = () => {
@@ -379,7 +386,7 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
                   currentUserHasGold={user?.has_gold_animation || false}
                   onAddReaction={handleAddReaction}
                   onRemoveReaction={handleRemoveReaction}
-                  onReply={handleReply}
+                  onReply={handleReplyFromMessage}
                   onDelete={handleDeleteMessage}
                   onUserClick={onUserClick}
                 />

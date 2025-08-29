@@ -9,13 +9,13 @@ import { useUser } from "@/hooks/use-user"
 
 interface ThemeToggleProps {
   className?: string
-  size?: "sm" | "md" | "lg"
+  size?: "sm" | "lg" | "default" | "icon"
   variant?: "default" | "ghost" | "outline"
 }
 
 export function ThemeToggle({ 
   className, 
-  size = "md", 
+  size = "default", 
   variant = "ghost" 
 }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme()
@@ -66,14 +66,16 @@ export function ThemeToggle({
 
   const sizeClasses = {
     sm: "h-8 w-8",
-    md: "h-10 w-10", 
-    lg: "h-12 w-12"
+    default: "h-10 w-10", 
+    lg: "h-12 w-12",
+    icon: "h-8 w-8"
   }
 
   const iconSize = {
     sm: "h-4 w-4",
-    md: "h-5 w-5",
-    lg: "h-6 w-6"
+    default: "h-5 w-5",
+    lg: "h-6 w-6",
+    icon: "h-4 w-4"
   }
 
   return (

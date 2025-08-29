@@ -53,10 +53,14 @@ export function CreateGroupChat({ onClose, onCreate }: CreateGroupChatProps) {
     }
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+  const getUsernameClass = (nameColor?: string, hasGold?: boolean): string => {
     if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (nameColor?: string): React.CSSProperties => {
     return nameColor ? { color: nameColor } : {}
   }
 
@@ -94,7 +98,7 @@ export function CreateGroupChat({ onClose, onCreate }: CreateGroupChatProps) {
                       className="text-sm cursor-pointer"
                       style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
                     >
-                      <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
+                      <span className={getUsernameClass(friend.friend_name_color, friend.friend_has_gold)}>
                         @{friend.friend_username}
                       </span>
                     </label>

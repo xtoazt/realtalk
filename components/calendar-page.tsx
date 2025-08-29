@@ -114,10 +114,14 @@ export function CalendarPage({ currentUserId }: CalendarPageProps) {
     setSelectedParticipants([])
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+  const getUsernameClass = (nameColor?: string, hasGold?: boolean): string => {
     if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (nameColor?: string): React.CSSProperties => {
     return nameColor ? { color: nameColor } : {}
   }
 
@@ -344,7 +348,7 @@ export function CalendarPage({ currentUserId }: CalendarPageProps) {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="collaborative" checked={isCollaborative} onCheckedChange={setIsCollaborative} />
+                <Checkbox id="collaborative" checked={isCollaborative} onCheckedChange={(checked) => setIsCollaborative(checked === true)} />
                 <label htmlFor="collaborative" className="text-sm">
                   Make this a collaborative event
                 </label>
@@ -372,7 +376,7 @@ export function CalendarPage({ currentUserId }: CalendarPageProps) {
                           className="text-sm cursor-pointer"
                           style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
                         >
-                          <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
+                          <span className={getUsernameClass(friend.friend_name_color, friend.friend_has_gold)}>
                             @{friend.friend_username}
                           </span>
                         </label>

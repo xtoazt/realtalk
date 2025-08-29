@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { verifyToken } from "@/lib/auth"
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get("auth-token")?.value
 
@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
 
   // If token exists, verify it
   if (token) {
-    const decoded = verifyToken(token)
+    const decoded = await verifyToken(token)
 
     // If token is invalid and trying to access protected route
     if (!decoded && !isPublicRoute) {

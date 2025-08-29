@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun, Brain } from 'lucide-react'
+import { ArrowLeft, Trash2, Bell, BellOff, Palette, Moon, Sun, Brain, Settings } from 'lucide-react'
 import { useUser } from "@/hooks/use-user"
 import { notificationService } from "@/lib/notification-service"
 import { SmartSettings } from "@/components/smart-settings"

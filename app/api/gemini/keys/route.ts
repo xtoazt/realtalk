@@ -9,7 +9,8 @@ const ALGORITHM = 'aes-256-cbc'
 
 function encrypt(text: string): string {
   const iv = crypto.randomBytes(16)
-  const cipher = crypto.createCipher(ALGORITHM, ENCRYPTION_KEY)
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32) as Buffer
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
   let encrypted = cipher.update(text, 'utf8', 'hex')
   encrypted += cipher.final('hex')
   return iv.toString('hex') + ':' + encrypted
@@ -19,7 +20,8 @@ function decrypt(encryptedText: string): string {
   const textParts = encryptedText.split(':')
   const iv = Buffer.from(textParts.shift()!, 'hex')
   const encryptedData = textParts.join(':')
-  const decipher = crypto.createDecipher(ALGORITHM, ENCRYPTION_KEY)
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32) as Buffer
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8')
   decrypted += decipher.final('utf8')
   return decrypted
@@ -51,7 +53,7 @@ export async function GET() {
     `
 
     // Decrypt and return the keys
-    const decryptedKeys = keysResult.rows.map(row => decrypt(row.key_encrypted))
+    const decryptedKeys = keysResult.map((row: any) => decrypt(row.key_encrypted))
     return NextResponse.json(decryptedKeys)
   } catch (error) {
     console.error('Error fetching API keys:', error)
@@ -91,7 +93,7 @@ export async function POST(request: NextRequest) {
       SELECT id FROM gemini_api_keys WHERE key_hash = ${keyHash}
     `
 
-    if (existingKey.rows.length > 0) {
+    if (existingKey.length > 0) {
       return NextResponse.json({ error: 'API key already exists' }, { status: 409 })
     }
 

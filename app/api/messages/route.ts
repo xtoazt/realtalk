@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const chatId = searchParams.get("chatId")
     console.log(`[api/messages/GET] Fetching messages for chatType: ${chatType}, chatId: ${chatId}`)
 
-    const messages = await getMessages(chatType, chatId, user.id)
+    const messages = await getMessages(chatType, chatId || undefined, user.id)
     console.log(`[api/messages/GET] Fetched ${messages.length} messages.`)
     return NextResponse.json({ messages })
   } catch (error: any) {

@@ -183,10 +183,14 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
     }
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+  const getUsernameClass = (nameColor?: string, hasGold?: boolean): string => {
     if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (nameColor?: string): React.CSSProperties => {
     return nameColor ? { color: nameColor } : {}
   }
 
@@ -268,7 +272,7 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
                     <button
                       type="button"
                       onClick={() => onShowProfile?.(user.id)}
-                      className={user.has_gold_animation ? getUsernameStyle(undefined, true) : ""}
+                      className={user.has_gold_animation ? getUsernameClass(undefined, true) : ""}
                       style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
                     >
                       @{user.username}
@@ -309,7 +313,7 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
                   className="flex items-center justify-between p-3 border rounded-lg bg-primary/5"
                 >
                   <span
-                    className={friendship.requester_has_gold ? getUsernameStyle(undefined, true) : ""}
+                    className={friendship.requester_has_gold ? getUsernameClass(undefined, true) : ""}
                     style={!friendship.requester_has_gold ? getUsernameStyle(friendship.requester_name_color) : {}}
                   >
                     @{friendship.requester_username}
@@ -349,7 +353,7 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
               {sentRequests.map((friendship) => (
                 <div key={friendship.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <span
-                    className={friendship.addressee_has_gold ? getUsernameStyle(undefined, true) : ""}
+                    className={friendship.addressee_has_gold ? getUsernameClass(undefined, true) : ""}
                     style={!friendship.addressee_has_gold ? getUsernameStyle(friendship.addressee_name_color) : {}}
                   >
                     @{friendship.addressee_username}
@@ -398,7 +402,7 @@ export function FriendsPage({ currentUserId, onStartDM, onShowProfile }: Friends
                     className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors duration-200"
                   >
                     <span
-                      className={friend.has_gold ? getUsernameStyle(undefined, true) : ""}
+                      className={friend.has_gold ? getUsernameClass(undefined, true) : ""}
                       style={!friend.has_gold ? getUsernameStyle(friend.name_color) : {}}
                     >
                       @{friend.username}

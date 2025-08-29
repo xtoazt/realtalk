@@ -45,10 +45,14 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
     return () => clearInterval(interval)
   }, [fetchDMs])
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+  const getUsernameClass = (nameColor?: string, hasGold?: boolean): string => {
     if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (nameColor?: string): React.CSSProperties => {
     return nameColor ? { color: nameColor } : {}
   }
 
@@ -114,7 +118,7 @@ export function DMsPage({ currentUserId, onSelectDM }: DMsPageProps) {
                     </div>
                     <div>
                       <span
-                        className={dm.friend_has_gold ? getUsernameStyle(undefined, true) : ""}
+                        className={dm.friend_has_gold ? getUsernameClass(undefined, true) : ""}
                         style={!dm.friend_has_gold ? getUsernameStyle(dm.friend_name_color) : {}}
                       >
                         @{dm.friend_username}

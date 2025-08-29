@@ -55,10 +55,14 @@ export function MessageSearch({ onClose, onMessageClick }: MessageSearchProps) {
     }
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+  const getUsernameClass = (nameColor?: string, hasGold?: boolean): string => {
     if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (nameColor?: string): React.CSSProperties => {
     return nameColor ? { color: nameColor } : {}
   }
 
@@ -128,7 +132,7 @@ export function MessageSearch({ onClose, onMessageClick }: MessageSearchProps) {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span
-                      className={result.has_gold_animation ? getUsernameStyle(undefined, true) : "text-sm font-medium"}
+                      className={result.has_gold_animation ? getUsernameClass(undefined, true) : "text-sm font-medium"}
                       style={!result.has_gold_animation ? getUsernameStyle(result.name_color) : {}}
                     >
                       @{result.username}

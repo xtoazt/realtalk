@@ -9,6 +9,7 @@ import { ParticleBackground } from "@/components/particle-background"
 import { useEffect } from "react"
 import { VoiceWidget } from "@/components/voice/VoiceWidget"
 import { FreezeOverlay } from "@/components/FreezeOverlay"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -54,10 +55,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           disableTransitionOnChange={true}
         >
           <UserProvider>
-            <ParticleBackground />
-            {children}
-            <VoiceWidget />
-            <FreezeOverlay />
+            <ErrorBoundary>
+              <ParticleBackground />
+              {children}
+              <VoiceWidget />
+              <FreezeOverlay />
+            </ErrorBoundary>
           </UserProvider>
         </ThemeProvider>
       </body>

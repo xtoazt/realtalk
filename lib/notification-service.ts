@@ -89,7 +89,7 @@ class NotificationService {
       messageType?: string
       id: string
     },
-    onNavigateToChat?: (chatType: string, chatId?: string, chatName: string) => void
+    onNavigateToChat?: (chatType: string, chatName: string, chatId?: string) => void
   ): Promise<boolean> {
     const title = message.chatType === "dm"
       ? `New DM from ${message.username}`
@@ -115,13 +115,13 @@ class NotificationService {
       },
       onClick: () => {
         if (onNavigateToChat) {
-          onNavigateToChat(message.chatType, message.chatId, message.chatName)
+          onNavigateToChat(message.chatType, message.chatName, message.chatId)
         }
       }
     })
   }
 
-  public isTabActive(): boolean {
+  public getIsTabActive(): boolean {
     return this.isTabActive
   }
 
@@ -129,7 +129,7 @@ class NotificationService {
     return this.permission
   }
 
-  public isSupported(): boolean {
+  public getIsSupported(): boolean {
     return this.isSupported
   }
 

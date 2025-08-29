@@ -162,8 +162,7 @@ export function SmartAIAssistant({
     switch (persona) {
       case 'tutor': return <BookOpen className="h-4 w-4" />
       case 'creative': return <Sparkles className="h-4 w-4" />
-      case 'coder': return <Zap className="h-4 w-4" />
-      case 'therapist': return <HelpCircle className="h-4 w-4" />
+      case 'assistant': return <Bot className="h-4 w-4" />
       default: return <Bot className="h-4 w-4" />
     }
   }

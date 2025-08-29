@@ -186,10 +186,14 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
     setOptions(newOptions)
   }
 
-  const getUsernameStyle = (nameColor?: string, hasGold?: boolean) => {
+  const getUsernameClass = (nameColor?: string, hasGold?: boolean): string => {
     if (hasGold) {
       return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-pulse font-medium"
     }
+    return ""
+  }
+
+  const getUsernameStyle = (nameColor?: string): React.CSSProperties => {
     return nameColor ? { color: nameColor } : {}
   }
 
@@ -284,7 +288,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span className={poll.creator_username ? getUsernameStyle(undefined, false) : ""}>
+                    <span className={poll.creator_username ? getUsernameClass(undefined, false) : ""}>
                       by @{poll.creator_username}
                     </span>
                     <span>
@@ -422,7 +426,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
 
               {userSignupCode === "qwea" && (
                 <div className="flex items-center space-x-2 p-3 hue-bg rounded-lg">
-                  <Checkbox id="public" checked={isPublic} onCheckedChange={setIsPublic} />
+                  <Checkbox id="public" checked={isPublic} onCheckedChange={(checked) => setIsPublic(checked === true)} />
                   <label htmlFor="public" className="text-sm font-medium">
                     Share with all users (public poll)
                   </label>
@@ -451,7 +455,7 @@ export function PollsPage({ currentUserId, userSignupCode }: PollsPageProps) {
                           className="text-sm cursor-pointer"
                           style={!friend.friend_has_gold ? getUsernameStyle(friend.friend_name_color) : {}}
                         >
-                          <span className={getUsernameStyle(friend.friend_name_color, friend.friend_has_gold)}>
+                          <span className={getUsernameClass(friend.friend_name_color, friend.friend_has_gold)}>
                             @{friend.friend_username}
                           </span>
                         </label>
