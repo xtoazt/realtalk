@@ -1,7 +1,7 @@
 {
   "version": 4,
   "routes": {
-    "/movies": {
+    "/dashboard/lite": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -14,8 +14,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/movies",
-      "dataRoute": "/movies.rsc",
+      "srcRoute": "/dashboard/lite",
+      "dataRoute": "/dashboard/lite.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -73,7 +73,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/settings/lite": {
+    "/dashboard": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -86,8 +86,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/settings/lite",
-      "dataRoute": "/settings/lite.rsc",
+      "srcRoute": "/dashboard",
+      "dataRoute": "/dashboard.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -145,7 +145,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/dashboard": {
+    "/movies": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -158,8 +158,32 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard",
-      "dataRoute": "/dashboard.rsc",
+      "srcRoute": "/movies",
+      "dataRoute": "/movies.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/settings/lite": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/settings/lite",
+      "dataRoute": "/settings/lite.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -184,30 +208,6 @@
       "initialRevalidateSeconds": false,
       "srcRoute": "/vm",
       "dataRoute": "/vm.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
-    "/dashboard/lite": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard/lite",
-      "dataRoute": "/dashboard/lite.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -245,8 +245,8 @@
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "1374b4c405e1cb7bd4bcc9c69121cfbb",
-    "previewModeSigningKey": "e0340f4a46b7e1bacb87f656ccb4f6e309143fa75d005828ff156c3e5bae142c",
-    "previewModeEncryptionKey": "0cbacf3b5bf1f8485b9b43bd5b590dc340e893fa9f42ebdee65e8db973a20313"
+    "previewModeId": "c6cfb18a25362ea65793604838d97e78",
+    "previewModeSigningKey": "526ae16bb22de674116331889f90bcbe1186c61dc0fa797d274bafe9740ba626",
+    "previewModeEncryptionKey": "cd7fa86de0750642b8eee8199e95ed1ea0bc9cf6734931651205c751e5fc2d1c"
   }
 }

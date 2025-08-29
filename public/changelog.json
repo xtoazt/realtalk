@@ -1,0 +1,79 @@
+{
+  "latest": "1.2.0",
+  "versions": {
+    "1.2.0": {
+      "version": "1.2.0",
+      "date": "2024-08-29",
+      "title": "Bug Fixes & Stability Improvements",
+      "changes": [
+        "Fixed TypeScript errors across all components",
+        "Resolved color styling type issues in friend lists and user displays",
+        "Updated crypto API usage to modern secure methods",
+        "Fixed middleware authentication async/await patterns",
+        "Added comprehensive error boundary for better crash handling",
+        "Improved component stability and click handler reliability"
+      ],
+      "type": "patch",
+      "important": true
+    },
+    "1.1.0": {
+      "version": "1.1.0",
+      "date": "2024-08-28",
+      "title": "AI Integration & Smart Features",
+      "changes": [
+        "Added AI integration with multiple personas (Assistant, Tutor, Creative)",
+        "Smart chat input with AI suggestions and response generation",
+        "Smart message analysis and conversation insights",
+        "Added Gemini API key management for Gold members",
+        "Enhanced user experience with AI-powered features"
+      ],
+      "type": "minor",
+      "important": true
+    },
+    "1.0.2": {
+      "version": "1.0.2",
+      "date": "2024-08-27",
+      "title": "UI & Performance Improvements",
+      "changes": [
+        "Improved theme toggle functionality",
+        "Enhanced voice chat widget performance",
+        "Better notification handling and permissions",
+        "Fixed various UI glitches and styling issues",
+        "Optimized build process and reduced bundle size"
+      ],
+      "type": "patch",
+      "important": false
+    },
+    "1.0.1": {
+      "version": "1.0.1",
+      "date": "2024-08-26",
+      "title": "Initial Bug Fixes",
+      "changes": [
+        "Fixed initial authentication flow issues",
+        "Improved database connection stability",
+        "Better error handling for API routes",
+        "Enhanced user profile customization",
+        "Fixed messaging reliability issues"
+      ],
+      "type": "patch",
+      "important": false
+    },
+    "1.0.0": {
+      "version": "1.0.0",
+      "date": "2024-08-25",
+      "title": "Initial Release",
+      "changes": [
+        "Real-time chat functionality",
+        "User authentication and profiles",
+        "Friend system with requests",
+        "Group chats and channels",
+        "Voice chat integration",
+        "Polls and calendar features",
+        "Theme customization",
+        "Responsive design for all devices"
+      ],
+      "type": "major",
+      "important": true
+    }
+  }
+}

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Heart, Code, Users, Zap } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { ChangelogViewer } from "@/components/changelog-viewer"
+import { ChangelogTester } from "@/components/changelog-tester"
 
 export default function AboutPage() {
   const router = useRouter()
@@ -19,7 +21,7 @@ export default function AboutPage() {
           <h1 className="text-3xl font-bold">About real.</h1>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card className="glass-effect hover-lift animate-fadeIn">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -97,9 +99,23 @@ export default function AboutPage() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="md:col-span-2 lg:col-span-3">
+            <div className="glass-effect hover-lift animate-fadeIn" style={{ animationDelay: "0.4s" }}>
+              <ChangelogViewer />
+            </div>
+          </div>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <div className="md:col-span-2 lg:col-span-3">
+              <div className="glass-effect hover-lift animate-fadeIn" style={{ animationDelay: "0.45s" }}>
+                <ChangelogTester />
+              </div>
+            </div>
+          )}
         </div>
 
-        <Card className="glass-effect hover-lift animate-fadeIn mt-6" style={{ animationDelay: "0.4s" }}>
+        <Card className="glass-effect hover-lift animate-fadeIn mt-6" style={{ animationDelay: "0.5s" }}>
           <CardContent className="text-center py-8">
             <h3 className="text-xl font-semibold mb-4">Ready to get started?</h3>
             <p className="text-muted-foreground mb-6">Experience real-time communication like never before.</p>

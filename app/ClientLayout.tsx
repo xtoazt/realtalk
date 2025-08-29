@@ -10,6 +10,7 @@ import { useEffect } from "react"
 import { VoiceWidget } from "@/components/voice/VoiceWidget"
 import { FreezeOverlay } from "@/components/FreezeOverlay"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { ChangelogManager } from "@/components/changelog-popup"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -56,10 +57,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         >
           <UserProvider>
             <ErrorBoundary>
-              <ParticleBackground />
-              {children}
-              <VoiceWidget />
-              <FreezeOverlay />
+              <ChangelogManager>
+                <ParticleBackground />
+                {children}
+                <VoiceWidget />
+                <FreezeOverlay />
+              </ChangelogManager>
             </ErrorBoundary>
           </UserProvider>
         </ThemeProvider>
