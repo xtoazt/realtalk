@@ -83,19 +83,16 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     background: 
-      radial-gradient(800px circle at 30% 20%, rgba(255, 255, 255, 0.03), transparent 50%),
-      radial-gradient(600px circle at 70% 80%, rgba(0, 0, 0, 0.02), transparent 50%),
-      linear-gradient(135deg, hsl(var(--background)) 0%, rgba(255, 255, 255, 0.01) 50%, hsl(var(--background)) 100%);
+      radial-gradient(1200px circle at 50% 0%, rgba(255, 255, 255, 0.02), transparent 60%),
+      hsl(var(--background));
     min-height: 100vh;
     transition: all 0.3s ease-out;
   }
 
   .dark body {
     background: 
-      radial-gradient(800px circle at 30% 20%, rgba(255, 255, 255, 0.02), transparent 50%),
-      radial-gradient(600px circle at 70% 80%, rgba(0, 0, 0, 0.1), transparent 50%),
-      linear-gradient(135deg, hsl(var(--background)) 0%, rgba(255, 255, 255, 0.005) 50%, hsl(var(--background)) 100%);
-    transition: all 0.3s ease-out;
+      radial-gradient(1200px circle at 50% 0%, rgba(255, 255, 255, 0.01), transparent 60%),
+      hsl(var(--background));
   }
 
   ::selection {
@@ -120,34 +117,22 @@
 @layer components {
   /* Clean glass morphism effect */
   .glass {
-    @apply backdrop-blur-md bg-white/80 dark:bg-white/5;
-    border: 1px solid hsl(var(--border));
+    @apply backdrop-blur-xl bg-white/60 dark:bg-black/40;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.04),
-      0 4px 16px rgba(0, 0, 0, 0.02),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 4px 24px rgba(0, 0, 0, 0.02),
+      0 2px 12px rgba(0, 0, 0, 0.01),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
   }
 
-  .glass::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  }
-
   .dark .glass {
+    @apply bg-white/5;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      0 4px 16px rgba(0, 0, 0, 0.3),
+      0 4px 24px rgba(0, 0, 0, 0.2),
+      0 2px 12px rgba(0, 0, 0, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  .dark .glass::before {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
   }
 
   /* Enhanced glass effect for important cards */
@@ -198,71 +183,59 @@
 
   /* Clean monochrome button styles */
   .btn-primary {
-    @apply bg-black/80 dark:bg-white/90 text-white dark:text-black;
-    @apply border-0 shadow-lg backdrop-blur-sm;
-    @apply transition-all duration-200 ease-out;
-    box-shadow: 
-      0 4px 14px rgba(0, 0, 0, 0.15),
-      0 2px 8px rgba(0, 0, 0, 0.1);
-    position: relative;
+    @apply bg-foreground text-background;
+    @apply border-0 shadow-sm backdrop-blur-sm;
+    @apply transition-all duration-300 ease-out;
+    @apply rounded-lg font-medium;
   }
 
   .btn-primary:hover {
-    @apply bg-black dark:bg-white;
+    @apply bg-foreground/90;
     transform: translateY(-1px);
-    box-shadow: 
-      0 6px 20px rgba(0, 0, 0, 0.2),
-      0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   .btn-secondary {
-    @apply bg-white/10 dark:bg-black/20 text-foreground border border-white/20 dark:border-white/10;
-    @apply transition-all duration-200 ease-out backdrop-blur-sm;
-    box-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    @apply bg-muted/50 text-foreground border border-border/50;
+    @apply transition-all duration-300 ease-out backdrop-blur-sm;
+    @apply rounded-lg font-medium;
   }
 
   .btn-secondary:hover {
-    @apply bg-white/20 dark:bg-black/30 border-white/30 dark:border-white/20;
+    @apply bg-muted/70 border-border;
     transform: translateY(-1px);
-    box-shadow: 
-      0 4px 14px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   .btn-ghost {
-    @apply hover:bg-white/10 dark:hover:bg-white/5 backdrop-blur-sm;
-    @apply transition-all duration-200 ease-out;
-    @apply text-foreground;
+    @apply hover:bg-muted/30 backdrop-blur-sm;
+    @apply transition-all duration-300 ease-out;
+    @apply text-foreground rounded-lg;
     border: 1px solid transparent;
   }
 
   .btn-ghost:hover {
+    @apply bg-muted/40;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   /* Clean modern card styles */
   .card-modern {
-    @apply glass rounded-xl;
-    @apply transition-all duration-200 ease-out;
-    position: relative;
+    @apply glass rounded-lg;
+    @apply transition-all duration-300 ease-out;
   }
 
   .card-modern:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.08),
-      0 6px 20px rgba(0, 0, 0, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      0 4px 16px rgba(0, 0, 0, 0.03),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
   }
 
   .dark .card-modern:hover {
     box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.4),
-      0 6px 20px rgba(0, 0, 0, 0.3),
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 4px 16px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 

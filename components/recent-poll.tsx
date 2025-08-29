@@ -91,39 +91,39 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
 
   if (loading) {
     return (
-      <Card className="glass-effect animate-fadeIn">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+      <>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4" />
             Latest Poll
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground animate-pulse">Loading...</div>
+        <CardContent className="pt-0">
+          <div className="text-center py-4 text-xs text-muted-foreground">Loading...</div>
         </CardContent>
-      </Card>
+      </>
     )
   }
 
   if (!poll) {
     return (
-      <Card className="glass-effect animate-fadeIn">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+      <>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4" />
             Latest Poll
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <div className="text-center py-4">
-            <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">No polls available</p>
-            <Button variant="outline" size="sm" className="mt-2 bg-transparent hover-lift" onClick={onViewAllPolls}>
+            <BarChart3 className="h-6 w-6 mx-auto mb-2 opacity-30 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">No polls available</p>
+            <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={onViewAllPolls}>
               View All Polls
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </>
     )
   }
 
@@ -131,39 +131,38 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
   const expired = isExpired(poll.expires_at)
 
   return (
-    <Card className={`glass-effect animate-fadeIn hover-lift ${expired ? "opacity-75" : ""}`}>
-      <CardHeader>
+    <>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4" />
             Latest Poll
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onViewAllPolls} className="text-xs hover-lift">
+          <Button variant="ghost" size="sm" onClick={onViewAllPolls} className="text-xs h-6 px-2">
             View All
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="pt-0 space-y-3">
         <div>
-          <h4 className="font-medium text-sm">{poll.title}</h4>
-          {poll.description && <p className="text-xs text-muted-foreground mt-1">{poll.description}</p>}
+          <h4 className="font-medium text-xs">{poll.title}</h4>
+          {poll.description && <p className="text-xs text-muted-foreground/60 mt-1">{poll.description}</p>}
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {poll.is_public ? <Globe className="h-3 w-3 hue-accent" /> : <Users className="h-3 w-3" />}
-          <Vote className="h-3 w-3" />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {poll.is_public ? <Globe className="h-3 w-3" /> : <Users className="h-3 w-3" />}
           <span>{poll.total_responses} votes</span>
           {poll.expires_at && (
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               <span className={expired ? "text-red-500" : ""}>
-                {expired ? "Expired" : `Expires ${formatTime(poll.expires_at)}`}
+                {expired ? "Expired" : `${formatTime(poll.expires_at)}`}
               </span>
             </div>
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {poll.options.slice(0, 2).map((option, index) => {
             const result = poll.results.find((r) => r.option_index === index)
             const count = result?.count || 0
@@ -172,37 +171,31 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
 
             return (
               <div key={index} className="space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Button
                     variant={isSelected ? "default" : "outline"}
                     size="sm"
-                    className={`flex-1 justify-start text-xs h-7 hover-lift transition-all duration-200 ${
-                      isSelected ? "hue-shadow" : ""
+                    className={`flex-1 justify-start text-xs h-6 px-2 ${
+                      isSelected ? "bg-foreground text-background" : ""
                     }`}
                     onClick={() => !hasVoted && !expired && !voting && handleVote(index)}
                     disabled={hasVoted || expired || voting}
                   >
-                    <span className="flex-1 text-left">{option}</span>
-                    {voting && (
-                      <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin ml-1" />
-                    )}
+                    <span className="flex-1 text-left truncate">{option}</span>
                   </Button>
                   {hasVoted && (
-                    <span className="text-xs text-muted-foreground ml-2 min-w-[45px] text-right">
-                      {count} ({percentage}%)
+                    <span className="text-xs text-muted-foreground min-w-[35px] text-right">
+                      {percentage}%
                     </span>
                   )}
                 </div>
                 {hasVoted && (
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                  <div className="w-full bg-muted/30 rounded-full h-0.5">
                     <div
-                      className={`h-1 rounded-full transition-all duration-500 ${
-                        isSelected ? "hue-bg" : "bg-gray-400 dark:bg-gray-600"
+                      className={`h-0.5 rounded-full transition-all duration-500 ${
+                        isSelected ? "bg-foreground" : "bg-muted-foreground/40"
                       }`}
-                      style={{
-                        width: `${percentage}%`,
-                        backgroundColor: isSelected ? `hsl(var(--hue) 50% 50%)` : undefined,
-                      }}
+                      style={{ width: `${percentage}%` }}
                     />
                   </div>
                 )}
@@ -210,14 +203,10 @@ export function RecentPoll({ currentUserId, onViewAllPolls }: RecentPollProps) {
             )
           })}
           {poll.options.length > 2 && (
-            <p className="text-xs text-muted-foreground text-center">+{poll.options.length - 2} more options</p>
+            <p className="text-xs text-muted-foreground/60 text-center">+{poll.options.length - 2} more</p>
           )}
         </div>
-
-        {!hasVoted && !expired && (
-          <p className="text-xs text-muted-foreground text-center opacity-70">Click an option to vote</p>
-        )}
       </CardContent>
-    </Card>
+    </>
   )
 }

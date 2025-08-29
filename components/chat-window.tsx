@@ -287,11 +287,11 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-card rounded-lg shadow-md overflow-hidden border relative">
-      <div className="border-b p-4 bg-card">
+    <div className="flex flex-col h-full card-modern overflow-hidden relative">
+      <div className="border-b border-border/50 p-4 bg-background/50 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-medium text-card-foreground flex items-center gap-2">
+            <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
               {chatName}
               {showSmartFeatures && (
                 <div className="flex items-center gap-1">

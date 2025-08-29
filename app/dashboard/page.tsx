@@ -370,162 +370,196 @@ export default function DashboardPage() {
         onHueCycle={handleHueCycle}
       />
 
-      <div className="relative z-10 pt-20 px-4 pb-4">
+      <div className="relative z-10 pt-24 px-4 pb-6">
         {currentPage === 'dashboard' && (
-          <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto min-h-[calc(100vh-6rem)]">
-            <div className="w-full lg:w-80 space-y-4 flex-shrink-0"
-                 style={{
-                   scrollbarWidth: 'none',
-                   msOverflowStyle: 'none'
-                 }}>
-              <Card className="card-modern">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-emphasis">
-                    <span>Group Chats</span>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="btn-ghost h-8 w-8"
-                        onClick={() => setShowMessageSearch(true)}
-                        title="Search Messages"
-                      >
-                        <Search className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="btn-ghost h-8 w-8"
-                        onClick={() => setShowJoinGC(true)}
-                        title="Join Group Chat"
-                      >
-                        <Hash className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="btn-ghost h-8 w-8" onClick={() => setShowCreateGC(true)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {groupChats.length === 0 ? (
-                    <div className="text-center py-8">
-                      <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-muted-foreground" />
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[calc(100vh-8rem)]">
+              {/* Sidebar */}
+              <div className="lg:col-span-3 space-y-4">
+                <Card className="card-modern">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-sm font-medium">
+                      <span>Group Chats</span>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="btn-ghost h-7 w-7"
+                          onClick={() => setShowMessageSearch(true)}
+                          title="Search Messages"
+                        >
+                          <Search className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="btn-ghost h-7 w-7"
+                          onClick={() => setShowJoinGC(true)}
+                          title="Join Group Chat"
+                        >
+                          <Hash className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="btn-ghost h-7 w-7" 
+                          onClick={() => setShowCreateGC(true)}
+                          title="Create Group Chat"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground">No group chats yet</p>
-                      <p className="text-xs text-subtle mt-1">Create or join one to get started!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {groupChats.map((gc) => (
-                        <div key={gc.id} className="group">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
-                              className={`flex-1 justify-start text-left ${
-                                activeChat.type === "group" && activeChat.id === gc.id 
-                                  ? "btn-primary" 
-                                  : "btn-ghost"
-                              } rounded-lg p-3`}
-                              onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
-                            >
-                              <div className="flex items-center gap-3 w-full">
-                                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0">
-                                  <Users className="h-3 w-3" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium truncate">{gc.name}</div>
-                                  <div className="text-xs text-subtle truncate">
-                                    by {gc.creator_username}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {groupChats.length === 0 ? (
+                      <div className="text-center py-6">
+                        <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-muted/30 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">No group chats yet</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Create one to get started</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {groupChats.map((gc) => (
+                          <div key={gc.id} className="group">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                className={`flex-1 justify-start text-left h-auto p-2 ${
+                                  activeChat.type === "group" && activeChat.id === gc.id 
+                                    ? "bg-muted/50 text-foreground" 
+                                    : "hover:bg-muted/30"
+                                }`}
+                                onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className="w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center flex-shrink-0">
+                                    <Users className="h-2.5 w-2.5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-medium truncate">{gc.name}</div>
+                                    <div className="text-xs text-muted-foreground/60 truncate">
+                                      by {gc.creator_username}
+                                    </div>
                                   </div>
                                 </div>
+                              </Button>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {user.id === gc.creator_id && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setShowJoinRequests(true)}
+                                      className="h-6 w-6 text-blue-500/70 hover:text-blue-500"
+                                      title="View Join Requests"
+                                    >
+                                      <Clock className="h-2.5 w-2.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteGroupChat(gc.id)}
+                                      className="h-6 w-6 text-red-500/70 hover:text-red-500"
+                                      title="Delete Group Chat"
+                                    >
+                                      <Trash2 className="h-2.5 w-2.5" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
-                            </Button>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              {user.id === gc.creator_id && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowJoinRequests(true)}
-                                    className="btn-ghost h-8 w-8 text-blue-500"
-                                    title="View Join Requests"
-                                  >
-                                    <Clock className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteGroupChat(gc.id)}
-                                    className="btn-ghost h-8 w-8 text-red-500"
-                                    title="Delete Group Chat"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </>
-                              )}
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="card-modern">
-                <OnlineUsers currentUserId={user.id} />
-              </Card>
-              <Card className="card-modern">
-                <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
-              </Card>
-            </div>
-
-            <div className="flex-1 min-h-[calc(100vh-6rem)]">
-              {activeChat.type ? (
-                <div className="animate-fadeIn h-full">
-                  <ChatWindow
-                    chatType={activeChat.type}
-                    chatId={activeChat.id}
-                    chatName={activeChat.name}
-                    currentUserId={user.id}
-                    onUserClick={handleUserClick}
-                  />
-                </div>
-              ) : (
-                <Card className="h-full flex items-center justify-center card-modern">
-                  <CardContent className="text-center py-12 max-w-md">
-                    <div className="text-4xl md:text-6xl font-black tracking-tighter mb-2">
-                      real.
-                    </div>
-                    <div className="text-lg text-subtle mb-8 font-light">
-                      Where conversations come alive
-                    </div>
-                    <div className="flex flex-col items-center gap-4 mb-8">
-                      <TimeDateDisplay large />
-                      <BatteryStatus />
-                    </div>
-                    <div className="mb-8 text-sm text-subtle">
-                      Welcome back, <span className="text-emphasis">@{user.username}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button className="btn-primary" onClick={handleGlobalChatClick}>
-                        <Globe className="w-4 h-4 mr-2" />
-                        Global Chat
-                      </Button>
-                      <Button variant="outline" className="btn-secondary" onClick={() => setCurrentPage('friends')}>
-                        <Users className="w-4 h-4 mr-2" />
-                        Friends
-                      </Button>
-                      <Button variant="outline" className="btn-secondary" onClick={() => setCurrentPage('channels')}>
-                        <Hash className="w-4 h-4 mr-2" />
-                        Channels
-                      </Button>
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              )}
+
+                <Card className="card-modern">
+                  <OnlineUsers currentUserId={user.id} />
+                </Card>
+                
+                <Card className="card-modern">
+                  <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
+                </Card>
+              </div>
+
+              {/* Main Content Area */}
+              <div className="lg:col-span-9">
+                {activeChat.type ? (
+                  <div className="h-[calc(100vh-8rem)]">
+                    <ChatWindow
+                      chatType={activeChat.type}
+                      chatId={activeChat.id}
+                      chatName={activeChat.name}
+                      currentUserId={user.id}
+                      onUserClick={handleUserClick}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+                    <Card className="card-modern w-full max-w-xl">
+                      <CardContent className="text-center py-12 px-6">
+                        {/* Hero Section */}
+                        <div className="mb-8">
+                          <div className="text-4xl md:text-5xl font-black tracking-tight mb-3 text-foreground">
+                            real.
+                          </div>
+                          <div className="text-sm md:text-base text-muted-foreground font-light">
+                            Where conversations come alive
+                          </div>
+                        </div>
+
+                        {/* Status Section */}
+                        <div className="mb-8 space-y-4">
+                          <div className="flex justify-center">
+                            <div className="bg-muted/30 rounded-full px-3 py-1.5 text-xs text-muted-foreground">
+                              Welcome back, <span className="text-foreground font-medium">@{user.username}</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center gap-3">
+                            <TimeDateDisplay large />
+                            <BatteryStatus />
+                          </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div>
+                          <h3 className="text-sm font-medium text-foreground mb-4">Quick Start</h3>
+                          <div className="grid grid-cols-1 gap-3">
+                            <Button 
+                              className="btn-primary h-12 flex items-center justify-center gap-2 text-sm" 
+                              onClick={handleGlobalChatClick}
+                            >
+                              <Globe className="w-4 h-4" />
+                              Global Chat
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="btn-secondary h-10 flex items-center justify-center gap-2 text-sm" 
+                              onClick={() => setCurrentPage('friends')}
+                            >
+                              <Users className="w-4 h-4" />
+                              Friends
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="btn-secondary h-10 flex items-center justify-center gap-2 text-sm" 
+                              onClick={() => setCurrentPage('channels')}
+                            >
+                              <Hash className="w-4 h-4" />
+                              Channels
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

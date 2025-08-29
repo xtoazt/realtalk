@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createMessage, getMessages, getUserById, createNotification, getUserByUsername } from "@/lib/db"
-import { generateAIResponse } from "@/lib/groq"
+import { generateAIResponse } from "@/lib/gemini"
 import { AI_USER_ID } from "@/lib/constants"
 
 export async function GET(request: NextRequest) {
@@ -53,8 +53,11 @@ export async function POST(request: NextRequest) {
       Keep responses concise but informative. You can help with general questions, chat about topics, 
       or assist with using the real. app features.`
 
-      const aiResponseContent = await generateAIResponse(content, aiContext)
-      await createMessage(AI_USER_ID, aiResponseContent, chatType, user.id, [], true, undefined, "text") // AI responses are always text
+      const aiResponse = await generateAIResponse(content, {
+        chatType: chatType,
+        username: user.username
+      })
+      await createMessage(AI_USER_ID, aiResponse.content, chatType, user.id, [], true, undefined, "text") // AI responses are always text
 
       return NextResponse.json({ success: true })
     }
@@ -116,8 +119,11 @@ export async function POST(request: NextRequest) {
       ${user.username} mentioned you. Be helpful and conversational. 
       Keep responses appropriate for public chat.`
 
-      const aiResponseContent = await generateAIResponse(content, aiContext)
-      await createMessage(AI_USER_ID, aiResponseContent, chatType, chatId, [], true, undefined, "text") // AI responses are always text
+      const aiResponse = await generateAIResponse(content, {
+        chatType: chatType,
+        username: user.username
+      })
+      await createMessage(AI_USER_ID, aiResponse.content, chatType, chatId, [], true, undefined, "text") // AI responses are always text
     }
 
     return NextResponse.json({ message })

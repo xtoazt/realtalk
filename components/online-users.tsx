@@ -72,45 +72,45 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
 
   if (loading) {
     return (
-      <Card className="animate-fadeIn">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+      <>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Users className="h-4 w-4" />
             Online Friends
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground animate-pulse">Loading...</div>
+        <CardContent className="pt-0">
+          <div className="text-center py-4 text-xs text-muted-foreground">Loading...</div>
         </CardContent>
-      </Card>
+      </>
     )
   }
 
   return (
-    <Card className="animate-fadeIn">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wifi className="h-5 w-5 text-green-500" />
-          Online Friends ({onlineUsers.length})
+    <>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <Wifi className="h-4 w-4 text-green-500" />
+          Online ({onlineUsers.length})
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {onlineUsers.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No online friends</p>
-            <p className="text-sm mt-1">Add some friends to see them here!</p>
+          <div className="text-center py-4">
+            <Users className="h-6 w-6 mx-auto mb-2 opacity-30 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">No friends online</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Add friends to see them here</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-1 max-h-40 overflow-y-auto">
             {onlineUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors"
+                className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/30 transition-colors"
               >
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
                 <span
-                  className={user.has_gold_animation ? getUsernameClass(undefined, true) : "text-sm"}
+                  className={user.has_gold_animation ? getUsernameClass(undefined, true) : "text-xs"}
                   style={!user.has_gold_animation ? getUsernameStyle(user.name_color) : {}}
                 >
                   @{user.username}
@@ -120,6 +120,6 @@ export function OnlineUsers({ currentUserId }: OnlineUsersProps) {
           </div>
         )}
       </CardContent>
-    </Card>
+    </>
   )
 }
