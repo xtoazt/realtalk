@@ -370,23 +370,23 @@ export default function DashboardPage() {
         onHueCycle={handleHueCycle}
       />
 
-      <div className="relative z-10 pt-20 px-4 pb-4 animate-fadeIn">
+      <div className="relative z-10 pt-20 px-4 pb-4">
         {currentPage === 'dashboard' && (
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 max-w-7xl mx-auto min-h-[calc(100vh-6rem)]">
-            <div className="xl:col-span-3 lg:col-span-4 space-y-4 flex-shrink-0 overflow-y-auto max-h-[calc(100vh-6rem)]"
+          <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto min-h-[calc(100vh-6rem)]">
+            <div className="w-full lg:w-80 space-y-4 flex-shrink-0"
                  style={{
                    scrollbarWidth: 'none',
                    msOverflowStyle: 'none'
                  }}>
-              <Card className="animate-fadeIn card-modern">
+              <Card className="card-modern">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-hue heading-md">
+                  <CardTitle className="flex items-center justify-between text-emphasis">
                     <span>Group Chats</span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="btn-ghost hover-glow"
+                        className="btn-ghost h-8 w-8"
                         onClick={() => setShowMessageSearch(true)}
                         title="Search Messages"
                       >
@@ -395,13 +395,13 @@ export default function DashboardPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="btn-ghost hover-glow"
+                        className="btn-ghost h-8 w-8"
                         onClick={() => setShowJoinGC(true)}
                         title="Join Group Chat"
                       >
                         <Hash className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="btn-ghost hover-glow" onClick={() => setShowCreateGC(true)}>
+                      <Button variant="ghost" size="sm" className="btn-ghost h-8 w-8" onClick={() => setShowCreateGC(true)}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -410,14 +410,11 @@ export default function DashboardPage() {
                 <CardContent>
                   {groupChats.length === 0 ? (
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
-                           style={{
-                             background: `linear-gradient(135deg, hsla(var(--hue), 60%, 50%, 0.1) 0%, hsla(var(--hue), 40%, 60%, 0.05) 100%)`
-                           }}>
-                        <Users className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                        <Users className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <p className="text-sm text-muted-foreground">No group chats yet</p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">Create or join one to get started!</p>
+                      <p className="text-xs text-subtle mt-1">Create or join one to get started!</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -426,30 +423,20 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-2">
                             <Button
                               variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
-                              className={`flex-1 justify-start text-left btn-ghost hover-lift rounded-lg p-3 ${
+                              className={`flex-1 justify-start text-left ${
                                 activeChat.type === "group" && activeChat.id === gc.id 
-                                  ? "animate-pulse-glow" 
-                                  : "hover-scale"
-                              }`}
-                              style={activeChat.type === "group" && activeChat.id === gc.id ? {
-                                background: `linear-gradient(135deg, 
-                                  hsla(var(--hue), 70%, 60%, 0.15) 0%, 
-                                  hsla(var(--hue), 50%, 70%, 0.1) 100%)`,
-                                borderColor: `hsla(var(--hue), 60%, 70%, 0.3)`,
-                                boxShadow: `0 2px 8px hsla(var(--hue), 60%, 50%, 0.2)`
-                              } : {}}
+                                  ? "btn-primary" 
+                                  : "btn-ghost"
+                              } rounded-lg p-3`}
                               onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
                             >
                               <div className="flex items-center gap-3 w-full">
-                                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" 
-                                     style={{
-                                       background: `linear-gradient(135deg, hsla(var(--hue), 60%, 50%, 0.2) 0%, hsla(var(--hue), 40%, 60%, 0.1) 100%)`
-                                     }}>
-                                  <Users className="h-4 w-4" />
+                                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0">
+                                  <Users className="h-3 w-3" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium truncate">{gc.name}</div>
-                                  <div className="text-xs text-muted-foreground/70 truncate">
+                                  <div className="text-xs text-subtle truncate">
                                     by {gc.creator_username}
                                   </div>
                                 </div>
@@ -462,19 +449,19 @@ export default function DashboardPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setShowJoinRequests(true)}
-                                    className="text-blue-500 hover:bg-blue-500/10 rounded-lg"
+                                    className="btn-ghost h-8 w-8 text-blue-500"
                                     title="View Join Requests"
                                   >
-                                    <Clock className="h-4 w-4" />
+                                    <Clock className="h-3 w-3" />
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDeleteGroupChat(gc.id)}
-                                    className="text-red-500 hover:bg-red-500/10 rounded-lg"
+                                    className="btn-ghost h-8 w-8 text-red-500"
                                     title="Delete Group Chat"
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </>
                               )}
@@ -495,7 +482,7 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            <div className="xl:col-span-9 lg:col-span-8 h-full min-h-[calc(100vh-6rem)]">
+            <div className="flex-1 min-h-[calc(100vh-6rem)]">
               {activeChat.type ? (
                 <div className="animate-fadeIn h-full">
                   <ChatWindow
@@ -507,43 +494,32 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <Card className="h-full flex items-center justify-center card-modern animate-breathe relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full animate-float"
-                         style={{
-                           background: `radial-gradient(circle, hsla(var(--hue), 60%, 50%, 0.3) 0%, transparent 70%)`
-                         }} />
-                    <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full animate-float"
-                         style={{
-                           background: `radial-gradient(circle, hsla(calc(var(--hue) + 60), 60%, 50%, 0.2) 0%, transparent 70%)`,
-                           animationDelay: '-2s'
-                         }} />
-                  </div>
-                  <CardContent className="text-center py-12 relative z-10">
-                    <div className="text-5xl md:text-8xl font-black tracking-tighter text-hue-animated text-glow heading-xl mb-2">
+                <Card className="h-full flex items-center justify-center card-modern">
+                  <CardContent className="text-center py-12 max-w-md">
+                    <div className="text-4xl md:text-6xl font-black tracking-tighter mb-2">
                       real.
                     </div>
-                    <div className="text-lg md:text-xl text-muted-foreground/80 mb-8 font-light">
+                    <div className="text-lg text-subtle mb-8 font-light">
                       Where conversations come alive
                     </div>
                     <div className="flex flex-col items-center gap-4 mb-8">
                       <TimeDateDisplay large />
                       <BatteryStatus />
                     </div>
-                    <div className="mb-8 text-sm text-muted-foreground text-shadow-soft">
-                      Welcome back, <span className="text-hue font-medium">@{user.username}</span>
+                    <div className="mb-8 text-sm text-subtle">
+                      Welcome back, <span className="text-emphasis">@{user.username}</span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-md mx-auto">
-                      <Button className="btn-primary hover-lift group" onClick={handleGlobalChatClick}>
-                        <Globe className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button className="btn-primary" onClick={handleGlobalChatClick}>
+                        <Globe className="w-4 h-4 mr-2" />
                         Global Chat
                       </Button>
-                      <Button variant="outline" className="btn-secondary hover-lift group" onClick={() => setCurrentPage('friends')}>
-                        <Users className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      <Button variant="outline" className="btn-secondary" onClick={() => setCurrentPage('friends')}>
+                        <Users className="w-4 h-4 mr-2" />
                         Friends
                       </Button>
-                      <Button variant="outline" className="btn-secondary hover-lift group" onClick={() => setCurrentPage('channels')}>
-                        <Hash className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+                      <Button variant="outline" className="btn-secondary" onClick={() => setCurrentPage('channels')}>
+                        <Hash className="w-4 h-4 mr-2" />
                         Channels
                       </Button>
                     </div>
