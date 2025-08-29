@@ -1,0 +1,1 @@
+After commiting and pushing changes to remote, go to https://realchatfr.vercel.app/ to make sure everything is working correctly

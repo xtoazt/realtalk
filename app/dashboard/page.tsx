@@ -372,16 +372,21 @@ export default function DashboardPage() {
 
       <div className="relative z-10 pt-20 px-4 pb-4 animate-fadeIn">
         {currentPage === 'dashboard' && (
-          <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
-            <div className="w-full md:w-80 space-y-4 flex-shrink-0">
-              <Card className="animate-fadeIn glass">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6 max-w-7xl mx-auto min-h-[calc(100vh-6rem)]">
+            <div className="xl:col-span-3 lg:col-span-4 space-y-4 flex-shrink-0 overflow-y-auto max-h-[calc(100vh-6rem)]"
+                 style={{
+                   scrollbarWidth: 'none',
+                   msOverflowStyle: 'none'
+                 }}>
+              <Card className="animate-fadeIn card-modern">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center justify-between text-hue heading-md">
                     <span>Group Chats</span>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="btn-ghost hover-glow"
                         onClick={() => setShowMessageSearch(true)}
                         title="Search Messages"
                       >
@@ -390,12 +395,13 @@ export default function DashboardPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="btn-ghost hover-glow"
                         onClick={() => setShowJoinGC(true)}
                         title="Join Group Chat"
                       >
                         <Hash className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setShowCreateGC(true)}>
+                      <Button variant="ghost" size="sm" className="btn-ghost hover-glow" onClick={() => setShowCreateGC(true)}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -403,42 +409,76 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   {groupChats.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No group chats yet</p>
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
+                           style={{
+                             background: `linear-gradient(135deg, hsla(var(--hue), 60%, 50%, 0.1) 0%, hsla(var(--hue), 40%, 60%, 0.05) 100%)`
+                           }}>
+                        <Users className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">No group chats yet</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">Create or join one to get started!</p>
+                    </div>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {groupChats.map((gc) => (
-                        <div key={gc.id} className="flex items-center justify-between">
-                          <Button
-                            variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
-                            className="flex-1 justify-start text-left transition-all duration-200 hover:scale-102"
-                            onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
-                          >
-                            <Users className="h-4 w-4 mr-2 shrink-0" />
-                            <span className="truncate">{gc.name}</span>
-                          </Button>
-                          <div className="flex items-center gap-1">
-                            {user.id === gc.creator_id && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setShowJoinRequests(true)}
-                                  className="text-blue-500 hover:bg-blue-500/10"
-                                  title="View Join Requests"
-                                >
-                                  <Clock className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteGroupChat(gc.id)}
-                                  className="text-red-500 hover:bg-red-500/10"
-                                  title="Delete Group Chat"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
+                        <div key={gc.id} className="group">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant={activeChat.type === "group" && activeChat.id === gc.id ? "default" : "ghost"}
+                              className={`flex-1 justify-start text-left btn-ghost hover-lift rounded-lg p-3 ${
+                                activeChat.type === "group" && activeChat.id === gc.id 
+                                  ? "animate-pulse-glow" 
+                                  : "hover-scale"
+                              }`}
+                              style={activeChat.type === "group" && activeChat.id === gc.id ? {
+                                background: `linear-gradient(135deg, 
+                                  hsla(var(--hue), 70%, 60%, 0.15) 0%, 
+                                  hsla(var(--hue), 50%, 70%, 0.1) 100%)`,
+                                borderColor: `hsla(var(--hue), 60%, 70%, 0.3)`,
+                                boxShadow: `0 2px 8px hsla(var(--hue), 60%, 50%, 0.2)`
+                              } : {}}
+                              onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" 
+                                     style={{
+                                       background: `linear-gradient(135deg, hsla(var(--hue), 60%, 50%, 0.2) 0%, hsla(var(--hue), 40%, 60%, 0.1) 100%)`
+                                     }}>
+                                  <Users className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium truncate">{gc.name}</div>
+                                  <div className="text-xs text-muted-foreground/70 truncate">
+                                    by {gc.creator_username}
+                                  </div>
+                                </div>
+                              </div>
+                            </Button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              {user.id === gc.creator_id && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowJoinRequests(true)}
+                                    className="text-blue-500 hover:bg-blue-500/10 rounded-lg"
+                                    title="View Join Requests"
+                                  >
+                                    <Clock className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteGroupChat(gc.id)}
+                                    className="text-red-500 hover:bg-red-500/10 rounded-lg"
+                                    title="Delete Group Chat"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -447,17 +487,17 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="glass">
+              <Card className="card-modern">
                 <OnlineUsers currentUserId={user.id} />
               </Card>
-              <Card className="glass">
+              <Card className="card-modern">
                 <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
               </Card>
             </div>
 
-            <div className="flex-1 h-full">
+            <div className="xl:col-span-9 lg:col-span-8 h-full min-h-[calc(100vh-6rem)]">
               {activeChat.type ? (
-                <div className="animate-fadeIn">
+                <div className="animate-fadeIn h-full">
                   <ChatWindow
                     chatType={activeChat.type}
                     chatId={activeChat.id}
@@ -467,20 +507,45 @@ export default function DashboardPage() {
                   />
                 </div>
               ) : (
-                <Card className="h-full flex items-center justify-center glass">
-                  <CardContent className="text-center py-12">
-                    <div className="text-5xl md:text-7xl font-black tracking-tighter text-gradient">real.</div>
-                    <div className="mt-6 flex flex-col items-center gap-2">
+                <Card className="h-full flex items-center justify-center card-modern animate-breathe relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full animate-float"
+                         style={{
+                           background: `radial-gradient(circle, hsla(var(--hue), 60%, 50%, 0.3) 0%, transparent 70%)`
+                         }} />
+                    <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full animate-float"
+                         style={{
+                           background: `radial-gradient(circle, hsla(calc(var(--hue) + 60), 60%, 50%, 0.2) 0%, transparent 70%)`,
+                           animationDelay: '-2s'
+                         }} />
+                  </div>
+                  <CardContent className="text-center py-12 relative z-10">
+                    <div className="text-5xl md:text-8xl font-black tracking-tighter text-hue-animated text-glow heading-xl mb-2">
+                      real.
+                    </div>
+                    <div className="text-lg md:text-xl text-muted-foreground/80 mb-8 font-light">
+                      Where conversations come alive
+                    </div>
+                    <div className="flex flex-col items-center gap-4 mb-8">
                       <TimeDateDisplay large />
                       <BatteryStatus />
                     </div>
-                    <div className="mt-6 text-sm text-muted-foreground">
-                      Welcome back @{user.username}
+                    <div className="mb-8 text-sm text-muted-foreground text-shadow-soft">
+                      Welcome back, <span className="text-hue font-medium">@{user.username}</span>
                     </div>
-                    <div className="mt-4 flex gap-2 justify-center">
-                      <Button variant="modern" onClick={handleGlobalChatClick}>Global Chat</Button>
-                      <Button variant="outline" onClick={() => setCurrentPage('friends')}>Friends</Button>
-                      <Button variant="outline" onClick={() => setCurrentPage('channels')}>Channels</Button>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-md mx-auto">
+                      <Button className="btn-primary hover-lift group" onClick={handleGlobalChatClick}>
+                        <Globe className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+                        Global Chat
+                      </Button>
+                      <Button variant="outline" className="btn-secondary hover-lift group" onClick={() => setCurrentPage('friends')}>
+                        <Users className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                        Friends
+                      </Button>
+                      <Button variant="outline" className="btn-secondary hover-lift group" onClick={() => setCurrentPage('channels')}>
+                        <Hash className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+                        Channels
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
