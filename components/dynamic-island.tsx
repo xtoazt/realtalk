@@ -217,6 +217,20 @@ export function DynamicIsland({
               <Palette className="h-3 w-3" />
             </Button>
 
+            {/* Simple Mode Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                try { localStorage.setItem('ui-mode','simple') } catch {}
+                window.location.href = '/dashboard/simple'
+              }}
+              className="h-8 w-8 btn-ghost rounded-full"
+              title="Simple Mode"
+            >
+              <MonitorSmartphone className="h-3 w-3" />
+            </Button>
+
             {/* Sign Out */}
             <Button
               variant="ghost"

@@ -199,8 +199,10 @@ export default function SettingsPage() {
                 const params = new URLSearchParams(location.search)
                 const back = params.get('back')
                 if (back === 'lite') return router.push('/dashboard/lite')
+                if (back === 'simple') return router.push('/dashboard/simple')
                 const ui = localStorage.getItem('ui-mode')
                 if (ui === 'lite') return router.push('/dashboard/lite')
+                if (ui === 'simple') return router.push('/dashboard/simple')
               } catch {}
               router.push('/dashboard')
             }}
@@ -309,11 +311,12 @@ export default function SettingsPage() {
               {/* UI Mode */}
               <div className="mt-6">
                 <label className="text-sm font-medium mb-3 block">UI Mode</label>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'lite' })}).then(()=> { try { localStorage.setItem('ui-mode','lite') } catch {}; location.href='/dashboard/lite' }) }>Switch to Lite</Button>
-                  <Button size="sm" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'full' })}).then(()=> { try { localStorage.setItem('ui-mode','full') } catch {}; location.href='/dashboard' }) }>Switch to Full</Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'simple' })}).then(()=> { try { localStorage.setItem('ui-mode','simple') } catch {}; location.href='/dashboard/simple' }) }>Simple</Button>
+                  <Button size="sm" variant="outline" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'lite' })}).then(()=> { try { localStorage.setItem('ui-mode','lite') } catch {}; location.href='/dashboard/lite' }) }>Lite</Button>
+                  <Button size="sm" onClick={()=> fetch('/api/user/settings',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ui_mode: 'full' })}).then(()=> { try { localStorage.setItem('ui-mode','full') } catch {}; location.href='/dashboard' }) }>Full</Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">Lite shows a minimal dashboard. You can switch anytime.</p>
+                <p className="text-xs text-muted-foreground mt-2">Simple is ultra-basic, Lite is minimal, Full has all features.</p>
               </div>
             </CardContent>
           </Card>

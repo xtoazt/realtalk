@@ -31,6 +31,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         if (!ui) {
           // seed from path if available
           if (location.pathname.startsWith('/dashboard/lite')) localStorage.setItem('ui-mode','lite')
+          else if (location.pathname.startsWith('/dashboard/simple')) localStorage.setItem('ui-mode','simple')
           else localStorage.setItem('ui-mode','full')
         }
       } catch {}
