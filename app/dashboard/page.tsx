@@ -320,7 +320,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Subtle texture overlay */}
+      <div className="fixed inset-0 opacity-[0.02] dark:opacity-[0.05]" 
+           style={{
+             backgroundImage: `radial-gradient(circle at 25% 25%, white 1px, transparent 1px),
+                              radial-gradient(circle at 75% 75%, white 1px, transparent 1px)`,
+             backgroundSize: '24px 24px'
+           }} />
+           
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -339,40 +347,40 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {/* Sidebar */}
               <div className="lg:col-span-1 xl:col-span-1 space-y-6">
-                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
+                <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-xl">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900 dark:text-slate-100">
+                    <CardTitle className="flex items-center justify-between text-base font-medium text-gray-900 dark:text-gray-100">
                       <span className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
+                        <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         Groups
                       </span>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="h-8 w-8 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition-colors"
                           onClick={() => setShowMessageSearch(true)}
                           title="Search Messages"
                         >
-                          <Search className="h-4 w-4" />
+                          <Search className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="h-8 w-8 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition-colors"
                           onClick={() => setShowJoinGC(true)}
                           title="Join Group Chat"
                         >
-                          <Hash className="h-4 w-4" />
+                          <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" 
+                          className="h-8 w-8 rounded-lg hover:bg-gray-100/60 dark:hover:bg-gray-700/60 transition-colors" 
                           onClick={() => setShowCreateGC(true)}
                           title="Create Group Chat"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </Button>
                       </div>
                     </CardTitle>
@@ -444,11 +452,11 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
+                <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-xl">
                   <OnlineUsers currentUserId={user.id} />
                 </Card>
                 
-                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
+                <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-xl">
                   <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
                 </Card>
               </div>
@@ -467,7 +475,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
-                    <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg w-full max-w-2xl">
+                    <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-2xl w-full max-w-2xl">
                       <CardContent className="text-center py-16 px-8">
                         {/* Hero Section */}
                         <div className="mb-12">

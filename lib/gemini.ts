@@ -181,7 +181,8 @@ Respond as ${selectedPersona.name} in a helpful, engaging way. Keep it under 150
         geminiKeyManager.markKeyAsExhausted(currentKey);
       }
     }
-    throw error; // Re-throw so the API can handle it properly
+    // Always re-throw the error so the API route can handle it properly
+    throw error;
   }
 }
 
