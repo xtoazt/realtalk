@@ -10,9 +10,12 @@ class GeminiAPIKeyManager {
 
   constructor() {
     const envKey = process.env.GEMINI_API_KEY;
+    console.log('[GeminiKeyManager] Env key exists:', !!envKey, 'Length:', envKey?.length);
     if (envKey && envKey.trim()) {
       console.log('[GeminiKeyManager] Found API key in env');
       this.apiKeys.push(envKey.trim());
+    } else {
+      console.log('[GeminiKeyManager] No env key found, loading from database');
     }
     this.loadAdditionalKeys();
   }
@@ -32,15 +35,19 @@ class GeminiAPIKeyManager {
       const response = await fetch('/api/gemini/keys');
       if (response.ok) {
         const keys = await response.json();
+        console.log('[GeminiKeyManager] Loaded additional keys:', keys.length);
         this.apiKeys.push(...keys.filter((key: string) => !this.exhaustedKeys.has(key)));
       } else {
         const data = await response.json().catch(() => ({}));
         this.error = data.error || 'Failed to load Gemini API keys.';
+        console.log('[GeminiKeyManager] Failed to load keys:', this.error);
       }
     } catch (error: any) {
       this.error = 'Failed to load Gemini API keys.';
+      console.log('[GeminiKeyManager] Error loading keys:', error.message);
     } finally {
       this.loading = false;
+      console.log('[GeminiKeyManager] Total keys available:', this.apiKeys.length);
     }
   }
 
