@@ -85,16 +85,11 @@ export function DynamicIsland({
   return (
     <div className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`}>
       <div
-        className={`bg-white/10 dark:bg-black/20 backdrop-blur-2xl border border-white/20 dark:border-white/10 text-white dark:text-white rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-all duration-500 ease-out ${
+        className={`bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-full shadow-lg transition-all duration-300 ease-out ${
           isExpanded
-            ? "px-6 py-3 min-w-[700px]"
-            : "px-8 py-4 w-fit"
+            ? "px-4 py-2 min-w-[680px]"
+            : "px-6 py-3 w-fit"
         }`}
-        style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-          backdropFilter: 'blur(20px)'
-        }}
         onMouseEnter={() => handleExpansion(true)}
         onMouseLeave={() => handleExpansion(false)}
       >
@@ -116,7 +111,7 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={() => handlePageClick("global")}
-              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Global"
             >
               <Globe className="h-4 w-4" />
@@ -126,7 +121,7 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={() => handlePageClick("ai-chat")}
-              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="AI Chat"
             >
               <Bot className="h-4 w-4" />
@@ -142,14 +137,10 @@ export function DynamicIsland({
               return (
                 <Button
                   key={page.id}
-                  variant="ghost"
+                  variant={isActive ? "secondary" : "ghost"}
                   size={showLabel ? 'sm' : 'icon'}
                   onClick={() => handlePageClick(page.id)}
-                  className={`h-8 ${showLabel ? 'px-3' : 'w-8'} rounded-full transition-all duration-300 ${
-                    isActive 
-                      ? "bg-white/30 text-white shadow-lg" 
-                      : "hover:bg-white/20 dark:hover:bg-white/10 text-white/80 hover:text-white"
-                  }`}
+                  className={`h-8 ${showLabel ? 'px-3' : 'w-8'} rounded-full transition-colors`}
                 >
                   <Icon className="h-4 w-4" />
                   {showLabel && (
@@ -165,35 +156,22 @@ export function DynamicIsland({
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant={currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio' ? 'secondary' : 'ghost'}
                   size='sm'
-                  className={`h-8 px-3 rounded-full transition-all duration-300 ${
-                    currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio'
-                      ? "bg-white/30 text-white shadow-lg"
-                      : "hover:bg-white/20 dark:hover:bg-white/10 text-white/80 hover:text-white"
-                  }`}
+                  className="h-8 px-3 rounded-full transition-colors"
                   title="Entertainment"
                 >
                   <Clapperboard className="h-4 w-4" />
                   <span className="ml-1 text-xs hidden md:inline">Entertainment</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent 
-                className="w-48 p-2 bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]" 
-                align="center" 
-                avoidCollisions
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(20px)'
-                }}
-              >
-                <div className="flex flex-col gap-2">
+              <PopoverContent className="w-48 p-2" align="center" avoidCollisions>
+                <div className="flex flex-col gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('movies')}
-                    className="justify-start gap-2 h-10 hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300 rounded-xl"
+                    className="justify-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Clapperboard className="h-4 w-4" />
                     <span className="text-sm">Movies</span>
@@ -202,7 +180,7 @@ export function DynamicIsland({
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('games')}
-                    className="justify-start gap-2 h-10 hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300 rounded-xl"
+                    className="justify-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Gamepad2 className="h-4 w-4" />
                     <span className="text-sm">Games</span>
@@ -211,7 +189,7 @@ export function DynamicIsland({
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('radio')}
-                    className="justify-start gap-2 h-10 hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300 rounded-xl"
+                    className="justify-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Radio className="h-4 w-4" />
                     <span className="text-sm">Radio</span>
@@ -227,7 +205,7 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={onThemeCycle}
-              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Toggle Theme"
             >
               <Moon className="h-4 w-4" />
@@ -241,7 +219,7 @@ export function DynamicIsland({
                 try { localStorage.setItem('ui-mode','simple') } catch {}
                 window.location.href = '/dashboard/simple'
               }}
-              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/10 text-white transition-all duration-300"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Simple Mode"
             >
               <MonitorSmartphone className="h-4 w-4" />
@@ -252,7 +230,7 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={onSignOut}
-              className="h-8 w-8 rounded-full hover:bg-white/20 dark:hover:bg-white/10 text-white/80 hover:text-white transition-all duration-300"
+              className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
               title="Sign out"
             >
               <LogOut className="h-4 w-4" />

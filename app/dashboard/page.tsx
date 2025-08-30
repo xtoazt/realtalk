@@ -320,11 +320,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      {/* Beautiful background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-gray-900 to-black dark:from-black dark:via-gray-900 dark:to-slate-900" />
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.3),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.1),transparent_50%)]" />
-      
+    <div className="relative min-h-screen bg-background">
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -343,14 +339,9 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {/* Sidebar */}
               <div className="lg:col-span-1 xl:col-span-1 space-y-6">
-                <Card className="bg-white/10 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-2xl transition-all duration-300 hover:bg-white/15"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(20px)'
-                  }}>
+                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center justify-between text-base font-semibold text-white">
+                    <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900 dark:text-slate-100">
                       <span className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         Groups
@@ -359,7 +350,7 @@ export default function DashboardPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-all duration-300"
+                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                           onClick={() => setShowMessageSearch(true)}
                           title="Search Messages"
                         >
@@ -368,7 +359,7 @@ export default function DashboardPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-all duration-300"
+                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                           onClick={() => setShowJoinGC(true)}
                           title="Join Group Chat"
                         >
@@ -377,7 +368,7 @@ export default function DashboardPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-all duration-300" 
+                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" 
                           onClick={() => setShowCreateGC(true)}
                           title="Create Group Chat"
                         >
@@ -453,21 +444,11 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white/10 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-2xl transition-all duration-300 hover:bg-white/15"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(20px)'
-                  }}>
+                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
                   <OnlineUsers currentUserId={user.id} />
                 </Card>
                 
-                <Card className="bg-white/10 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-2xl transition-all duration-300 hover:bg-white/15"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(20px)'
-                  }}>
+                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
                   <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
                 </Card>
               </div>
@@ -486,21 +467,16 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
-                    <Card className="bg-white/10 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-3xl w-full max-w-2xl transition-all duration-300 hover:bg-white/15"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                        backdropFilter: 'blur(20px)'
-                      }}>
+                    <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg w-full max-w-2xl">
                       <CardContent className="text-center py-16 px-8">
                         {/* Hero Section */}
                         <div className="mb-12">
                           <div className="text-6xl md:text-7xl font-black tracking-tight mb-4">
-                            <span className="text-white">
+                            <span className="bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
                               real.
                             </span>
                           </div>
-                          <div className="text-lg md:text-xl text-white/70 font-light">
+                          <div className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light">
                             Where conversations come alive
                           </div>
                         </div>
@@ -508,8 +484,8 @@ export default function DashboardPage() {
                         {/* Status Section */}
                         <div className="mb-12 space-y-6">
                           <div className="flex justify-center">
-                            <div className="bg-white/10 rounded-full px-4 py-2 text-sm text-white/90 border border-white/20">
-                              Welcome back, <span className="text-white font-semibold">@{user.username}</span>
+                            <div className="bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
+                              Welcome back, <span className="text-slate-900 dark:text-slate-100 font-semibold">@{user.username}</span>
                             </div>
                           </div>
                           <div className="flex flex-col items-center gap-4">
@@ -520,24 +496,26 @@ export default function DashboardPage() {
 
                         {/* Quick Actions */}
                         <div>
-                          <h3 className="text-lg font-semibold text-white mb-6">Quick Start</h3>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-6">Quick Start</h3>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Button 
-                              className="bg-white/10 hover:bg-white/20 text-white h-16 flex-col gap-2 text-sm font-semibold border border-white/20 rounded-2xl transition-all duration-300" 
+                              className="bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 h-16 flex-col gap-2 text-sm font-semibold shadow-lg" 
                               onClick={handleGlobalChatClick}
                             >
                               <Globe className="w-5 h-5" />
                               Global Chat
                             </Button>
                             <Button 
-                              className="bg-white/10 hover:bg-white/20 text-white h-16 flex-col gap-2 text-sm font-semibold border border-white/20 rounded-2xl transition-all duration-300" 
+                              variant="outline" 
+                              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 h-16 flex-col gap-2 text-sm font-semibold" 
                               onClick={() => setCurrentPage('friends')}
                             >
                               <Users className="w-5 h-5" />
                               Friends
                             </Button>
                             <Button 
-                              className="bg-white/10 hover:bg-white/20 text-white h-16 flex-col gap-2 text-sm font-semibold border border-white/20 rounded-2xl transition-all duration-300" 
+                              variant="outline" 
+                              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 h-16 flex-col gap-2 text-sm font-semibold" 
                               onClick={() => setCurrentPage('channels')}
                             >
                               <Hash className="w-5 h-5" />

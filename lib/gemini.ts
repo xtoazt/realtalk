@@ -10,8 +10,9 @@ class GeminiAPIKeyManager {
 
   constructor() {
     const envKey = process.env.GEMINI_API_KEY;
-    if (envKey) {
-      this.apiKeys.push(envKey);
+    if (envKey && envKey.trim()) {
+      console.log('[GeminiKeyManager] Found API key in env');
+      this.apiKeys.push(envKey.trim());
     }
     this.loadAdditionalKeys();
   }
@@ -106,6 +107,7 @@ export const geminiKeyManager = new GeminiAPIKeyManager();
 
 const getGeminiModel = () => {
   const key = geminiKeyManager.getCurrentKey();
+  console.log('[getGeminiModel] Current key available:', !!key);
   if (!key) {
     // Trigger the popup for key exhaustion
     geminiKeyManager.triggerGoldMemberNotification();
@@ -148,6 +150,7 @@ export async function generateAIResponse(
   },
   persona: keyof typeof AI_PERSONAS = 'assistant'
 ) {
+  console.log('[generateAIResponse] Starting AI response generation for:', message.substring(0, 50));
   try {
     const model = getGeminiModel();
     const selectedPersona = AI_PERSONAS[persona];
@@ -161,24 +164,24 @@ User message: ${message}
 
 Respond as ${selectedPersona.name} in a helpful, engaging way. Keep it under 150 words.
 `;
+    console.log('[generateAIResponse] Sending prompt to Gemini');
     const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    console.log('[generateAIResponse] Got response:', responseText.substring(0, 100));
     return {
-      content: result.response.text(),
+      content: responseText,
       persona: selectedPersona.name,
       confidence: 0.9
     };
   } catch (error: any) {
+    console.log('[generateAIResponse] Error:', error.message);
     if (error.message?.includes('quota') || error.message?.includes('exceeded')) {
       const currentKey = geminiKeyManager.getCurrentKey();
       if (currentKey) {
         geminiKeyManager.markKeyAsExhausted(currentKey);
       }
     }
-    return {
-      content: "I'm having trouble thinking right now. Please try again later.",
-      persona: 'real.AI',
-      confidence: 0.1
-    };
+    throw error; // Re-throw so the API can handle it properly
   }
 }
 
