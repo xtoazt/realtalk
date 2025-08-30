@@ -320,7 +320,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900 dark:to-indigo-900">
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -333,46 +333,46 @@ export default function DashboardPage() {
         onHueCycle={handleHueCycle}
       />
 
-      <div className="relative z-10 pt-20 px-4 pb-6">
+      <div className="relative z-10 pt-24 px-6 pb-8">
         {currentPage === 'dashboard' && (
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {/* Sidebar */}
               <div className="lg:col-span-1 xl:col-span-1 space-y-6">
-                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900 dark:text-slate-100">
-                      <span className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
+                <Card className="bg-gradient-to-br from-white via-blue-50 to-purple-50 dark:from-gray-800 dark:via-blue-900 dark:to-purple-900 backdrop-blur-xl border-2 border-blue-200 dark:border-blue-700 shadow-2xl rounded-2xl transform hover:scale-105 transition-all duration-300">
+                  <CardHeader className="pb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-2xl">
+                    <CardTitle className="flex items-center justify-between text-lg font-bold">
+                      <span className="flex items-center gap-3">
+                        <Users className="h-6 w-6" />
                         Groups
                       </span>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 text-white border border-white/40"
                           onClick={() => setShowMessageSearch(true)}
                           title="Search Messages"
                         >
-                          <Search className="h-4 w-4" />
+                          <Search className="h-5 w-5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 text-white border border-white/40"
                           onClick={() => setShowJoinGC(true)}
                           title="Join Group Chat"
                         >
-                          <Hash className="h-4 w-4" />
+                          <Hash className="h-5 w-5" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" 
+                          className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 text-white border border-white/40" 
                           onClick={() => setShowCreateGC(true)}
                           title="Create Group Chat"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-5 w-5" />
                         </Button>
                       </div>
                     </CardTitle>
@@ -444,11 +444,11 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
+                <Card className="bg-gradient-to-br from-white via-green-50 to-emerald-50 dark:from-gray-800 dark:via-green-900 dark:to-emerald-900 backdrop-blur-xl border-2 border-green-200 dark:border-green-700 shadow-2xl rounded-2xl transform hover:scale-105 transition-all duration-300">
                   <OnlineUsers currentUserId={user.id} />
                 </Card>
                 
-                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
+                <Card className="bg-gradient-to-br from-white via-orange-50 to-red-50 dark:from-gray-800 dark:via-orange-900 dark:to-red-900 backdrop-blur-xl border-2 border-orange-200 dark:border-orange-700 shadow-2xl rounded-2xl transform hover:scale-105 transition-all duration-300">
                   <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
                 </Card>
               </div>
@@ -456,7 +456,7 @@ export default function DashboardPage() {
               {/* Main Content Area */}
               <div className="lg:col-span-3 xl:col-span-4">
                 {activeChat.type ? (
-                  <div className="h-[calc(100vh-7rem)]">
+                  <div className="h-[calc(100vh-8rem)]">
                     <ChatWindow
                       chatType={activeChat.type}
                       chatId={activeChat.id}
@@ -466,59 +466,70 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
-                    <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg w-full max-w-2xl">
+                  <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
+                    <Card className="bg-gradient-to-br from-white via-pink-50 to-purple-50 dark:from-gray-800 dark:via-pink-900 dark:to-purple-900 backdrop-blur-xl border-2 border-pink-200 dark:border-pink-700 shadow-2xl rounded-3xl w-full max-w-3xl transform hover:scale-102 transition-all duration-500">
                       <CardContent className="text-center py-16 px-8">
                         {/* Hero Section */}
-                        <div className="mb-12">
-                          <div className="text-6xl md:text-7xl font-black tracking-tight mb-4">
-                            <span className="bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
+                        <div className="mb-16">
+                          <div className="text-7xl md:text-8xl font-black tracking-tight mb-6">
+                            <span className="bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 bg-clip-text text-transparent animate-pulse">
                               real.
                             </span>
                           </div>
-                          <div className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light">
-                            Where conversations come alive
+                          <div className="text-xl md:text-2xl font-semibold mb-4">
+                            <span className="bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                              Where conversations come alive ✨
+                            </span>
                           </div>
+                          <div className="h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 to-pink-500 rounded-full"></div>
                         </div>
 
                         {/* Status Section */}
-                        <div className="mb-12 space-y-6">
+                        <div className="mb-16 space-y-8">
                           <div className="flex justify-center">
-                            <div className="bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
-                              Welcome back, <span className="text-slate-900 dark:text-slate-100 font-semibold">@{user.username}</span>
+                            <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-400/30 dark:to-purple-400/30 rounded-full px-6 py-3 border-2 border-blue-300 dark:border-blue-600 backdrop-blur-sm">
+                              <span className="text-lg font-bold bg-gradient-to-r from-blue-700 to-purple-700 dark:from-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+                                Welcome back, @{user.username} 👋
+                              </span>
                             </div>
                           </div>
-                          <div className="flex flex-col items-center gap-4">
-                            <TimeDateDisplay large />
-                            <BatteryStatus />
+                          <div className="flex flex-col items-center gap-6">
+                            <div className="p-4 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-2xl border-2 border-green-300 dark:border-green-600">
+                              <TimeDateDisplay large />
+                            </div>
+                            <div className="p-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border-2 border-yellow-300 dark:border-yellow-600">
+                              <BatteryStatus />
+                            </div>
                           </div>
                         </div>
 
                         {/* Quick Actions */}
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-6">Quick Start</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <h3 className="text-2xl font-bold mb-8">
+                            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                              🚀 Quick Start
+                            </span>
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <Button 
-                              className="bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 h-16 flex-col gap-2 text-sm font-semibold shadow-lg" 
+                              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white h-20 flex-col gap-3 text-lg font-bold shadow-2xl rounded-2xl border-2 border-blue-300 transform hover:scale-105 transition-all duration-300" 
                               onClick={handleGlobalChatClick}
                             >
-                              <Globe className="w-5 h-5" />
+                              <Globe className="w-8 h-8" />
                               Global Chat
                             </Button>
                             <Button 
-                              variant="outline" 
-                              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 h-16 flex-col gap-2 text-sm font-semibold" 
+                              className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white h-20 flex-col gap-3 text-lg font-bold shadow-2xl rounded-2xl border-2 border-green-300 transform hover:scale-105 transition-all duration-300" 
                               onClick={() => setCurrentPage('friends')}
                             >
-                              <Users className="w-5 h-5" />
+                              <Users className="w-8 h-8" />
                               Friends
                             </Button>
                             <Button 
-                              variant="outline" 
-                              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 h-16 flex-col gap-2 text-sm font-semibold" 
+                              className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white h-20 flex-col gap-3 text-lg font-bold shadow-2xl rounded-2xl border-2 border-pink-300 transform hover:scale-105 transition-all duration-300" 
                               onClick={() => setCurrentPage('channels')}
                             >
-                              <Hash className="w-5 h-5" />
+                              <Hash className="w-8 h-8" />
                               Channels
                             </Button>
                           </div>

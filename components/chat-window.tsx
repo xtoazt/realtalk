@@ -176,7 +176,15 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
           }, 100)
         }
       } else {
-        console.error("Failed to send message:", response.status, await response.text())
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        console.error("Failed to send message:", response.status, errorData)
+        
+        // Handle Gemini API key exhaustion
+        if (errorData.error === "GEMINI_KEY_EXHAUSTED") {
+          console.log("Gemini API key exhausted, triggering popup")
+          // Trigger the gold member popup event
+          window.dispatchEvent(new CustomEvent('geminiKeyExhausted'))
+        }
       }
     } catch (error) {
       console.error("Failed to send message:", error)

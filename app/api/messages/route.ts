@@ -53,13 +53,27 @@ export async function POST(request: NextRequest) {
       Keep responses concise but informative. You can help with general questions, chat about topics, 
       or assist with using the real. app features.`
 
-      const aiResponse = await generateAIResponse(content, {
-        chatType: chatType,
-        username: user.username
-      })
-      await createMessage(AI_USER_ID, aiResponse.content, chatType, user.id, [], true, undefined, "text") // AI responses are always text
+      try {
+        const aiResponse = await generateAIResponse(content, {
+          chatType: chatType,
+          username: user.username
+        })
+        await createMessage(AI_USER_ID, aiResponse.content, chatType, user.id, [], true, undefined, "text") // AI responses are always text
 
-      return NextResponse.json({ success: true })
+        return NextResponse.json({ success: true })
+      } catch (error: any) {
+        console.log("[messages-api] AI generation failed:", error.message)
+        if (error.message?.includes('No available Gemini API keys')) {
+          // Return a specific error for the frontend to handle
+          return NextResponse.json({ 
+            error: "GEMINI_KEY_EXHAUSTED", 
+            message: "AI features are temporarily unavailable. Please ask a gold member to add API keys." 
+          }, { status: 503 })
+        }
+        // Fallback: create a message explaining the issue
+        await createMessage(AI_USER_ID, "I'm sorry, I'm having trouble connecting right now. Please try again later or ask a gold member to check the API keys.", chatType, user.id, [], true, undefined, "text")
+        return NextResponse.json({ success: true })
+      }
     }
 
     // Extract mentions for non-AI dedicated chats
