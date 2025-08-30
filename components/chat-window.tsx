@@ -161,6 +161,8 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
       })
 
       if (response.ok) {
+        const responseData = await response.json()
+        
         const wasNearBottom = messagesContainerRef.current
           ? messagesContainerRef.current.scrollHeight -
               messagesContainerRef.current.scrollTop -
@@ -174,6 +176,12 @@ export function ChatWindow({ chatType, chatId, chatName, currentUserId, onUserCl
           setTimeout(() => {
             scrollToBottom()
           }, 100)
+        }
+
+        // Check if we need to trigger the popup
+        if (responseData.trigger_popup) {
+          console.log("Triggering gold member popup for API keys")
+          window.dispatchEvent(new CustomEvent('geminiKeyExhausted'))
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))

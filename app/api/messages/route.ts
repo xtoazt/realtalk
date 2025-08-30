@@ -64,14 +64,18 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
         console.log("[messages-api] AI generation failed:", error.message)
         if (error.message?.includes('No available Gemini API keys')) {
-          // Return a specific error for the frontend to handle
+          // Create an informative message instead of returning error
+          await createMessage(AI_USER_ID, "🤖 Hi! I'm real.AI, but I need an API key to respond. Gold members can add Gemini API keys to enable AI features for everyone. Click the AI button in the navigation bar to learn more!", chatType, user.id, [], true, undefined, "text")
+          
+          // Also trigger the popup for gold members
           return NextResponse.json({ 
-            error: "GEMINI_KEY_EXHAUSTED", 
-            message: "AI features are temporarily unavailable. Please ask a gold member to add API keys." 
-          }, { status: 503 })
+            success: true,
+            trigger_popup: true,
+            message: "AI features need API keys" 
+          })
         }
         // Fallback: create a message explaining the issue
-        await createMessage(AI_USER_ID, "I'm sorry, I'm having trouble connecting right now. Please try again later or ask a gold member to check the API keys.", chatType, user.id, [], true, undefined, "text")
+        await createMessage(AI_USER_ID, "I'm sorry, I'm having trouble connecting right now. Please try again later.", chatType, user.id, [], true, undefined, "text")
         return NextResponse.json({ success: true })
       }
     }
