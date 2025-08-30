@@ -85,24 +85,25 @@ export function DynamicIsland({
   return (
     <div className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`}>
       <div
-        className={`bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border border-gray-200/60 dark:border-gray-600/60 text-gray-900 dark:text-gray-100 rounded-full shadow-2xl transition-all duration-300 ease-out ${
+        className={`bg-gradient-to-r from-slate-900/95 via-gray-900/95 to-black/95 dark:from-gray-100/95 dark:via-gray-50/95 dark:to-white/95 backdrop-blur-2xl border border-white/20 dark:border-black/20 text-white dark:text-gray-900 rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.3)] dark:shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-all duration-500 ease-out hover:shadow-[0_0_60px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] ${
           isExpanded
-            ? "px-6 py-3 min-w-[700px]"
-            : "px-8 py-4 w-fit"
+            ? "px-8 py-4 min-w-[800px] scale-105"
+            : "px-10 py-5 w-fit hover:scale-105"
         }`}
         onMouseEnter={() => handleExpansion(true)}
         onMouseLeave={() => handleExpansion(false)}
       >
          {!isExpanded ? (
-          <div className="flex items-center gap-3 transition-all duration-200">
+          <div className="flex items-center gap-4 transition-all duration-300">
             <div className="relative">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-              <div className="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-30" />
+              <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50" />
+              <div className="absolute inset-0 w-4 h-4 bg-gradient-to-r from-emerald-300 to-cyan-300 rounded-full animate-ping opacity-40" />
+              <div className="absolute -inset-1 w-6 h-6 bg-gradient-to-r from-emerald-400/30 to-cyan-400/30 rounded-full animate-pulse" />
             </div>
-            <span className="text-lg font-bold tracking-wide">
+            <span className="text-2xl font-black tracking-wider bg-gradient-to-r from-white to-gray-300 dark:from-gray-900 dark:to-gray-700 bg-clip-text text-transparent">
               real.
             </span>
-            <span className="text-xs text-subtle font-medium">@{username}</span>
+            <span className="text-sm text-white/80 dark:text-gray-700/80 font-semibold bg-white/10 dark:bg-gray-900/10 px-3 py-1 rounded-full">@{username}</span>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-1 py-1">
@@ -127,7 +128,7 @@ export function DynamicIsland({
               <Bot className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </Button>
 
-            <div className="w-px h-5 bg-border mx-1" />
+            <div className="w-px h-6 bg-gradient-to-b from-transparent via-white/30 dark:via-gray-700/30 to-transparent mx-3" />
 
             {/* Navigation Pages (explicit buttons to avoid mis-rendering) */}
             {pages.map((page) => {
@@ -206,7 +207,7 @@ export function DynamicIsland({
               </PopoverContent>
             </Popover>
 
-            <div className="w-px h-5 bg-border mx-1" />
+            <div className="w-px h-6 bg-gradient-to-b from-transparent via-white/30 dark:via-gray-700/30 to-transparent mx-3" />
 
             {/* Theme Toggle Button */}
             <Button

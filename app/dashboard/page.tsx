@@ -347,7 +347,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {/* Sidebar */}
               <div className="lg:col-span-1 xl:col-span-1 space-y-6">
-                <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-xl">
+                <Card className="bg-gradient-to-br from-white/10 via-gray-100/5 to-transparent dark:from-gray-900/20 dark:via-black/10 dark:to-transparent backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(255,255,255,0.08)] rounded-3xl hover:shadow-[0_12px_48px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_12px_48px_rgba(255,255,255,0.12)] transition-all duration-500">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center justify-between text-base font-medium text-gray-900 dark:text-gray-100">
                       <span className="flex items-center gap-2">
@@ -452,11 +452,11 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-xl">
+                <Card className="bg-gradient-to-br from-white/10 via-gray-100/5 to-transparent dark:from-gray-900/20 dark:via-black/10 dark:to-transparent backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(255,255,255,0.08)] rounded-3xl hover:shadow-[0_12px_48px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_12px_48px_rgba(255,255,255,0.12)] transition-all duration-500">
                   <OnlineUsers currentUserId={user.id} />
                 </Card>
                 
-                <Card className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-xl">
+                <Card className="bg-gradient-to-br from-white/10 via-gray-100/5 to-transparent dark:from-gray-900/20 dark:via-black/10 dark:to-transparent backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(255,255,255,0.08)] rounded-3xl hover:shadow-[0_12px_48px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_12px_48px_rgba(255,255,255,0.12)] transition-all duration-500">
                   <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
                 </Card>
               </div>
