@@ -149,8 +149,8 @@ export default function SimplePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 dark:bg-zinc-50">
-        <div className="text-zinc-100 dark:text-zinc-900 text-sm font-medium">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-foreground text-sm font-medium">Loading...</div>
       </div>
     )
   }
@@ -160,21 +160,21 @@ export default function SimplePage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 dark:bg-zinc-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-black/90 dark:bg-white/90 backdrop-blur-xl border-b border-zinc-800 dark:border-zinc-200">
+      <div className="sticky top-0 z-20 glass border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                <h1 className="text-lg font-semibold text-white dark:text-black">
-                  real<span className="text-zinc-400 dark:text-zinc-600">.simple</span>
+                <h1 className="text-lg font-semibold text-foreground">
+                  real<span className="text-muted-foreground">.simple</span>
                 </h1>
               </div>
               <div className="hidden sm:flex items-center gap-3 text-sm">
-                <span className="text-zinc-300 dark:text-zinc-700 font-medium truncate">@{user.username}</span>
-                <span className="px-2 py-1 bg-zinc-800 dark:bg-zinc-200 rounded-md text-xs font-medium text-zinc-300 dark:text-zinc-700 border border-zinc-700 dark:border-zinc-300">
+                <span className="text-muted-foreground font-medium truncate">@{user.username}</span>
+                <span className="px-2 py-1 bg-muted rounded-md text-xs font-medium text-muted-foreground border border-border">
                   {mode === 'chat' ? 'Global' : 'AI'}
                 </span>
               </div>

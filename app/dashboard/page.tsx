@@ -295,8 +295,8 @@ export default function DashboardPage() {
 
   if (userLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 dark:bg-zinc-50">
-        <div className="text-zinc-100 dark:text-zinc-900 text-sm font-medium">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-foreground text-sm font-medium">Loading...</div>
       </div>
     )
   }
@@ -306,7 +306,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 dark:bg-zinc-50">
+    <div className="relative min-h-screen bg-background">
       <ModeGate />
       <DynamicIsland
         currentPage={currentPage}
@@ -324,11 +324,11 @@ export default function DashboardPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               <div className="lg:col-span-1 xl:col-span-1 space-y-6">
-                <Card className="bg-zinc-900/50 dark:bg-zinc-100/50 backdrop-blur-xl border border-zinc-800 dark:border-zinc-200 shadow-2xl rounded-xl">
+                <Card className="glass-effect rounded-modern-lg">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center justify-between text-base font-medium text-zinc-100 dark:text-zinc-900">
+                    <CardTitle className="flex items-center justify-between text-base font-medium text-foreground">
                       <span className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-zinc-400 dark:text-zinc-600" />
+                        <Users className="h-4 w-4 text-muted-foreground" />
                         Groups
                       </span>
                       <div className="flex gap-1">
@@ -429,11 +429,11 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-900/50 dark:bg-zinc-100/50 backdrop-blur-xl border border-zinc-800 dark:border-zinc-200 shadow-2xl rounded-xl">
+                <Card className="glass-effect rounded-modern-lg">
                   <OnlineUsers currentUserId={user.id} />
                 </Card>
                 
-                <Card className="bg-zinc-900/50 dark:bg-zinc-100/50 backdrop-blur-xl border border-zinc-800 dark:border-zinc-200 shadow-2xl rounded-xl">
+                <Card className="glass-effect rounded-modern-lg">
                   <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
                 </Card>
               </div>

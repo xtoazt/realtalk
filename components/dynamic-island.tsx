@@ -84,7 +84,7 @@ export function DynamicIsland({
   return (
     <div className="fixed z-50 transition-all duration-200 top-6 left-1/2 -translate-x-1/2">
       <div
-        className={`bg-black/90 dark:bg-white/90 backdrop-blur-xl border border-white/10 dark:border-black/10 text-white dark:text-black rounded-2xl shadow-2xl transition-all duration-200 ease-out ${
+        className={`glass rounded-modern-xl text-foreground transition-all duration-200 ease-out ${
           isExpanded
             ? "px-4 py-2 min-w-[600px]"
             : "px-6 py-3 w-fit"
@@ -98,7 +98,7 @@ export function DynamicIsland({
             <span className="text-lg font-semibold tracking-tight">
               real.
             </span>
-            <span className="text-xs text-white/60 dark:text-black/60 font-medium">@{username}</span>
+            <span className="text-xs text-muted-foreground font-medium">@{username}</span>
           </div>
         ) : (
           <div className="flex items-center justify-center gap-1 py-1">
@@ -107,23 +107,23 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={() => handlePageClick("global")}
-              className="h-8 w-8 rounded-lg hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
+              className="h-8 w-8 rounded-lg hover:bg-muted/30 transition-colors"
               title="Global"
             >
-              <Globe className="h-4 w-4 text-white/80 dark:text-black/80" />
+              <Globe className="h-4 w-4 text-muted-foreground" />
             </Button>
 
             <Button
               variant="ghost"
               size="icon"
               onClick={() => handlePageClick("ai-chat")}
-              className="h-8 w-8 rounded-lg hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
+              className="h-8 w-8 rounded-lg hover:bg-muted/30 transition-colors"
               title="AI Chat"
             >
-              <Bot className="h-4 w-4 text-white/80 dark:text-black/80" />
+              <Bot className="h-4 w-4 text-muted-foreground" />
             </Button>
 
-            <div className="w-px h-4 bg-white/20 dark:bg-black/20 mx-1" />
+            <div className="w-px h-4 bg-border mx-1" />
 
             {/* Navigation */}
             {pages.map((page) => {
@@ -138,8 +138,8 @@ export function DynamicIsland({
                   onClick={() => handlePageClick(page.id)}
                   className={`h-8 ${showLabel ? 'px-3' : 'w-8'} rounded-lg transition-colors ${
                     isActive 
-                      ? "bg-white/20 dark:bg-black/20 text-white dark:text-black" 
-                      : "hover:bg-white/10 dark:hover:bg-black/10 text-white/80 dark:text-black/80"
+                      ? "bg-muted text-foreground" 
+                      : "hover:bg-muted/30 text-muted-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -160,8 +160,8 @@ export function DynamicIsland({
                   size='sm'
                   className={`h-8 px-3 rounded-lg transition-colors ${
                     currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio'
-                      ? "bg-white/20 dark:bg-black/20 text-white dark:text-black"
-                      : "hover:bg-white/10 dark:hover:bg-black/10 text-white/80 dark:text-black/80"
+                      ? "bg-muted text-foreground"
+                      : "hover:bg-muted/30 text-muted-foreground"
                   }`}
                   title="Entertainment"
                 >
@@ -169,13 +169,13 @@ export function DynamicIsland({
                   <span className="ml-2 text-xs hidden md:inline font-medium">Entertainment</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2 bg-black/90 dark:bg-white/90 backdrop-blur-xl border border-white/10 dark:border-black/10 rounded-xl shadow-2xl" align="center" avoidCollisions>
+              <PopoverContent className="w-48 p-2 glass rounded-modern shadow-modern-xl" align="center" avoidCollisions>
                 <div className="flex flex-col gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('movies')}
-                    className="justify-start gap-3 h-9 hover:bg-white/10 dark:hover:bg-black/10 text-white/90 dark:text-black/90 rounded-lg transition-colors"
+                    className="justify-start gap-3 h-9 hover:bg-muted/20 text-foreground rounded-lg transition-colors"
                   >
                     <Clapperboard className="h-4 w-4" />
                     <span className="text-sm font-medium">Movies</span>
@@ -184,7 +184,7 @@ export function DynamicIsland({
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('games')}
-                    className="justify-start gap-3 h-9 hover:bg-white/10 dark:hover:bg-black/10 text-white/90 dark:text-black/90 rounded-lg transition-colors"
+                    className="justify-start gap-3 h-9 hover:bg-muted/20 text-foreground rounded-lg transition-colors"
                   >
                     <Gamepad2 className="h-4 w-4" />
                     <span className="text-sm font-medium">Games</span>
@@ -193,7 +193,7 @@ export function DynamicIsland({
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('radio')}
-                    className="justify-start gap-3 h-9 hover:bg-white/10 dark:hover:bg-black/10 text-white/90 dark:text-black/90 rounded-lg transition-colors"
+                    className="justify-start gap-3 h-9 hover:bg-muted/20 text-foreground rounded-lg transition-colors"
                   >
                     <Radio className="h-4 w-4" />
                     <span className="text-sm font-medium">Radio</span>
@@ -202,17 +202,17 @@ export function DynamicIsland({
               </PopoverContent>
             </Popover>
 
-            <div className="w-px h-4 bg-white/20 dark:bg-black/20 mx-1" />
+            <div className="w-px h-4 bg-border mx-1" />
 
             {/* System Controls */}
             <Button
               variant="ghost"
               size="icon"
               onClick={onThemeCycle}
-              className="h-8 w-8 rounded-lg hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
+              className="h-8 w-8 rounded-lg hover:bg-muted/30 transition-colors"
               title="Toggle Theme"
             >
-              <Moon className="h-4 w-4 text-white/80 dark:text-black/80" />
+              <Moon className="h-4 w-4 text-muted-foreground" />
             </Button>
 
             <Button
@@ -222,20 +222,20 @@ export function DynamicIsland({
                 try { localStorage.setItem('ui-mode','simple') } catch {}
                 window.location.href = '/dashboard/simple'
               }}
-              className="h-8 w-8 rounded-lg hover:bg-white/10 dark:hover:bg-black/10 transition-colors"
+              className="h-8 w-8 rounded-lg hover:bg-muted/30 transition-colors"
               title="Simple Mode"
             >
-              <MonitorSmartphone className="h-4 w-4 text-white/80 dark:text-black/80" />
+              <MonitorSmartphone className="h-4 w-4 text-muted-foreground" />
             </Button>
 
             <Button
               variant="ghost"
               size="icon"
               onClick={onSignOut}
-              className="h-8 w-8 rounded-lg hover:bg-red-500/20 transition-colors"
+              className="h-8 w-8 rounded-lg hover:bg-destructive/20 transition-colors"
               title="Sign out"
             >
-              <LogOut className="h-4 w-4 text-red-400" />
+              <LogOut className="h-4 w-4 text-destructive" />
             </Button>
           </div>
         )}
