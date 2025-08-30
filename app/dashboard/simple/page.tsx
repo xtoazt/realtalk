@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
 import { notificationService } from "@/lib/notification-service"
 import { AI_USER_ID } from "@/lib/constants"
-import { Sparkles, Zap, Star, Heart, Bot, Globe, Settings, LogOut, Users, Hash } from "lucide-react"
+import { Settings, LogOut } from "lucide-react"
 
 interface Message {
   id: string
@@ -26,7 +26,6 @@ export default function SimplePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<Message[]>([])
 
-  // Keep messages in sync for notifications
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
@@ -38,7 +37,6 @@ export default function SimplePage() {
     }
     
     if (user) {
-      // Request notification permissions
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'default') {
           Notification.requestPermission().then((permission) => {
@@ -71,7 +69,6 @@ export default function SimplePage() {
         const data = await response.json()
         const newMessages = data.messages.slice(-20)
         
-        // Handle notifications for new messages
         if (user && user.notifications_enabled && messagesRef.current.length > 0) {
           const currentMessageIds = new Set(messagesRef.current.map(m => m.id))
           const newMessagesForNotification = newMessages.filter(
@@ -84,7 +81,6 @@ export default function SimplePage() {
               title: `New message in ${chatName}`,
               body: `${msg.username}: ${msg.content}`,
               onClick: () => {
-                // Focus window when notification clicked
                 window.focus()
                 if (messagesEndRef.current) {
                   messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
@@ -96,7 +92,6 @@ export default function SimplePage() {
         
         setMessages(newMessages)
         
-        // Auto scroll to bottom
         setTimeout(() => {
           if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
@@ -154,15 +149,8 @@ export default function SimplePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-900 via-purple-900 to-fuchsia-900">
-        <div className="relative">
-          <div className="text-white animate-pulse text-4xl font-black mb-4">Loading the future...</div>
-          <div className="flex justify-center gap-2">
-            <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
-            <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse delay-200" />
-            <div className="w-3 h-3 bg-pink-400 rounded-full animate-pulse delay-400" />
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950 dark:bg-zinc-50">
+        <div className="text-zinc-100 dark:text-zinc-900 text-sm font-medium">Loading...</div>
       </div>
     )
   }
@@ -172,93 +160,65 @@ export default function SimplePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-fuchsia-900 dark:from-indigo-100 dark:via-purple-50 dark:to-pink-100 overflow-hidden relative">
-      {/* Mega animated background effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute -top-64 -right-64 w-[600px] h-[600px] bg-gradient-to-br from-cyan-400/25 to-blue-500/25 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-64 -left-64 w-[600px] h-[600px] bg-gradient-to-br from-pink-400/25 to-rose-500/25 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] bg-gradient-to-br from-purple-400/20 to-violet-500/20 rounded-full blur-3xl animate-pulse delay-500" />
-      </div>
-
-      {/* Floating particles */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute animate-float top-20 left-20">
-          <Sparkles className="h-12 w-12 text-cyan-300/60 animate-pulse" />
-        </div>
-        <div className="absolute animate-float delay-300 top-40 right-32">
-          <Star className="h-10 w-10 text-pink-300/60 animate-pulse delay-200" />
-        </div>
-        <div className="absolute animate-float delay-700 bottom-32 left-40">
-          <Zap className="h-14 w-14 text-yellow-300/60 animate-pulse delay-500" />
-        </div>
-        <div className="absolute animate-float delay-1000 bottom-20 right-20">
-          <Heart className="h-8 w-8 text-rose-300/60 animate-pulse delay-700" />
-        </div>
-      </div>
-      
+    <div className="min-h-screen bg-zinc-950 dark:bg-zinc-50">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-gradient-to-r from-violet-600/98 via-purple-600/98 to-fuchsia-600/98 dark:from-indigo-200/98 dark:via-purple-100/98 dark:to-pink-200/98 backdrop-blur-3xl border-b-2 border-white/30 dark:border-white/40 shadow-[0_8px_32px_rgba(139,92,246,0.3)]">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-6 min-w-0">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-6 h-6 bg-gradient-to-r from-emerald-300 to-cyan-300 rounded-full animate-pulse shadow-2xl shadow-emerald-300/60" />
-                  <div className="absolute inset-0 w-6 h-6 bg-gradient-to-r from-emerald-200 to-cyan-200 rounded-full animate-ping opacity-50" />
-                  <Zap className="absolute inset-0 h-6 w-6 text-white animate-pulse delay-500" />
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-black text-white dark:text-gray-900">
-                  real<span className="text-white/60 dark:text-gray-600">.simple</span>
+      <div className="sticky top-0 z-20 bg-black/90 dark:bg-white/90 backdrop-blur-xl border-b border-zinc-800 dark:border-zinc-200">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                <h1 className="text-lg font-semibold text-white dark:text-black">
+                  real<span className="text-zinc-400 dark:text-zinc-600">.simple</span>
                 </h1>
               </div>
-              <div className="hidden sm:flex items-center gap-4 text-lg">
-                <span className="text-white/90 dark:text-gray-800/90 font-bold truncate">@{user.username}</span>
-                <span className="px-4 py-2 bg-white/20 dark:bg-gray-900/30 backdrop-blur-2xl rounded-3xl text-sm font-black text-white dark:text-gray-900 border-2 border-white/30 dark:border-white/20 shadow-xl whitespace-nowrap">
-                  {mode === 'chat' ? '🌐 Global' : '🤖 AI'}
+              <div className="hidden sm:flex items-center gap-3 text-sm">
+                <span className="text-zinc-300 dark:text-zinc-700 font-medium truncate">@{user.username}</span>
+                <span className="px-2 py-1 bg-zinc-800 dark:bg-zinc-200 rounded-md text-xs font-medium text-zinc-300 dark:text-zinc-700 border border-zinc-700 dark:border-zinc-300">
+                  {mode === 'chat' ? 'Global' : 'AI'}
                 </span>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => setMode(mode === 'chat' ? 'ai' : 'chat')}
-                className={`px-6 py-3 rounded-3xl text-lg font-black transition-all duration-500 hover:scale-110 backdrop-blur-2xl border-2 shadow-2xl ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   mode === 'ai' 
-                    ? 'bg-gradient-to-r from-purple-400 to-pink-400 text-white border-purple-300/50 shadow-purple-400/40' 
-                    : 'bg-white/25 dark:bg-gray-900/35 text-white dark:text-gray-900 hover:bg-white/35 dark:hover:bg-gray-900/45 border-white/40 dark:border-white/25'
+                    ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100' 
+                    : 'bg-zinc-800 dark:bg-zinc-200 text-zinc-300 dark:text-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-300'
                 }`}
                 title={mode === 'chat' ? 'Switch to AI' : 'Switch to Chat'}
               >
-                <span className="hidden sm:inline">{mode === 'chat' ? '🤖 AI' : '🌐 Chat'}</span>
-                <span className="sm:hidden text-2xl">{mode === 'chat' ? '🤖' : '🌐'}</span>
+                {mode === 'chat' ? 'AI' : 'Chat'}
               </button>
-              <div className="hidden lg:flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2">
                 <button 
                   onClick={() => switchMode('lite')}
-                  className="px-4 py-3 bg-white/25 dark:bg-gray-900/35 text-white dark:text-gray-900 rounded-3xl text-lg font-black hover:bg-white/35 dark:hover:bg-gray-900/45 transition-all duration-300 hover:scale-110 backdrop-blur-2xl border-2 border-white/40 dark:border-white/25 shadow-xl"
+                  className="px-3 py-1.5 bg-zinc-800 dark:bg-zinc-200 text-zinc-300 dark:text-zinc-700 rounded-lg text-xs font-medium hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors"
                 >
                   Lite
                 </button>
                 <button 
                   onClick={() => switchMode('full')}
-                  className="px-4 py-3 bg-white/25 dark:bg-gray-900/35 text-white dark:text-gray-900 rounded-3xl text-lg font-black hover:bg-white/35 dark:hover:bg-gray-900/45 transition-all duration-300 hover:scale-110 backdrop-blur-2xl border-2 border-white/40 dark:border-white/25 shadow-xl"
+                  className="px-3 py-1.5 bg-zinc-800 dark:bg-zinc-200 text-zinc-300 dark:text-zinc-700 rounded-lg text-xs font-medium hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors"
                 >
                   Full
                 </button>
               </div>
               <button 
                 onClick={() => router.push('/settings/simple')}
-                className="p-3 bg-white/25 dark:bg-gray-900/35 text-white dark:text-gray-900 rounded-3xl hover:bg-white/35 dark:hover:bg-gray-900/45 transition-all duration-300 hover:scale-110 backdrop-blur-2xl border-2 border-white/40 dark:border-white/25 shadow-xl group"
+                className="p-2 bg-zinc-800 dark:bg-zinc-200 text-zinc-300 dark:text-zinc-700 rounded-lg hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors"
                 title="Settings"
               >
-                <Settings className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
+                <Settings className="h-4 w-4" />
               </button>
               <button 
                 onClick={handleSignOut}
-                className="p-3 bg-gradient-to-r from-red-400/30 to-pink-400/30 text-white rounded-3xl hover:from-red-400/50 hover:to-pink-400/50 transition-all duration-300 hover:scale-110 backdrop-blur-2xl border-2 border-red-300/50 shadow-xl group"
+                className="p-2 bg-zinc-800 dark:bg-zinc-200 text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
                 title="Sign Out"
               >
-                <LogOut className="h-6 w-6 group-hover:scale-110 transition-transform" />
+                <LogOut className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -266,22 +226,15 @@ export default function SimplePage() {
       </div>
 
       {/* Messages */}
-      <div className="max-w-6xl mx-auto px-6 py-8 relative z-10">
-        <div className="bg-gradient-to-br from-white/25 via-white/15 to-white/10 dark:from-gray-900/35 dark:via-gray-800/25 dark:to-gray-700/15 backdrop-blur-3xl border-2 border-white/40 dark:border-white/25 shadow-[0_24px_120px_rgba(0,0,0,0.3)] dark:shadow-[0_24px_120px_rgba(255,255,255,0.2)] rounded-3xl overflow-hidden relative">
-          
-          {/* Background decoration */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-purple-400/15 to-pink-400/15 rounded-full blur-2xl animate-pulse" />
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-br from-cyan-400/15 to-blue-400/15 rounded-full blur-2xl animate-pulse delay-700" />
-          </div>
-
-          <div className="relative h-[calc(100vh-200px)] overflow-y-auto p-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="bg-zinc-900/50 dark:bg-zinc-100/50 backdrop-blur-xl border border-zinc-800 dark:border-zinc-200 shadow-2xl rounded-xl overflow-hidden">
+          <div className="h-[calc(100vh-160px)] overflow-y-auto p-4 space-y-3">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-white/80 dark:text-gray-800/80">
-                <div className="text-8xl mb-8 animate-pulse">{mode === 'ai' ? '🤖' : '💬'}</div>
-                <p className="text-3xl font-bold mb-4">No messages yet</p>
-                <p className="text-xl bg-white/15 dark:bg-gray-900/25 px-8 py-4 rounded-3xl backdrop-blur-2xl border-2 border-white/30 dark:border-white/20 shadow-2xl">
-                  {mode === 'ai' ? 'Ask the AI something incredible!' : 'Start an amazing conversation!'}
+              <div className="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-600">
+                <div className="text-4xl mb-3">{mode === 'ai' ? '🤖' : '💬'}</div>
+                <p className="text-sm font-medium">No messages yet</p>
+                <p className="text-xs mt-1 bg-zinc-800/50 dark:bg-zinc-200/50 px-3 py-1 rounded-lg">
+                  {mode === 'ai' ? 'Ask the AI something' : 'Start a conversation'}
                 </p>
               </div>
             ) : (
@@ -289,31 +242,26 @@ export default function SimplePage() {
                 {messages.map((message) => (
                   <div 
                     key={message.id} 
-                    className={`flex flex-col gap-3 p-6 rounded-3xl transition-all duration-500 hover:scale-105 backdrop-blur-2xl border-2 shadow-2xl relative overflow-hidden ${
+                    className={`flex flex-col gap-1 p-3 rounded-lg transition-colors ${
                       message.sender_id === user?.id
-                        ? 'bg-gradient-to-r from-blue-400/30 to-cyan-400/30 ml-8 sm:ml-16 border-blue-300/50 shadow-blue-400/30'
+                        ? 'bg-zinc-800 dark:bg-zinc-200 ml-8 border border-zinc-700 dark:border-zinc-300'
                         : message.is_ai_response
-                        ? 'bg-gradient-to-r from-purple-400/30 to-pink-400/30 mr-8 sm:mr-16 border-purple-300/50 shadow-purple-400/30'
-                        : 'bg-white/20 dark:bg-gray-900/30 border-white/40 dark:border-white/25 shadow-white/20'
+                        ? 'bg-zinc-800/70 dark:bg-zinc-200/70 mr-8 border border-zinc-700/70 dark:border-zinc-300/70'
+                        : 'bg-zinc-800/30 dark:bg-zinc-200/30'
                     }`}
                   >
-                    {/* Message decoration */}
-                    <div className="absolute top-2 right-2">
-                      <Sparkles className="h-4 w-4 text-white/30 animate-pulse" />
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-black text-white dark:text-gray-900">
-                        {message.is_ai_response ? '🤖 AI' : message.username}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-zinc-300 dark:text-zinc-700">
+                        {message.is_ai_response ? 'AI' : message.username}
                       </span>
-                      <span className="text-sm text-white/80 dark:text-gray-800/80 bg-white/20 dark:bg-gray-900/30 px-3 py-1 rounded-2xl backdrop-blur-xl">
+                      <span className="text-xs text-zinc-500 dark:text-zinc-500">
                         {new Date(message.created_at).toLocaleTimeString([], {
                           hour: '2-digit', 
                           minute: '2-digit'
                         })}
                       </span>
                     </div>
-                    <p className="text-lg text-white dark:text-gray-900 leading-relaxed break-words font-semibold">
+                    <p className="text-sm text-zinc-100 dark:text-zinc-900 leading-relaxed break-words">
                       {message.content}
                     </p>
                   </div>
@@ -324,36 +272,29 @@ export default function SimplePage() {
           </div>
           
           {/* Input */}
-          <div className="border-t-2 border-white/30 dark:border-white/20 p-6 bg-gradient-to-r from-white/10 via-white/5 to-white/10 dark:from-gray-900/20 dark:via-gray-800/15 dark:to-gray-900/20 backdrop-blur-2xl relative">
+          <div className="border-t border-zinc-800 dark:border-zinc-200 p-4">
             <form onSubmit={handleSend}>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={mode === 'ai' ? "Ask AI anything incredible..." : "Type your epic message..."}
-                  className="flex-1 px-6 py-4 bg-white/20 dark:bg-gray-900/30 border-2 border-white/40 dark:border-white/25 rounded-3xl text-lg text-white dark:text-gray-900 placeholder-white/70 dark:placeholder-gray-700/70 focus:outline-none focus:ring-4 focus:ring-cyan-400/50 focus:border-cyan-400/50 backdrop-blur-2xl font-semibold transition-all duration-300 hover:bg-white/30 dark:hover:bg-gray-900/40 shadow-xl"
+                  placeholder={mode === 'ai' ? "Message AI..." : "Type message..."}
+                  className="flex-1 px-4 py-2 bg-zinc-800 dark:bg-zinc-200 border border-zinc-700 dark:border-zinc-300 rounded-lg text-sm text-zinc-100 dark:text-zinc-900 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600 dark:focus:ring-zinc-400 focus:border-transparent transition-all"
                   disabled={sending}
                 />
                 <button
                   type="submit"
                   disabled={sending || !newMessage.trim()}
-                  className={`px-8 py-4 rounded-3xl text-lg font-black transition-all duration-500 hover:scale-110 backdrop-blur-2xl shadow-2xl border-2 relative overflow-hidden ${
+                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
                     sending || !newMessage.trim()
-                      ? 'bg-white/15 dark:bg-gray-900/25 text-white/50 dark:text-gray-700/50 cursor-not-allowed border-white/30 dark:border-white/20'
+                      ? 'bg-zinc-800/50 dark:bg-zinc-200/50 text-zinc-500 cursor-not-allowed'
                       : mode === 'ai'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-purple-500/40 border-purple-300/50'
-                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-blue-500/40 border-blue-300/50'
+                      ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800'
+                      : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  {/* Button decoration */}
-                  {!(sending || !newMessage.trim()) && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                  )}
-                  <span className="relative z-10">
-                    <span className="hidden sm:inline">{sending ? 'Sending...' : 'Send'}</span>
-                    <span className="sm:hidden text-2xl">{sending ? '⏳' : '🚀'}</span>
-                  </span>
+                  {sending ? 'Sending' : 'Send'}
                 </button>
               </div>
             </form>
