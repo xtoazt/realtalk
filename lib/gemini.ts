@@ -83,7 +83,7 @@ class GeminiAPIKeyManager {
     }
   }
 
-  private triggerGoldMemberNotification() {
+  public triggerGoldMemberNotification() {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('geminiKeyExhausted'));
     }
@@ -107,6 +107,8 @@ export const geminiKeyManager = new GeminiAPIKeyManager();
 const getGeminiModel = () => {
   const key = geminiKeyManager.getCurrentKey();
   if (!key) {
+    // Trigger the popup for key exhaustion
+    geminiKeyManager.triggerGoldMemberNotification();
     throw new Error('No available Gemini API keys');
   }
   return new GoogleGenerativeAI(key).getGenerativeModel({ model: 'gemini-1.5-flash' });

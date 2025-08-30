@@ -25,7 +25,6 @@
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
     --radius: 0.75rem;
-    --hue: 220;
     
     /* Modern shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -58,15 +57,6 @@
     --ring: 0 0% 83.9%;
   }
 
-  /* Hue variations for accent colors */
-  .hue-blue { --hue: 220; }
-  .hue-purple { --hue: 270; }
-  .hue-pink { --hue: 320; }
-  .hue-red { --hue: 0; }
-  .hue-orange { --hue: 30; }
-  .hue-yellow { --hue: 60; }
-  .hue-green { --hue: 120; }
-  .hue-teal { --hue: 180; }
 }
 
 @layer base {
@@ -144,42 +134,18 @@
   .glass-effect:hover {
     transform: translateY(-1px);
     box-shadow: 
-      0 12px 40px hsla(var(--hue), 50%, 50%, 0.12),
+      0 12px 40px rgba(0, 0, 0, 0.08),
       0 6px 20px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 hsla(var(--hue), 50%, 100%, 0.15);
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   .dark .glass-effect:hover {
     box-shadow: 
-      0 12px 40px hsla(var(--hue), 40%, 30%, 0.2),
+      0 12px 40px rgba(0, 0, 0, 0.2),
       0 6px 20px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 hsla(var(--hue), 40%, 60%, 0.15);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
-  /* Hue-based accent colors */
-  .hue-accent { 
-    color: hsl(var(--hue), 70%, 50%); 
-  }
-  
-  .dark .hue-accent { 
-    color: hsl(var(--hue), 70%, 60%); 
-  }
-
-  .hue-bg { 
-    background-color: hsl(var(--hue), 85%, 95%); 
-  }
-  
-  .dark .hue-bg { 
-    background-color: hsl(var(--hue), 35%, 12%); 
-  }
-
-  .hue-border { 
-    border-color: hsl(var(--hue), 65%, 60%); 
-  }
-  
-  .dark .hue-border { 
-    border-color: hsl(var(--hue), 55%, 50%); 
-  }
 
   /* Clean monochrome button styles */
   .btn-primary {
@@ -257,8 +223,8 @@
     @apply border-primary/60;
     box-shadow: 
       inset 0 1px 4px rgba(0, 0, 0, 0.02),
-      0 0 0 3px hsla(var(--hue), 70%, 60%, 0.1),
-      0 4px 16px hsla(var(--hue), 60%, 50%, 0.08);
+      0 0 0 3px rgba(59, 130, 246, 0.1),
+      0 4px 16px rgba(59, 130, 246, 0.08);
     backdrop-filter: blur(12px);
   }
 
@@ -272,8 +238,8 @@
   .dark .input-modern:focus-visible {
     box-shadow: 
       inset 0 1px 4px rgba(0, 0, 0, 0.1),
-      0 0 0 3px hsla(var(--hue), 60%, 50%, 0.2),
-      0 4px 16px hsla(var(--hue), 50%, 40%, 0.15);
+      0 0 0 3px rgba(59, 130, 246, 0.2),
+      0 4px 16px rgba(59, 130, 246, 0.15);
   }
 
   /* Modern animations */
@@ -454,51 +420,51 @@
   .border-modern {
     border: 1px solid transparent;
     background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--background))) padding-box,
-                linear-gradient(135deg, hsla(var(--hue), 50%, 80%, 0.3), hsla(var(--hue), 30%, 60%, 0.1)) border-box;
+                linear-gradient(135deg, rgba(148, 163, 184, 0.3), rgba(148, 163, 184, 0.1)) border-box;
   }
 
   .dark .border-modern {
     background: linear-gradient(135deg, hsl(var(--background)), hsl(var(--background))) padding-box,
-                linear-gradient(135deg, hsla(var(--hue), 40%, 40%, 0.4), hsla(var(--hue), 20%, 30%, 0.2)) border-box;
+                linear-gradient(135deg, rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0.2)) border-box;
   }
 
   /* Enhanced shadow system */
   .shadow-modern {
     box-shadow: 
-      0 1px 3px hsla(var(--hue), 50%, 50%, 0.08),
+      0 1px 3px rgba(148, 163, 184, 0.08),
       0 1px 2px rgba(0, 0, 0, 0.06);
   }
 
   .shadow-modern-md {
     box-shadow: 
-      0 4px 12px hsla(var(--hue), 50%, 50%, 0.1),
+      0 4px 12px rgba(148, 163, 184, 0.1),
       0 2px 6px rgba(0, 0, 0, 0.08);
   }
 
   .shadow-modern-lg {
     box-shadow: 
-      0 10px 25px hsla(var(--hue), 50%, 50%, 0.12),
+      0 10px 25px rgba(148, 163, 184, 0.12),
       0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .shadow-modern-xl {
     box-shadow: 
-      0 20px 40px hsla(var(--hue), 50%, 50%, 0.15),
+      0 20px 40px rgba(148, 163, 184, 0.15),
       0 8px 20px rgba(0, 0, 0, 0.12);
   }
 
   /* Gradient backgrounds */
   .bg-gradient-modern {
     background: linear-gradient(135deg, 
-      hsla(var(--hue), 60%, 95%, 0.8) 0%,
-      hsla(var(--hue), 40%, 98%, 0.4) 100%
+      rgba(248, 250, 252, 0.8) 0%,
+      rgba(255, 255, 255, 0.4) 100%
     );
   }
 
   .dark .bg-gradient-modern {
     background: linear-gradient(135deg, 
-      hsla(var(--hue), 40%, 8%, 0.8) 0%,
-      hsla(var(--hue), 20%, 5%, 0.4) 100%
+      rgba(15, 23, 42, 0.8) 0%,
+      rgba(2, 6, 23, 0.4) 100%
     );
   }
 
@@ -523,7 +489,7 @@
   }
   
   .focus-modern:focus-visible {
-    --tw-ring-color: hsl(var(--hue) 60% 50% / 1);
+    --tw-ring-color: rgb(59 130 246 / 1);
   }
 
   /* Modern rounded corners */

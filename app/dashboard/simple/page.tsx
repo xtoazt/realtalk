@@ -42,11 +42,11 @@ export default function SimplePage() {
         if (Notification.permission === 'default') {
           Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
-              notificationService.showNotification(
-                'Notifications Enabled',
-                "You'll now receive notifications from real.simple",
-                () => window.focus()
-              )
+              notificationService.showNotification({
+                title: 'Notifications Enabled',
+                body: "You'll now receive notifications from real.simple",
+                onClick: () => window.focus()
+              })
             }
           })
         }
@@ -79,17 +79,17 @@ export default function SimplePage() {
           
           newMessagesForNotification.forEach((msg: Message) => {
             const chatName = mode === 'ai' ? 'AI Chat' : 'Global Chat'
-            notificationService.showNotification(
-              `New message in ${chatName}`,
-              `${msg.username}: ${msg.content}`,
-              () => {
+            notificationService.showNotification({
+              title: `New message in ${chatName}`,
+              body: `${msg.username}: ${msg.content}`,
+              onClick: () => {
                 // Focus window when notification clicked
                 window.focus()
                 if (messagesEndRef.current) {
                   messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
                 }
               }
-            )
+            })
           })
         }
         

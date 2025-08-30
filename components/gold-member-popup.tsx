@@ -28,7 +28,11 @@ export function GoldMemberPopup({ isOpen, onClose }: GoldMemberPopupProps) {
   useEffect(() => {
     const handleKeyExhausted = () => {
       if (isGoldMember) {
+        loadKeyStatus()
         // The popup will be shown by the parent component
+      } else {
+        // Show info for non-gold members too
+        setMessage("AI features are temporarily unavailable. Gold members can add new API keys.")
       }
     }
     window.addEventListener('geminiKeyExhausted', handleKeyExhausted)

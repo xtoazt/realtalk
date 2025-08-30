@@ -39,16 +39,6 @@ interface GroupChat {
   creator_id: string
 }
 
-const hues = [
-  { id: "blue", name: "Blue" },
-  { id: "purple", name: "Purple" },
-  { id: "pink", name: "Pink" },
-  { id: "red", name: "Red" },
-  { id: "orange", name: "Orange" },
-  { id: "yellow", name: "Yellow" },
-  { id: "green", name: "Green" },
-  { id: "teal", name: "Teal" },
-]
 
 export default function DashboardPage() {
   const { user, loading: userLoading, setUser: updateLocalUser } = useUser()
@@ -254,34 +244,7 @@ export default function DashboardPage() {
   }
 
   const handleHueCycle = async () => {
-    if (!user) return
-
-    const currentHueIndex = hues.findIndex((h) => h.id === user.hue)
-    const nextHueIndex = (currentHueIndex + 1) % hues.length
-    const nextHue = hues[nextHueIndex].id
-
-    console.log("[dashboard] Cycling hue from", user.hue, "to", nextHue)
-
-    try {
-      const response = await fetch("/api/user/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hue: nextHue }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("[dashboard] Hue update successful:", data.user.hue)
-        updateLocalUser(data.user)
-      } else {
-        const errorData = await response.json()
-        console.error("[dashboard] Failed to update hue:", errorData.error || response.statusText)
-        alert(`Failed to change hue: ${errorData.error || response.statusText}`)
-      }
-    } catch (error: any) {
-      console.error("[dashboard] Failed to update hue:", error)
-      alert(`An unexpected error occurred while changing hue: ${error.message}`)
-    }
+    // Hue cycling disabled - simplified theming
   }
 
   const handleMessageSearchClick = (chatType: string, chatId?: string) => {
@@ -370,77 +333,80 @@ export default function DashboardPage() {
         onHueCycle={handleHueCycle}
       />
 
-      <div className="relative z-10 pt-24 px-4 pb-6">
+      <div className="relative z-10 pt-20 px-4 pb-6">
         {currentPage === 'dashboard' && (
           <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[calc(100vh-8rem)]">
+            <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {/* Sidebar */}
-              <div className="lg:col-span-3 space-y-4">
-                <Card className="card-modern">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between text-sm font-medium">
-                      <span>Group Chats</span>
+              <div className="lg:col-span-1 xl:col-span-1 space-y-6">
+                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900 dark:text-slate-100">
+                      <span className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Groups
+                      </span>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="btn-ghost h-7 w-7"
+                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                           onClick={() => setShowMessageSearch(true)}
                           title="Search Messages"
                         >
-                          <Search className="h-3 w-3" />
+                          <Search className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="btn-ghost h-7 w-7"
+                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                           onClick={() => setShowJoinGC(true)}
                           title="Join Group Chat"
                         >
-                          <Hash className="h-3 w-3" />
+                          <Hash className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="btn-ghost h-7 w-7" 
+                          className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" 
                           onClick={() => setShowCreateGC(true)}
                           title="Create Group Chat"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     {groupChats.length === 0 ? (
-                      <div className="text-center py-6">
-                        <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-muted/30 flex items-center justify-center">
-                          <Users className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-center py-8">
+                        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          <Users className="h-6 w-6 text-slate-400" />
                         </div>
-                        <p className="text-xs text-muted-foreground">No group chats yet</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">Create one to get started</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">No group chats yet</p>
+                        <p className="text-xs text-slate-400 mt-1">Create one to get started</p>
                       </div>
                     ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         {groupChats.map((gc) => (
                           <div key={gc.id} className="group">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <Button
                                 variant="ghost"
-                                className={`flex-1 justify-start text-left h-auto p-2 ${
+                                className={`flex-1 justify-start text-left h-auto p-3 rounded-lg transition-all ${
                                   activeChat.type === "group" && activeChat.id === gc.id 
-                                    ? "bg-muted/50 text-foreground" 
-                                    : "hover:bg-muted/30"
+                                    ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800" 
+                                    : "hover:bg-slate-50 dark:hover:bg-slate-800"
                                 }`}
                                 onClick={() => setActiveChat({ type: "group", id: gc.id, name: gc.name })}
                               >
-                                <div className="flex items-center gap-2 w-full">
-                                  <div className="w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center flex-shrink-0">
-                                    <Users className="h-2.5 w-2.5" />
+                                <div className="flex items-center gap-3 w-full">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                    <Users className="h-4 w-4 text-white" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-xs font-medium truncate">{gc.name}</div>
-                                    <div className="text-xs text-muted-foreground/60 truncate">
+                                    <div className="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{gc.name}</div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
                                       by {gc.creator_username}
                                     </div>
                                   </div>
@@ -453,19 +419,19 @@ export default function DashboardPage() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => setShowJoinRequests(true)}
-                                      className="h-6 w-6 text-blue-500/70 hover:text-blue-500"
+                                      className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900"
                                       title="View Join Requests"
                                     >
-                                      <Clock className="h-2.5 w-2.5" />
+                                      <Clock className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => handleDeleteGroupChat(gc.id)}
-                                      className="h-6 w-6 text-red-500/70 hover:text-red-500"
+                                      className="h-8 w-8 rounded-full text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
                                       title="Delete Group Chat"
                                     >
-                                      <Trash2 className="h-2.5 w-2.5" />
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </>
                                 )}
@@ -478,19 +444,19 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="card-modern">
+                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
                   <OnlineUsers currentUserId={user.id} />
                 </Card>
                 
-                <Card className="card-modern">
+                <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg">
                   <RecentPoll currentUserId={user.id} onViewAllPolls={handleViewAllPolls} />
                 </Card>
               </div>
 
               {/* Main Content Area */}
-              <div className="lg:col-span-9">
+              <div className="lg:col-span-3 xl:col-span-4">
                 {activeChat.type ? (
-                  <div className="h-[calc(100vh-8rem)]">
+                  <div className="h-[calc(100vh-7rem)]">
                     <ChatWindow
                       chatType={activeChat.type}
                       chatId={activeChat.id}
@@ -500,27 +466,29 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="h-[calc(100vh-8rem)] flex items-center justify-center">
-                    <Card className="card-modern w-full max-w-xl">
-                      <CardContent className="text-center py-12 px-6">
+                  <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
+                    <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg w-full max-w-2xl">
+                      <CardContent className="text-center py-16 px-8">
                         {/* Hero Section */}
-                        <div className="mb-8">
-                          <div className="text-4xl md:text-5xl font-black tracking-tight mb-3 text-foreground">
-                            real.
+                        <div className="mb-12">
+                          <div className="text-6xl md:text-7xl font-black tracking-tight mb-4">
+                            <span className="bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
+                              real.
+                            </span>
                           </div>
-                          <div className="text-sm md:text-base text-muted-foreground font-light">
+                          <div className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-light">
                             Where conversations come alive
                           </div>
                         </div>
 
                         {/* Status Section */}
-                        <div className="mb-8 space-y-4">
+                        <div className="mb-12 space-y-6">
                           <div className="flex justify-center">
-                            <div className="bg-muted/30 rounded-full px-3 py-1.5 text-xs text-muted-foreground">
-                              Welcome back, <span className="text-foreground font-medium">@{user.username}</span>
+                            <div className="bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
+                              Welcome back, <span className="text-slate-900 dark:text-slate-100 font-semibold">@{user.username}</span>
                             </div>
                           </div>
-                          <div className="flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center gap-4">
                             <TimeDateDisplay large />
                             <BatteryStatus />
                           </div>
@@ -528,29 +496,29 @@ export default function DashboardPage() {
 
                         {/* Quick Actions */}
                         <div>
-                          <h3 className="text-sm font-medium text-foreground mb-4">Quick Start</h3>
-                          <div className="grid grid-cols-1 gap-3">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-6">Quick Start</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Button 
-                              className="btn-primary h-12 flex items-center justify-center gap-2 text-sm" 
+                              className="bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 h-16 flex-col gap-2 text-sm font-semibold shadow-lg" 
                               onClick={handleGlobalChatClick}
                             >
-                              <Globe className="w-4 h-4" />
+                              <Globe className="w-5 h-5" />
                               Global Chat
                             </Button>
                             <Button 
                               variant="outline" 
-                              className="btn-secondary h-10 flex items-center justify-center gap-2 text-sm" 
+                              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 h-16 flex-col gap-2 text-sm font-semibold" 
                               onClick={() => setCurrentPage('friends')}
                             >
-                              <Users className="w-4 h-4" />
+                              <Users className="w-5 h-5" />
                               Friends
                             </Button>
                             <Button 
                               variant="outline" 
-                              className="btn-secondary h-10 flex items-center justify-center gap-2 text-sm" 
+                              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 h-16 flex-col gap-2 text-sm font-semibold" 
                               onClick={() => setCurrentPage('channels')}
                             >
-                              <Hash className="w-4 h-4" />
+                              <Hash className="w-5 h-5" />
                               Channels
                             </Button>
                           </div>

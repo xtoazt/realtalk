@@ -13,7 +13,6 @@ import {
   Globe,
   Info,
   Bot,
-  Palette,
   BarChart3,
   Calendar,
   Moon,
@@ -86,7 +85,7 @@ export function DynamicIsland({
   return (
     <div className={`fixed z-50 transition-all duration-300 top-4 left-1/2 -translate-x-1/2`}>
       <div
-        className={`glass text-foreground rounded-full transition-all duration-300 ease-out ${
+        className={`bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-full shadow-lg transition-all duration-300 ease-out ${
           isExpanded
             ? "px-4 py-2 min-w-[700px]"
             : "px-8 py-4 w-fit"
@@ -112,20 +111,20 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={() => handlePageClick("global")}
-              className="h-8 w-8 btn-ghost rounded-full"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               title="Global"
             >
-              <Globe className="h-3 w-3" />
+              <Globe className="h-4 w-4" />
             </Button>
 
             <Button
               variant="ghost"
               size="icon"
               onClick={() => handlePageClick("ai-chat")}
-              className="h-8 w-8 btn-ghost rounded-full"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               title="AI Chat"
             >
-              <Bot className="h-3 w-3" />
+              <Bot className="h-4 w-4" />
             </Button>
 
             <div className="w-px h-5 bg-border mx-1" />
@@ -140,9 +139,13 @@ export function DynamicIsland({
                   variant={currentPage === page.id ? "secondary" : "ghost"}
                   size={showLabel ? 'sm' : 'icon'}
                   onClick={() => handlePageClick(page.id)}
-                  className={`h-8 ${showLabel ? 'px-3' : 'w-8'} ${currentPage === page.id ? "btn-primary" : "btn-ghost"} rounded-full`}
+                  className={`h-8 ${showLabel ? 'px-3' : 'w-8'} rounded-full transition-colors ${
+                    currentPage === page.id 
+                      ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100" 
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-4 w-4" />
                   {showLabel && (
                     <span className="ml-1 text-xs hidden md:inline">{page.label}</span>
                   )}
@@ -156,10 +159,14 @@ export function DynamicIsland({
                 <Button
                   variant={currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio' ? 'secondary' : 'ghost'}
                   size='sm'
-                  className={`h-8 px-3 ${currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio' ? "btn-primary" : "btn-ghost"} rounded-full`}
+                  className={`h-8 px-3 rounded-full transition-colors ${
+                    currentPage === 'movies' || currentPage === 'games' || currentPage === 'radio'
+                      ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
                   title="Entertainment"
                 >
-                  <Clapperboard className="h-3 w-3" />
+                  <Clapperboard className="h-4 w-4" />
                   <span className="ml-1 text-xs hidden md:inline">Entertainment</span>
                 </Button>
               </PopoverTrigger>
@@ -169,28 +176,28 @@ export function DynamicIsland({
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('movies')}
-                    className="justify-start gap-2"
+                    className="justify-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
-                    <Clapperboard className="h-3 w-3" />
-                    <span className="text-xs">Movies</span>
+                    <Clapperboard className="h-4 w-4" />
+                    <span className="text-sm">Movies</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('games')}
-                    className="justify-start gap-2"
+                    className="justify-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
-                    <Gamepad2 className="h-3 w-3" />
-                    <span className="text-xs">Games</span>
+                    <Gamepad2 className="h-4 w-4" />
+                    <span className="text-sm">Games</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handlePageClick('radio')}
-                    className="justify-start gap-2"
+                    className="justify-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
-                    <Radio className="h-3 w-3" />
-                    <span className="text-xs">Radio</span>
+                    <Radio className="h-4 w-4" />
+                    <span className="text-sm">Radio</span>
                   </Button>
                   {/* Search removed */}
                 </div>
@@ -203,19 +210,8 @@ export function DynamicIsland({
             <ThemeToggle
               size="sm"
               variant="ghost"
-              className="h-8 w-8 btn-ghost rounded-full"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
             />
-
-            {/* Hue Cycle Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onHueCycle}
-              className="h-8 w-8 btn-ghost rounded-full"
-              title="Cycle Color"
-            >
-              <Palette className="h-3 w-3" />
-            </Button>
 
             {/* Simple Mode Button */}
             <Button
@@ -225,10 +221,10 @@ export function DynamicIsland({
                 try { localStorage.setItem('ui-mode','simple') } catch {}
                 window.location.href = '/dashboard/simple'
               }}
-              className="h-8 w-8 btn-ghost rounded-full"
+              className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
               title="Simple Mode"
             >
-              <MonitorSmartphone className="h-3 w-3" />
+              <MonitorSmartphone className="h-4 w-4" />
             </Button>
 
             {/* Sign Out */}
@@ -236,10 +232,10 @@ export function DynamicIsland({
               variant="ghost"
               size="icon"
               onClick={onSignOut}
-              className="h-8 w-8 btn-ghost rounded-full text-red-500 hover:text-red-400"
+              className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
               title="Sign out"
             >
-              <LogOut className="h-3 w-3" />
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         )}
