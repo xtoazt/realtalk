@@ -50,108 +50,105 @@ export default function SimpleSettings() {
   }
 
   return (
-    <div style={{
-      fontFamily: 'monospace',
-      backgroundColor: '#ffffff',
-      color: '#000000',
-      minHeight: '100vh',
-      padding: '20px'
-    }}>
-      <div style={{
-        borderBottom: '1px solid #cccccc',
-        paddingBottom: '10px',
-        marginBottom: '20px'
-      }}>
-        <strong>Settings</strong>
-        <button 
-          onClick={() => router.push('/dashboard/simple')}
-          style={{
-            float: 'right',
-            padding: '2px 8px',
-            border: '1px solid #ccc',
-            background: 'white',
-            cursor: 'pointer',
-            fontSize: '10px'
-          }}
-        >
-          BACK
-        </button>
-      </div>
-
-      <div style={{marginBottom: '20px'}}>
-        <div style={{marginBottom: '10px'}}>
-          <strong>User:</strong> @{user.username}
-        </div>
-        <div style={{marginBottom: '10px'}}>
-          <strong>Email:</strong> {user.email}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                Settings
+              </h1>
+            </div>
+            <button 
+              onClick={() => router.push('/dashboard/simple')}
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              ← Back
+            </button>
+          </div>
         </div>
       </div>
 
-      <div style={{marginBottom: '20px'}}>
-        <div style={{marginBottom: '10px', fontWeight: 'bold'}}>UI Mode:</div>
-        <div style={{display: 'flex', gap: '5px', marginBottom: '10px'}}>
-          <button
-            onClick={() => switchMode('simple')}
-            disabled={saving}
-            style={{
-              padding: '5px 10px',
-              border: '2px solid #000',
-              background: '#000',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '11px'
-            }}
-          >
-            SIMPLE (CURRENT)
-          </button>
-          <button
-            onClick={() => switchMode('lite')}
-            disabled={saving}
-            style={{
-              padding: '5px 10px',
-              border: '1px solid #ccc',
-              background: 'white',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontSize: '11px'
-            }}
-          >
-            LITE
-          </button>
-          <button
-            onClick={() => switchMode('full')}
-            disabled={saving}
-            style={{
-              padding: '5px 10px',
-              border: '1px solid #ccc',
-              background: 'white',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontSize: '11px'
-            }}
-          >
-            FULL
-          </button>
-        </div>
-        <div style={{fontSize: '10px', color: '#666'}}>
-          Simple: Basic chat only<br/>
-          Lite: Minimal features<br/>
-          Full: All features
-        </div>
-      </div>
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="p-6 space-y-6">
+            {/* User Info */}
+            <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {user.username.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  @{user.username}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {user.email}
+                </p>
+              </div>
+            </div>
 
-      <div style={{marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #ccc'}}>
-        <button
-          onClick={handleSignOut}
-          style={{
-            padding: '8px 16px',
-            border: '1px solid #ff0000',
-            background: '#ffffff',
-            color: '#ff0000',
-            cursor: 'pointer',
-            fontSize: '11px'
-          }}
-        >
-          SIGN OUT
-        </button>
+            {/* UI Mode Selection */}
+            <div>
+              <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
+                Interface Mode
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <button
+                  onClick={() => switchMode('simple')}
+                  disabled={saving}
+                  className="p-4 border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-left transition-all disabled:opacity-50"
+                >
+                  <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Simple
+                  </div>
+                  <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Current mode
+                  </div>
+                </button>
+                <button
+                  onClick={() => switchMode('lite')}
+                  disabled={saving}
+                  className="p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-lg text-left transition-all disabled:opacity-50"
+                >
+                  <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Lite
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Minimal features
+                  </div>
+                </button>
+                <button
+                  onClick={() => switchMode('full')}
+                  disabled={saving}
+                  className="p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-lg text-left transition-all disabled:opacity-50"
+                >
+                  <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Full
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    All features
+                  </div>
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Switch between different interface complexity levels
+              </p>
+            </div>
+
+            {/* Sign Out */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={handleSignOut}
+                className="w-full px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors border border-red-200 dark:border-red-800"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

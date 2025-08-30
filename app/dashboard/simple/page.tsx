@@ -1,13 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
+import { notificationService } from "@/lib/notification-service"
+import { AI_USER_ID } from "@/lib/constants"
 
 interface Message {
   id: string
   content: string
   username: string
+  sender_id: string
+  is_ai_response?: boolean
   created_at: string
 }
 
@@ -18,6 +22,13 @@ export default function SimplePage() {
   const [newMessage, setNewMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [mode, setMode] = useState<'chat' | 'ai'>('chat')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<Message[]>([])
+
+  // Keep messages in sync for notifications
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,6 +37,21 @@ export default function SimplePage() {
     }
     
     if (user) {
+      // Request notification permissions
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              notificationService.showNotification(
+                'Notifications Enabled',
+                "You'll now receive notifications from real.simple",
+                () => window.focus()
+              )
+            }
+          })
+        }
+      }
+      
       fetchMessages()
       const interval = setInterval(fetchMessages, 3000)
       return () => clearInterval(interval)
@@ -35,14 +61,46 @@ export default function SimplePage() {
   const fetchMessages = async () => {
     try {
       const chatType = mode === 'ai' ? 'dm' : 'global'
-      const chatId = mode === 'ai' ? 'ai-user-id-12345' : undefined
+      const chatId = mode === 'ai' ? 'AI_USER_ID' : undefined
       const params = new URLSearchParams({ chatType })
       if (chatId) params.append('chatId', chatId)
       
       const response = await fetch(`/api/messages?${params}`)
       if (response.ok) {
         const data = await response.json()
-        setMessages(data.messages.slice(-20))
+        const newMessages = data.messages.slice(-20)
+        
+        // Handle notifications for new messages
+        if (user && user.notifications_enabled && messagesRef.current.length > 0) {
+          const currentMessageIds = new Set(messagesRef.current.map(m => m.id))
+          const newMessagesForNotification = newMessages.filter(
+            (msg: Message) => !currentMessageIds.has(msg.id) && msg.sender_id !== user.id
+          )
+          
+          newMessagesForNotification.forEach((msg: Message) => {
+            const chatName = mode === 'ai' ? 'AI Chat' : 'Global Chat'
+            notificationService.showNotification(
+              `New message in ${chatName}`,
+              `${msg.username}: ${msg.content}`,
+              () => {
+                // Focus window when notification clicked
+                window.focus()
+                if (messagesEndRef.current) {
+                  messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+                }
+              }
+            )
+          })
+        }
+        
+        setMessages(newMessages)
+        
+        // Auto scroll to bottom
+        setTimeout(() => {
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+          }
+        }, 100)
       }
     } catch (error) {
       console.error("Failed to fetch messages:", error)
@@ -56,7 +114,7 @@ export default function SimplePage() {
     setSending(true)
     try {
       const chatType = mode === 'ai' ? 'dm' : 'global'
-      const chatId = mode === 'ai' ? 'ai-user-id-12345' : undefined
+      const chatId = mode === 'ai' ? 'AI_USER_ID' : undefined
       
       const response = await fetch("/api/messages", {
         method: "POST",
@@ -102,157 +160,150 @@ export default function SimplePage() {
   }
 
   return (
-    <div style={{
-      fontFamily: 'monospace',
-      backgroundColor: '#ffffff',
-      color: '#000000',
-      minHeight: '100vh',
-      padding: '10px'
-    }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <div style={{
-        borderBottom: '1px solid #cccccc',
-        paddingBottom: '10px',
-        marginBottom: '10px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <strong>real.simple</strong>
-          <span style={{marginLeft: '10px', color: '#666'}}>@{user.username}</span>
-          <span style={{marginLeft: '10px', fontSize: '10px', color: '#999'}}>
-            [{mode === 'chat' ? 'GLOBAL CHAT' : 'AI CHAT'}]
-          </span>
-        </div>
-        <div>
-          <button 
-            onClick={() => setMode(mode === 'chat' ? 'ai' : 'chat')}
-            style={{
-              marginRight: '5px',
-              padding: '2px 8px',
-              border: '1px solid #000',
-              background: mode === 'ai' ? '#000' : 'white',
-              color: mode === 'ai' ? 'white' : '#000',
-              cursor: 'pointer',
-              fontSize: '10px'
-            }}
-          >
-            {mode === 'chat' ? 'AI' : 'CHAT'}
-          </button>
-          <button 
-            onClick={() => switchMode('lite')}
-            style={{
-              marginRight: '5px',
-              padding: '2px 8px',
-              border: '1px solid #ccc',
-              background: 'white',
-              cursor: 'pointer',
-              fontSize: '10px'
-            }}
-          >
-            LITE
-          </button>
-          <button 
-            onClick={() => switchMode('full')}
-            style={{
-              marginRight: '5px',
-              padding: '2px 8px',
-              border: '1px solid #ccc',
-              background: 'white',
-              cursor: 'pointer',
-              fontSize: '10px'
-            }}
-          >
-            FULL
-          </button>
-          <button 
-            onClick={() => router.push('/settings/simple')}
-            style={{
-              marginRight: '5px',
-              padding: '2px 8px',
-              border: '1px solid #ccc',
-              background: 'white',
-              cursor: 'pointer',
-              fontSize: '10px'
-            }}
-          >
-            SET
-          </button>
-          <button 
-            onClick={handleSignOut}
-            style={{
-              padding: '2px 8px',
-              border: '1px solid #ccc',
-              background: 'white',
-              cursor: 'pointer',
-              fontSize: '10px'
-            }}
-          >
-            OUT
-          </button>
+      <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  real<span className="text-slate-500">.simple</span>
+                </h1>
+              </div>
+              <div className="hidden xs:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                <span className="truncate">@{user.username}</span>
+                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-xs whitespace-nowrap">
+                  {mode === 'chat' ? '🌐 Global' : '🤖 AI'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button 
+                onClick={() => setMode(mode === 'chat' ? 'ai' : 'chat')}
+                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  mode === 'ai' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+                title={mode === 'chat' ? 'Switch to AI' : 'Switch to Chat'}
+              >
+                <span className="hidden xs:inline">{mode === 'chat' ? '🤖 AI' : '🌐 Chat'}</span>
+                <span className="xs:hidden">{mode === 'chat' ? '🤖' : '🌐'}</span>
+              </button>
+              <div className="hidden sm:flex items-center gap-2">
+                <button 
+                  onClick={() => switchMode('lite')}
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Lite
+                </button>
+                <button 
+                  onClick={() => switchMode('full')}
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Full
+                </button>
+              </div>
+              <button 
+                onClick={() => router.push('/settings/simple')}
+                className="px-2 sm:px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                title="Settings"
+              >
+                ⚙️
+              </button>
+              <button 
+                onClick={handleSignOut}
+                className="px-2 sm:px-3 py-1.5 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-xs font-medium hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors"
+                title="Sign Out"
+              >
+                <span className="hidden xs:inline">Sign Out</span>
+                <span className="xs:hidden">Out</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div style={{
-        height: 'calc(100vh - 120px)',
-        overflow: 'auto',
-        border: '1px solid #cccccc',
-        padding: '10px',
-        marginBottom: '10px',
-        backgroundColor: '#fafafa'
-      }}>
-        {messages.length === 0 ? (
-          <div style={{textAlign: 'center', color: '#999', padding: '20px'}}>
-            No messages yet
-          </div>
-        ) : (
-          messages.map((message) => (
-            <div key={message.id} style={{marginBottom: '6px', lineHeight: '1.2'}}>
-              <span style={{fontSize: '10px', fontWeight: 'bold'}}>{message.username}:</span>{' '}
-              <span style={{fontSize: '10px'}}>{message.content}</span>
-              <div style={{fontSize: '8px', color: '#999', marginTop: '1px'}}>
-                {new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)] overflow-y-auto p-3 sm:p-4 space-y-2 sm:space-y-3">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400">
+                <div className="text-4xl mb-2">{mode === 'ai' ? '🤖' : '💬'}</div>
+                <p className="text-sm">No messages yet</p>
+                <p className="text-xs mt-1">
+                  {mode === 'ai' ? 'Ask the AI something!' : 'Start a conversation!'}
+                </p>
               </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Input */}
-      <form onSubmit={handleSend}>
-        <div style={{display: 'flex', gap: '10px'}}>
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={mode === 'ai' ? "Ask AI..." : "Type message..."}
-            style={{
-              flex: 1,
-              padding: '8px',
-              border: '1px solid #cccccc',
-              fontSize: '11px',
-              fontFamily: 'monospace'
-            }}
-            disabled={sending}
-          />
-          <button
-            type="submit"
-            disabled={sending || !newMessage.trim()}
-            style={{
-              padding: '8px 16px',
-              border: '1px solid #cccccc',
-              backgroundColor: sending ? '#f0f0f0' : '#ffffff',
-              cursor: sending ? 'not-allowed' : 'pointer',
-              fontSize: '12px',
-              fontFamily: 'monospace'
-            }}
-          >
-            {sending ? 'SEND...' : 'SEND'}
-          </button>
+            ) : (
+              <>
+                {messages.map((message) => (
+                  <div 
+                    key={message.id} 
+                    className={`flex flex-col gap-1 p-2.5 sm:p-3 rounded-lg transition-colors ${
+                      message.sender_id === user?.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20 ml-4 sm:ml-8'
+                        : message.is_ai_response
+                        ? 'bg-purple-50 dark:bg-purple-900/20 mr-4 sm:mr-8'
+                        : 'bg-slate-50 dark:bg-slate-800/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        {message.is_ai_response ? '🤖 AI' : message.username}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {new Date(message.created_at).toLocaleTimeString([], {
+                          hour: '2-digit', 
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-900 dark:text-slate-100 leading-relaxed break-words">
+                      {message.content}
+                    </p>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </>
+            )}
+          </div>
+          
+          {/* Input */}
+          <div className="border-t border-slate-200 dark:border-slate-700 p-3 sm:p-4">
+            <form onSubmit={handleSend}>
+              <div className="flex gap-2 sm:gap-3">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder={mode === 'ai' ? "Ask AI anything..." : "Type your message..."}
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  disabled={sending}
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !newMessage.trim()}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    sending || !newMessage.trim()
+                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                      : mode === 'ai'
+                      ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
+                >
+                  <span className="hidden xs:inline">{sending ? 'Sending...' : 'Send'}</span>
+                  <span className="xs:hidden">{sending ? '...' : '→'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   )
 }
